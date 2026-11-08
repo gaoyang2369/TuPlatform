@@ -1,0 +1,142 @@
+{
+  "backTargets": {
+    "P-04a": "P-03a",
+    "P-04b": "P-04a",
+    "P-05": "P-04b",
+    "P-06-pending": "P-03a",
+    "P-06-rejected": "P-03a",
+    "T-02": "T-01",
+    "P-06": "P-03a",
+    "P-02": "P-01",
+    "P-02-invited": "P-02",
+    "S-01-response": "P-06",
+    "S-01-invited": "T-03",
+    "A-02": "A-01",
+    "G-01-register": "G-01",
+    "G-01-forgot": "G-01",
+    "G-01-reset": "G-01-forgot",
+    "G-02-confirm": "G-02-select",
+    "G-02-confirm-teacher": "G-02-select",
+    "G-01-error": "G-01",
+    "S-03-confirm": "S-03",
+    "S-03": "S-01",
+    "G-01-verify-password": "G-01-verified",
+    "G-02-correction": "G-02",
+    "G-02-correction-teacher": "G-02-teacher",
+    "G-02-correction-confirm": "G-02",
+    "G-02-correction-manual": "T-01",
+    "G-02-correction-complete": "G-02",
+    "G-02-archive": "T-01",
+    "G-02-email": "G-02",
+    "G-02-email-ready": "G-02",
+    "G-02-email-done": "G-02",
+    "G-02-recovery": "G-02",
+    "G-02-recovery-wait": "T-01",
+    "G-02-recovery-unavailable": "G-01",
+    "G-02-history-limits": "T-01",
+    "T-04": "G-02-teacher",
+    "T-04-preview": "T-04",
+    "T-04-saved": "G-02-teacher",
+    "T-04-published": "G-02-teacher",
+    "T-04-edit": "T-04-published",
+    "T-04-stop-confirm": "T-04-published",
+    "T-04-stopped": "G-02-teacher",
+    "T-04-invalid": "G-02-teacher",
+    "P-01": "P-03a",
+    "P-02-invite-confirm": "P-02",
+    "T-02-apply-confirm": "T-02",
+    "T-03": "G-02-teacher",
+    "S-01-applied": "G-02-teacher",
+    "S-01-invite-wait": "P-03a",
+    "S-01-accept-confirm": "P-03a",
+    "S-01-reject-confirm": "P-03a",
+    "S-01-rejected": "P-03a",
+    "S-01-teacher-accept-confirm": "G-02-teacher",
+    "S-01-teacher-reject-confirm": "G-02-teacher",
+    "S-01-teacher-rejected": "G-02-teacher",
+    "S-01": "P-03a",
+    "S-01-teacher": "T-03",
+    "S-01-withdraw-confirm": "G-02-teacher",
+    "S-01-withdrawn": "G-02-teacher",
+    "S-01-invite-withdraw-confirm": "P-03a",
+    "S-01-invite-withdrawn": "P-03a",
+    "S-01-expired-existing": "G-02-teacher",
+    "S-03-teacher-start": "S-01-teacher",
+    "S-03-teacher-confirm": "S-03-teacher-start",
+    "S-03-teacher-mine": "S-01-teacher",
+    "P-08": "G-02",
+    "P-contact": "G-02",
+    "T-contact": "G-02-teacher",
+    "P-05-ready": "P-04b",
+    "G-01-register-ready": "G-01",
+    "S-01-declined": "T-03",
+    "T-02-profile-gate": "T-02",
+    "P-02-no-request": "P-02",
+    "T-04-save-failed": "T-04",
+    "T-01-guest": "G-01",
+    "T-02-guest": "T-01-guest"
+  },
+  "starts": [
+    {
+      "key": "index",
+      "name": "设计索引"
+    },
+    {
+      "key": "P-03a",
+      "name": "需求方：发布需求"
+    },
+    {
+      "key": "A-01",
+      "name": "运营：审核需求"
+    },
+    {
+      "key": "T-01",
+      "name": "老师：浏览与投递"
+    },
+    {
+      "key": "T-04",
+      "name": "老师：完善并公开资料"
+    },
+    {
+      "key": "T-03",
+      "name": "老师：我的投递与邀请"
+    },
+    {
+      "key": "P-01",
+      "name": "需求方：邀请老师"
+    },
+    {
+      "key": "S-01-response",
+      "name": "需求方：回应老师投递"
+    },
+    {
+      "key": "S-01-invited",
+      "name": "老师：回应需求方邀请"
+    },
+    {
+      "key": "P-06-rejected",
+      "name": "需求方：驳回后修订"
+    },
+    {
+      "key": "G-01",
+      "name": "账号：登录与注册"
+    },
+    {
+      "key": "G-02-select",
+      "name": "账号：单一身份选择"
+    },
+    {
+      "key": "S-03",
+      "name": "授权：需求方本人"
+    },
+    {
+      "key": "S-03-teacher",
+      "name": "授权：老师观察视角"
+    },
+    {
+      "key": "T-01-guest",
+      "name": "匿名：浏览公开需求"
+    }
+  ],
+  "coreOnly": true
+}

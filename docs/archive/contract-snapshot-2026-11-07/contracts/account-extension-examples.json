@@ -1,0 +1,335 @@
+[
+  {
+    "id": "self-apply-valid",
+    "spec": "account-access",
+    "schema": "SelfCorrectionApply",
+    "value": {
+      "targetIdentity": "TUTOR",
+      "sourceIdentityVersion": 1,
+      "impactToken": "synthetic-signed-impact",
+      "acknowledgementVersion": "identity-correction-v1"
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "self-apply-no-ack",
+    "spec": "account-access",
+    "schema": "SelfCorrectionApply",
+    "value": {
+      "targetIdentity": "TUTOR",
+      "sourceIdentityVersion": 1,
+      "impactToken": "synthetic"
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "self-apply-ops",
+    "spec": "account-access",
+    "schema": "SelfCorrectionApply",
+    "value": {
+      "targetIdentity": "OPS",
+      "sourceIdentityVersion": 1,
+      "impactToken": "synthetic",
+      "acknowledgementVersion": "identity-correction-v1"
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "applied-valid",
+    "spec": "account-access",
+    "schema": "CorrectionApplied",
+    "value": {
+      "correctionId": "11111111-1111-4111-8111-111111111111",
+      "status": "COMPLETED",
+      "businessIdentity": "TUTOR",
+      "identityVersion": 2,
+      "identityEpoch": 2,
+      "archiveId": "11111111-1111-4111-8111-111111111111",
+      "reloginRequired": true
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "applied-relogin-false",
+    "spec": "account-access",
+    "schema": "CorrectionApplied",
+    "value": {
+      "correctionId": "11111111-1111-4111-8111-111111111111",
+      "status": "COMPLETED",
+      "businessIdentity": "TUTOR",
+      "identityVersion": 2,
+      "identityEpoch": 2,
+      "archiveId": "11111111-1111-4111-8111-111111111111",
+      "reloginRequired": false
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "operation-new-kind-valid",
+    "spec": "account-access",
+    "schema": "Operation",
+    "value": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "IDENTITY_CORRECTION_APPLIED",
+      "acceptedAt": "2026-11-07T02:00:00Z",
+      "completedAt": "2026-11-07T02:00:00Z",
+      "expiresAt": "2026-11-10T02:00:00Z",
+      "originalHttpStatus": 200,
+      "status": "SUCCEEDED",
+      "result": {
+        "correctionId": "11111111-1111-4111-8111-111111111111",
+        "status": "COMPLETED",
+        "businessIdentity": "TUTOR",
+        "identityVersion": 2,
+        "identityEpoch": 2,
+        "archiveId": "11111111-1111-4111-8111-111111111111",
+        "reloginRequired": true
+      }
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "operation-wrong-result",
+    "spec": "account-access",
+    "schema": "Operation",
+    "value": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "IDENTITY_CORRECTION_APPLIED",
+      "acceptedAt": "2026-11-07T02:00:00Z",
+      "completedAt": "2026-11-07T02:00:00Z",
+      "expiresAt": "2026-11-10T02:00:00Z",
+      "originalHttpStatus": 200,
+      "status": "SUCCEEDED",
+      "result": {
+        "businessIdentity": "TUTOR",
+        "identityVersion": 2
+      }
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "request-action-needs-reason",
+    "spec": "account-access",
+    "schema": "CorrectionReviewInput",
+    "value": {
+      "expectedCaseVersion": 1,
+      "sourceIdentityVersion": 1,
+      "expectedActivityVersion": 1,
+      "decision": "REQUEST_ACTION"
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "review-approve-valid",
+    "spec": "account-access",
+    "schema": "CorrectionReviewInput",
+    "value": {
+      "expectedCaseVersion": 1,
+      "sourceIdentityVersion": 1,
+      "expectedActivityVersion": 1,
+      "decision": "APPROVE"
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "case-valid",
+    "spec": "account-access",
+    "schema": "IdentityCorrection",
+    "value": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "version": 2,
+      "sourceIdentity": "DEMANDER",
+      "targetIdentity": "TUTOR",
+      "sourceIdentityVersion": 1,
+      "sourceIdentityEpoch": 1,
+      "route": "MANUAL_REVIEW",
+      "status": "READY_FOR_CONFIRMATION",
+      "createdAt": "2026-11-07T02:00:00Z",
+      "updatedAt": "2026-11-07T02:00:00Z"
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "case-ops-data-leak",
+    "spec": "account-access",
+    "schema": "IdentityCorrection",
+    "value": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "version": 2,
+      "sourceIdentity": "DEMANDER",
+      "targetIdentity": "TUTOR",
+      "sourceIdentityVersion": 1,
+      "sourceIdentityEpoch": 1,
+      "route": "MANUAL_REVIEW",
+      "status": "READY_FOR_CONFIRMATION",
+      "createdAt": "2026-11-07T02:00:00Z",
+      "updatedAt": "2026-11-07T02:00:00Z",
+      "reviewerAccountId": "11111111-1111-4111-8111-111111111111"
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "email-change-create",
+    "spec": "account-access",
+    "schema": "EmailChangeCreate",
+    "value": {
+      "newEmail": "synthetic+new@example.invalid",
+      "expectedEmailVersion": 1
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "email-change-wrong-version",
+    "spec": "account-access",
+    "schema": "EmailChangeCreate",
+    "value": {
+      "newEmail": "a@example.invalid",
+      "expectedEmailVersion": 0
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "anonymous-proof-safe",
+    "spec": "account-access",
+    "schema": "EmailLinkConfirmed",
+    "value": {
+      "confirmed": true
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "anonymous-proof-leak",
+    "spec": "account-access",
+    "schema": "EmailLinkConfirmed",
+    "value": {
+      "confirmed": true,
+      "email": "a@example.invalid"
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "password-confirmation",
+    "spec": "account-access",
+    "schema": "PasswordReauthentication",
+    "value": {
+      "password": "synthetic password only"
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "archive-valid",
+    "spec": "account-access",
+    "schema": "IdentityArchive",
+    "value": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "businessIdentity": "DEMANDER",
+      "identityEpoch": 1,
+      "archivedAt": "2026-11-07T02:00:00Z",
+      "correctionId": "11111111-1111-4111-8111-111111111111",
+      "resourceCounts": {
+        "requests": 2,
+        "submissions": 0,
+        "roleProfiles": 0
+      },
+      "supportedReaders": [
+        "REQUEST",
+        "REQUEST_SUBMISSION"
+      ]
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "impact-bad-date",
+    "spec": "account-access",
+    "schema": "CorrectionImpact",
+    "value": {
+      "token": "synthetic",
+      "expiresAt": "not-a-date",
+      "draftCount": 1,
+      "roleProfileCount": 0
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "applied-bad-uuid",
+    "spec": "account-access",
+    "schema": "CorrectionApplied",
+    "value": {
+      "correctionId": "11111111-1111-4111-8111-111111111111",
+      "status": "COMPLETED",
+      "businessIdentity": "TUTOR",
+      "identityVersion": 2,
+      "identityEpoch": 2,
+      "archiveId": "not-a-uuid",
+      "reloginRequired": true
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "auth-receipt-no-business-result",
+    "spec": "account-access",
+    "schema": "AuthReceipt",
+    "value": {
+      "receiptId": "11111111-1111-4111-8111-111111111111",
+      "status": "COMPLETED",
+      "result": {
+        "correctionId": "11111111-1111-4111-8111-111111111111",
+        "status": "COMPLETED",
+        "businessIdentity": "TUTOR",
+        "identityVersion": 2,
+        "identityEpoch": 2,
+        "archiveId": "11111111-1111-4111-8111-111111111111",
+        "reloginRequired": true
+      }
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "request-flow-combo-unspecified",
+    "spec": "request-flow",
+    "schema": "PublishingRule",
+    "value": {
+      "categoryCode": "TEST_ALLOWED",
+      "audienceStageCode": "ADULT",
+      "serviceMode": "UNSPECIFIED",
+      "allowSubmit": true
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "request-flow-combo-null",
+    "spec": "request-flow",
+    "schema": "PublishingRule",
+    "value": {
+      "categoryCode": "TEST_ALLOWED",
+      "audienceStageCode": "ADULT",
+      "serviceMode": null,
+      "allowSubmit": true
+    },
+    "expectedValid": false
+  },
+  {
+    "id": "account-access-combo-unspecified",
+    "spec": "account-access",
+    "schema": "PublishingRule",
+    "value": {
+      "categoryCode": "TEST_ALLOWED",
+      "audienceStageCode": "ADULT",
+      "serviceMode": "UNSPECIFIED",
+      "allowSubmit": true
+    },
+    "expectedValid": true
+  },
+  {
+    "id": "account-access-combo-null",
+    "spec": "account-access",
+    "schema": "PublishingRule",
+    "value": {
+      "categoryCode": "TEST_ALLOWED",
+      "audienceStageCode": "ADULT",
+      "serviceMode": null,
+      "allowSubmit": true
+    },
+    "expectedValid": false
+  }
+]

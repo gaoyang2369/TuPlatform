@@ -1,0 +1,6266 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "邻课：需求草稿—提交—审核—公开浏览",
+    "version": "0.3.1-design-draft",
+    "description": "v0.2设计稿；权限/事务/恢复见request-flow-contract-v0.2.md。无真实实现；规范验证与业务验收分别记录，见最新交付记录。"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "Session": []
+    }
+  ],
+  "x-design-status": "design-draft-with-business-blockers",
+  "x-pending": [
+    "实际类别/主体准入及网络交易保留义务适用性核验",
+    "服务条款/隐私文本及版本",
+    "人工恢复受限方案及待补充30天结案已确认；预定机器契约、安全许可回执和独立人员仍缺",
+    "老师及关系的归档读模型和Q-03等既有关系处置",
+    "注销/唯一键释放及分类保留的生产适用依据",
+    "运营强认证登记/恢复运行验证",
+    "Figma和只读样例仅定向同步，不代表全部流程已验证"
+  ],
+  "paths": {
+    "/me/requests": {
+      "get": {
+        "operationId": "listOwnRequests",
+        "summary": "需求方本人当前列表",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "签名游标绑定主体/条件/顺序，15分钟有效；非快照。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "PENDING_REVIEW",
+                "REJECTED",
+                "OPEN",
+                "EXPIRED"
+              ]
+            }
+          }
+        ],
+        "description": "仅本人当前DEMANDER epoch，旧epoch只经本人归档接口读取，不能混入可编辑当前列表。"
+      },
+      "post": {
+        "operationId": "createRequestDraft",
+        "summary": "创建本人不完整草稿",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "同步CSRF令牌，写请求另校验Origin。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "账号+UUID唯一；同键跨路径/不同指纹409。id即Operation.id。"
+          },
+          {
+            "name": "Operation-Started-At",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "首次发送时间，重试不更新；首次接收允许过去72h/未来5min；不决定业务日期。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftContent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "草稿创建成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Operation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "等于客户端Idempotency-Key。"
+              },
+              "Operation-Expires-At": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "完成起72小时恢复窗口。"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "description": "当前聚合强ETag；历史回执不代表最新版本。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerRequest"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "处理中",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": "查询同一操作。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationProcessing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE（原键重放且结果正文已清/受限，原终态不变）；或本动作已定义的REQUEST_EXPIRED / TOKEN_UNUSABLE。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/requests/{id}": {
+      "get": {
+        "operationId": "getOwnRequest",
+        "summary": "本人当前需求，无截止日期",
+        "responses": {
+          "200": {
+            "description": "本人当前聚合",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "description": "当前聚合强ETag；历史回执不代表最新版本。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CONTENT_UNAVAILABLE；已获权但正文已清或超普通历史范围；他人404",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "description": "当前DEMANDER且对象epoch为当前epoch；本人旧epoch对象走归档读模型，不恢复旧业务权限。"
+      },
+      "put": {
+        "operationId": "replaceRequestDraft",
+        "summary": "全量替换DRAFT，省略即清空",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "同步CSRF令牌，写请求另校验Origin。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "账号+UUID唯一；同键跨路径/不同指纹409。id即Operation.id。"
+          },
+          {
+            "name": "Operation-Started-At",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "首次发送时间，重试不更新；首次接收允许过去72h/未来5min；不决定业务日期。"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "description": "单一强ETag \"request:{id}:v{version}\"；禁止*或弱值；缺428、旧412。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftContent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Operation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "等于客户端Idempotency-Key。"
+              },
+              "Operation-Expires-At": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "完成起72小时恢复窗口。"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "description": "当前聚合强ETag；历史回执不代表最新版本。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerRequest"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "处理中",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": "查询同一操作。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationProcessing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE（原键重放且结果正文已清/受限，原终态不变）；或本动作已定义的REQUEST_EXPIRED / TOKEN_UNUSABLE。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "VERSION_CONFLICT",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "VERSION_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "description": "当前DEMANDER且对象创建identityEpoch等于本人当前epoch；旧epoch只能经归档只读，改回同类身份也不复活。全量替换、省略清空。"
+      }
+    },
+    "/me/requests/{id}/revisions": {
+      "post": {
+        "operationId": "startRequestRevision",
+        "summary": "REJECTED/EXPIRED主动修订",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "同步CSRF令牌，写请求另校验Origin。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "账号+UUID唯一；同键跨路径/不同指纹409。id即Operation.id。"
+          },
+          {
+            "name": "Operation-Started-At",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "首次发送时间，重试不更新；首次接收允许过去72h/未来5min；不决定业务日期。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Revision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "原动作结果；随后读取当前对象",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Operation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "等于客户端Idempotency-Key。"
+              },
+              "Operation-Expires-At": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "完成起72小时恢复窗口。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerRequest"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "处理中；不是成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": "查询同一操作。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationProcessing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE（原键重放且结果正文已清/受限，原终态不变）；或本动作已定义的REQUEST_EXPIRED / TOKEN_UNUSABLE。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/requests/{id}/submit": {
+      "post": {
+        "operationId": "submitRequestForReview",
+        "summary": "冻结完整草稿，提交待审",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "同步CSRF令牌，写请求另校验Origin。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "账号+UUID唯一；同键跨路径/不同指纹409。id即Operation.id。"
+          },
+          {
+            "name": "Operation-Started-At",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "首次发送时间，重试不更新；首次接收允许过去72h/未来5min；不决定业务日期。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Submit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "原动作结果；随后读取当前对象",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Operation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "等于客户端Idempotency-Key。"
+              },
+              "Operation-Expires-At": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "完成起72小时恢复窗口。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerRequest"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "处理中；不是成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": "查询同一操作。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationProcessing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE（原键重放且结果正文已清/受限，原终态不变）；或本动作已定义的REQUEST_EXPIRED / TOKEN_UNUSABLE。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "description": "同一事务锁账号守卫并校验当前identityEpoch，成功提交置hasBusinessHistory=true并增加activityVersion，与纠错执行序列化。"
+      }
+    },
+    "/me/requests/{id}/submissions": {
+      "get": {
+        "operationId": "listOwnRequestSubmissions",
+        "summary": "本人历史快照/反馈，无截止日期/运营身份",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerSubmissionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "签名游标绑定主体/条件/顺序，15分钟有效；非快照。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "description": "当前epoch需求的提交历史；旧epoch历史改走归档提交接口，仍不得带具体截止日或运营身份。"
+      }
+    },
+    "/operations/{id}": {
+      "get": {
+        "operationId": "getOwnOperation",
+        "summary": "原账号及当前对象权限，分类型历史结果",
+        "responses": {
+          "200": {
+            "description": "操作状态；FAILED不等于原动作成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE；原终态不改变，不推断未发生",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/request-publishing-options": {
+      "get": {
+        "operationId": "getRequestPublishingOptions",
+        "summary": "需求方本人读取当前选项、准入版本和声明文案",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishingOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "description": "rules是服务端当前组合准入投影，UNSPECIFIED匹配省略方式；不得从categories.allowSubmit自行生成笛卡尔积。测试配置不用于真实开放。"
+      }
+    },
+    "/ops/request-reviews": {
+      "get": {
+        "operationId": "listRequestReviews",
+        "summary": "独立运营待审队列/固定提交的终结历史",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "签名游标绑定主体/条件/顺序，15分钟有效；非快照。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "reviewState",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_REVIEW",
+                "APPROVED",
+                "REJECTED",
+                "EXPIRED_BEFORE_REVIEW"
+              ],
+              "default": "PENDING_REVIEW"
+            }
+          },
+          {
+            "name": "categoryCode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+            }
+          },
+          {
+            "name": "areaCode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+            }
+          }
+        ]
+      }
+    },
+    "/ops/request-reviews/{id}": {
+      "get": {
+        "operationId": "getRequestReview",
+        "summary": "id为submissionId，处理后仍可查",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF_INVALID / ROLE_NOT_ALLOWED / OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/ops/request-reviews/{id}/decisions": {
+      "post": {
+        "operationId": "decideRequestReview",
+        "summary": "独立岗位/强认证审核固定submissionId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "同步CSRF令牌，写请求另校验Origin。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "账号+UUID唯一；同键跨路径/不同指纹409。id即Operation.id。"
+          },
+          {
+            "name": "Operation-Started-At",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "首次发送时间，重试不更新；首次接收允许过去72h/未来5min；不决定业务日期。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "原动作结果；随后读取当前对象",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Operation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "等于客户端Idempotency-Key。"
+              },
+              "Operation-Expires-At": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "完成起72小时恢复窗口。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOutcome"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "处理中；不是成功",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": "查询同一操作。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "秒数，默认2。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationProcessing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPS_PERMISSION_REQUIRED / OPS_STEP_UP_REQUIRED / SELF_REVIEW_NOT_ALLOWED / CSRF_INVALID",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT / STATE_CONFLICT / IDEMPOTENCY_MISMATCH / OPERATION_WINDOW_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OPERATION_RESULT_UNAVAILABLE（原键重放且结果正文已清/受限，原终态不变）；或本动作已定义的REQUEST_EXPIRED / TOKEN_UNUSABLE。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE；JSON技术上限64KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FIELD_INVALID / CATEGORY_NOT_ALLOWED / PROFILE_INCOMPLETE",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "description": "expectedVersion匹配主对象requestVersion及当前submissionId；到期原子结束EXPIRED，410及FAILED回执，禁止APPROVE；历史按原submissionId恢复。"
+      }
+    },
+    "/requests": {
+      "get": {
+        "operationId": "listPublicRequests",
+        "summary": "匿名有效公开需求列表",
+        "responses": {
+          "200": {
+            "description": "当前有效公开投影",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "签名游标绑定主体/条件/顺序，15分钟有效；非快照。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "categoryCode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+            }
+          },
+          {
+            "name": "areaCode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+            }
+          }
+        ]
+      }
+    },
+    "/requests/{id}": {
+      "get": {
+        "operationId": "getPublicRequest",
+        "summary": "匿名已批准、准入允许、实时未到期OPEN",
+        "responses": {
+          "200": {
+            "description": "当前有效公开投影",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MALFORMED_REQUEST / CURSOR_INVALID / CURSOR_EXPIRED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND；无权/不存在统一",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "可重试秒数"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TEMPORARILY_UNAVAILABLE；单凭响应不能确认未提交",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "禁用HTTP缓存，不代替实时鉴权。"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-linke_session",
+        "description": "服务端同源会话，含受限匿名上下文；Cookie存在不等于登录。Secure/HttpOnly/SameSite=Lax/Path=/；写入CSRF+Origin。"
+      }
+    },
+    "schemas": {
+      "Money": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$",
+        "description": "元/小时字符串，业务>0、max>=min；numeric(14,2)技术边界999999999999.99，无999元业务上限；响应两位小数。"
+      },
+      "DurationHours": {
+        "type": "string",
+        "enum": [
+          "0.5",
+          "1",
+          "1.5",
+          "2",
+          "2.5",
+          "3",
+          "3.5",
+          "4",
+          "4.5",
+          "5",
+          "5.5",
+          "6",
+          "6.5",
+          "7",
+          "7.5",
+          "8"
+        ],
+        "description": "小时0.5—8、步长0.5，请求采用此规范表示。"
+      },
+      "Slot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekday": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$"
+          }
+        },
+        "required": [
+          "weekday",
+          "start",
+          "end"
+        ]
+      },
+      "Frequency": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "NEGOTIABLE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "WEEKLY"
+              },
+              "times": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 14
+              }
+            },
+            "required": [
+              "kind",
+              "times"
+            ]
+          }
+        ]
+      },
+      "DraftContent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "categoryCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "audienceStageCode": {
+            "type": "string",
+            "enum": [
+              "PRIMARY",
+              "JUNIOR",
+              "SENIOR",
+              "ADULT",
+              "OTHER"
+            ]
+          },
+          "areaCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "publisherDeclaration": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "SELF_ADULT",
+                  "GUARDIAN_OF_MINOR"
+                ]
+              },
+              "statementVersion": {
+                "type": "string",
+                "const": "publisher-v1"
+              }
+            },
+            "required": [
+              "kind",
+              "statementVersion"
+            ]
+          },
+          "serviceMode": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE"
+            ]
+          },
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "budgetMin": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "budgetMax": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "durationHours": {
+            "$ref": "#/components/schemas/DurationHours"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/Frequency"
+          },
+          "availableSlots": {
+            "type": "array",
+            "maxItems": 21,
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "description": "Asia/Shanghai；end>start；同日重复/重叠拒绝、相邻允许、跨午夜拆分；不生成预约。"
+          },
+          "availabilityNote": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "expectedStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "tutorExpectations": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "SubmissionContent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "categoryCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "audienceStageCode": {
+            "type": "string",
+            "enum": [
+              "PRIMARY",
+              "JUNIOR",
+              "SENIOR",
+              "ADULT",
+              "OTHER"
+            ]
+          },
+          "areaCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "publisherDeclaration": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "SELF_ADULT",
+                  "GUARDIAN_OF_MINOR"
+                ]
+              },
+              "statementVersion": {
+                "type": "string",
+                "const": "publisher-v1"
+              }
+            },
+            "required": [
+              "kind",
+              "statementVersion"
+            ]
+          },
+          "serviceMode": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE"
+            ]
+          },
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "budgetMin": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "budgetMax": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "durationHours": {
+            "$ref": "#/components/schemas/DurationHours"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/Frequency"
+          },
+          "availableSlots": {
+            "type": "array",
+            "maxItems": 21,
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "description": "Asia/Shanghai；end>start；同日重复/重叠拒绝、相邻允许、跨午夜拆分；不生成预约。",
+            "minItems": 1
+          },
+          "availabilityNote": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "expectedStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "tutorExpectations": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "title",
+          "categoryCode",
+          "audienceStageCode",
+          "areaCode",
+          "publisherDeclaration",
+          "goal",
+          "budgetMin",
+          "budgetMax",
+          "durationHours",
+          "frequency",
+          "availableSlots"
+        ]
+      },
+      "PublicContent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "categoryCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "audienceStageCode": {
+            "type": "string",
+            "enum": [
+              "PRIMARY",
+              "JUNIOR",
+              "SENIOR",
+              "ADULT",
+              "OTHER"
+            ]
+          },
+          "areaCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "serviceMode": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE"
+            ]
+          },
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "budgetMin": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "budgetMax": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "durationHours": {
+            "$ref": "#/components/schemas/DurationHours"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/Frequency"
+          },
+          "availableSlots": {
+            "type": "array",
+            "maxItems": 21,
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "description": "Asia/Shanghai；end>start；同日重复/重叠拒绝、相邻允许、跨午夜拆分；不生成预约。",
+            "minItems": 1
+          },
+          "availabilityNote": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "expectedStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "tutorExpectations": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "title",
+          "categoryCode",
+          "audienceStageCode",
+          "areaCode",
+          "goal",
+          "budgetMin",
+          "budgetMax",
+          "durationHours",
+          "frequency",
+          "availableSlots"
+        ]
+      },
+      "Feedback": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "EXPIRED_BEFORE_REVIEW"
+            ]
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "submissionId",
+          "submittedVersion",
+          "resolution",
+          "resolvedAt"
+        ]
+      },
+      "OwnerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING_REVIEW",
+              "REJECTED",
+              "OPEN",
+              "EXPIRED"
+            ]
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "content": {
+            "$ref": "#/components/schemas/DraftContent"
+          },
+          "lastSubmissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "feedback": {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Feedback"
+            },
+            "description": "最近一次终结反馈；完整历史用submissions分页。"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "revisionNumber",
+          "content",
+          "updatedAt",
+          "feedback"
+        ]
+      },
+      "OwnerSubmission": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "content": {
+            "$ref": "#/components/schemas/SubmissionContent"
+          },
+          "resolution": {
+            "$ref": "#/components/schemas/Feedback"
+          }
+        },
+        "required": [
+          "id",
+          "requestId",
+          "submittedVersion",
+          "revisionNumber",
+          "submittedAt",
+          "content"
+        ]
+      },
+      "Revision": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "sourceVersion"
+        ]
+      },
+      "Submit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ]
+      },
+      "ReviewDecision": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expectedVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "decision": {
+                "const": "APPROVE"
+              }
+            },
+            "required": [
+              "expectedVersion",
+              "decision"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expectedVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "decision": {
+                "const": "REJECT"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "expectedVersion",
+              "decision",
+              "reason"
+            ]
+          }
+        ],
+        "description": "驳回理由非空白；2000码点技术容量；仅本人/授权运营可见。"
+      },
+      "PublicRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "const": "OPEN"
+          },
+          "content": {
+            "$ref": "#/components/schemas/PublicContent"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "content",
+          "publishedAt",
+          "updatedAt"
+        ]
+      },
+      "ReviewOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "submissionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "submittedVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "requestVersionAfter": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "statusAfter": {
+                "const": "OPEN"
+              },
+              "resolution": {
+                "const": "APPROVED"
+              },
+              "reviewDecisionId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "submissionId",
+              "requestId",
+              "submittedVersion",
+              "requestVersionAfter",
+              "resolvedAt",
+              "statusAfter",
+              "resolution",
+              "reviewDecisionId"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "submissionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "submittedVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "requestVersionAfter": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "statusAfter": {
+                "const": "REJECTED"
+              },
+              "resolution": {
+                "const": "REJECTED"
+              },
+              "reviewDecisionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "submissionId",
+              "requestId",
+              "submittedVersion",
+              "requestVersionAfter",
+              "resolvedAt",
+              "statusAfter",
+              "resolution",
+              "reviewDecisionId",
+              "reason"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "submissionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "submittedVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "requestVersionAfter": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "statusAfter": {
+                "const": "EXPIRED"
+              },
+              "resolution": {
+                "const": "EXPIRED_BEFORE_REVIEW"
+              }
+            },
+            "required": [
+              "submissionId",
+              "requestId",
+              "submittedVersion",
+              "requestVersionAfter",
+              "resolvedAt",
+              "statusAfter",
+              "resolution"
+            ]
+          }
+        ],
+        "description": "原动作当时结果；不代表当前仍公开。系统到期不伪造人工决定。"
+      },
+      "ReviewRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "requestVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reviewState": {
+            "type": "string",
+            "enum": [
+              "PENDING_REVIEW",
+              "APPROVED",
+              "REJECTED",
+              "EXPIRED_BEFORE_REVIEW"
+            ]
+          },
+          "requestStatus": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING_REVIEW",
+              "REJECTED",
+              "OPEN",
+              "EXPIRED"
+            ]
+          },
+          "isCurrentSubmission": {
+            "type": "boolean"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "content": {
+            "$ref": "#/components/schemas/SubmissionContent"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ReviewOutcome"
+          }
+        },
+        "required": [
+          "submissionId",
+          "requestId",
+          "submittedVersion",
+          "requestVersion",
+          "reviewState",
+          "requestStatus",
+          "isCurrentSubmission",
+          "submittedAt",
+          "expiresAt",
+          "content"
+        ]
+      },
+      "PublishingOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "allowSubmit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "allowSubmit"
+        ]
+      },
+      "PublishingOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "configRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishingOption"
+            }
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishingOption"
+            }
+          },
+          "audienceStages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishingOption"
+            }
+          },
+          "declarationVersion": {
+            "type": "string",
+            "const": "publisher-v1"
+          },
+          "declarations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "SELF_ADULT",
+                    "GUARDIAN_OF_MINOR"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ]
+            }
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishingRule"
+            },
+            "description": "类别×阶段×方式准入组合；单个选项有效不等于组合允许。未命中组合禁止提交。"
+          }
+        },
+        "required": [
+          "configRevision",
+          "categories",
+          "areas",
+          "audienceStages",
+          "declarationVersion",
+          "declarations",
+          "rules"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "path",
+                "code",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "traceId"
+        ]
+      },
+      "IdentityResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "businessIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "identityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "businessIdentity",
+          "identityVersion"
+        ]
+      },
+      "ProfileResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
+          "missingRequirements": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "DISPLAY_NAME"
+              ]
+            }
+          }
+        },
+        "required": [
+          "version",
+          "missingRequirements"
+        ]
+      },
+      "OperationProcessing": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "REQUEST_CREATED",
+              "REQUEST_SAVED",
+              "REQUEST_REVISED",
+              "REQUEST_SUBMITTED",
+              "REVIEW_DECIDED",
+              "IDENTITY_BOUND",
+              "PROFILE_REPLACED",
+              "IDENTITY_CORRECTION_REQUESTED",
+              "IDENTITY_CORRECTION_WITHDRAWN",
+              "IDENTITY_CORRECTION_RESUBMITTED",
+              "IDENTITY_CORRECTION_REVIEWED",
+              "IDENTITY_CORRECTION_APPLIED",
+              "EMAIL_CHANGE_CREATED",
+              "EMAIL_CHANGE_CANCELLED",
+              "EMAIL_CHANGE_COMPLETED"
+            ]
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "const": "PROCESSING"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "acceptedAt",
+          "status"
+        ]
+      },
+      "OperationSucceeded": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REQUEST_CREATED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/OwnerRequest"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REQUEST_SAVED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/OwnerRequest"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REQUEST_REVISED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/OwnerRequest"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REQUEST_SUBMITTED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/OwnerRequest"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REVIEW_DECIDED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/ReviewOutcome"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_BOUND"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/IdentityResult"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "PROFILE_REPLACED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/ProfileResult"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_CORRECTION_REQUESTED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/IdentityCorrection"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_CORRECTION_WITHDRAWN"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/IdentityCorrection"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_CORRECTION_RESUBMITTED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/IdentityCorrection"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_CORRECTION_REVIEWED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/CorrectionReviewResult"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "IDENTITY_CORRECTION_APPLIED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/CorrectionApplied"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "EMAIL_CHANGE_CREATED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/EmailChange"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "EMAIL_CHANGE_CANCELLED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/EmailChange"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "EMAIL_CHANGE_COMPLETED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result": {
+                "$ref": "#/components/schemas/EmailChanged"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "result"
+            ]
+          }
+        ]
+      },
+      "OperationFailed": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "REQUEST_CREATED",
+                  "REQUEST_SAVED",
+                  "REQUEST_REVISED",
+                  "REQUEST_SUBMITTED",
+                  "IDENTITY_BOUND",
+                  "PROFILE_REPLACED",
+                  "IDENTITY_CORRECTION_REQUESTED",
+                  "IDENTITY_CORRECTION_WITHDRAWN",
+                  "IDENTITY_CORRECTION_RESUBMITTED",
+                  "IDENTITY_CORRECTION_REVIEWED",
+                  "IDENTITY_CORRECTION_APPLIED",
+                  "EMAIL_CHANGE_CREATED",
+                  "EMAIL_CHANGE_CANCELLED",
+                  "EMAIL_CHANGE_COMPLETED"
+                ]
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 400,
+                "maximum": 599
+              },
+              "status": {
+                "const": "FAILED"
+              },
+              "error": {
+                "$ref": "#/components/schemas/Problem"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "const": "REVIEW_DECIDED"
+              },
+              "acceptedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "技术回执恢复期限，不是隐藏的需求截止日期。"
+              },
+              "originalHttpStatus": {
+                "type": "integer",
+                "minimum": 400,
+                "maximum": 599
+              },
+              "status": {
+                "const": "FAILED"
+              },
+              "error": {
+                "$ref": "#/components/schemas/Problem"
+              },
+              "reviewOutcome": {
+                "$ref": "#/components/schemas/ReviewOutcome"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "acceptedAt",
+              "completedAt",
+              "expiresAt",
+              "originalHttpStatus",
+              "status",
+              "error"
+            ]
+          }
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OperationProcessing"
+          },
+          {
+            "$ref": "#/components/schemas/OperationSucceeded"
+          },
+          {
+            "$ref": "#/components/schemas/OperationFailed"
+          }
+        ],
+        "description": "原账号且当前有对象权限；运营kind不返回普通账号。FAILED查询200不等于原动作成功。 原终态事实不改写；若已合法清理/限制结果正文，查询或重放410 OPERATION_RESULT_UNAVAILABLE，不再次执行，不回放已删内容。"
+      },
+      "OwnerPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/OwnerRequest"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "description": "只列仍在普通历史访问范围内且正文可读的对象；已清正文不伪造成空内容。180天按各类起算事件独立计算，见data-retention-spec-v0.1.md。"
+      },
+      "OwnerSubmissionPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/OwnerSubmission"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "description": "只列仍在普通历史访问范围内且正文可读的对象；已清正文不伪造成空内容。180天按各类起算事件独立计算，见data-retention-spec-v0.1.md。"
+      },
+      "PublicPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/PublicRequest"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ReviewPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/ReviewRecord"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CorrectionBlocker": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "CorrectionImpact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "5分钟影响摘要技术有效期"
+          },
+          "draftCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "roleProfileCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "draftCount",
+          "roleProfileCount"
+        ]
+      },
+      "CorrectionEligibility": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currentIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "identityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "identityEpoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "activityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "targetIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "route": {
+            "type": "string",
+            "enum": [
+              "SELF_SERVICE",
+              "MANUAL_REVIEW",
+              "UNAVAILABLE"
+            ]
+          },
+          "hasBusinessHistory": {
+            "type": "boolean"
+          },
+          "selfServiceChangesUsed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionBlocker"
+            }
+          },
+          "activeCaseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "impact": {
+            "$ref": "#/components/schemas/CorrectionImpact"
+          }
+        },
+        "required": [
+          "currentIdentity",
+          "identityVersion",
+          "identityEpoch",
+          "activityVersion",
+          "targetIdentity",
+          "route",
+          "hasBusinessHistory",
+          "selfServiceChangesUsed",
+          "blockers"
+        ]
+      },
+      "IdentityCorrection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "sourceIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "targetIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "sourceIdentityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "sourceIdentityEpoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "route": {
+            "type": "string",
+            "enum": [
+              "SELF_SERVICE",
+              "MANUAL_REVIEW"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "NEEDS_ACTION",
+              "READY_FOR_CONFIRMATION",
+              "REJECTED",
+              "WITHDRAWN",
+              "COMPLETED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ownerFeedback": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "archiveId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "completedIdentityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "sourceIdentity",
+          "targetIdentity",
+          "sourceIdentityVersion",
+          "sourceIdentityEpoch",
+          "route",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CorrectionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "targetIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "sourceIdentityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "targetIdentity",
+          "sourceIdentityVersion"
+        ]
+      },
+      "SelfCorrectionApply": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "targetIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "sourceIdentityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "impactToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "acknowledgementVersion": {
+            "type": "string",
+            "const": "identity-correction-v1"
+          }
+        },
+        "required": [
+          "targetIdentity",
+          "sourceIdentityVersion",
+          "impactToken",
+          "acknowledgementVersion"
+        ]
+      },
+      "CorrectionCaseAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedCaseVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedCaseVersion"
+        ]
+      },
+      "CorrectionConfirm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedCaseVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "sourceIdentityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "impactToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "acknowledgementVersion": {
+            "type": "string",
+            "const": "identity-correction-v1"
+          }
+        },
+        "required": [
+          "expectedCaseVersion",
+          "sourceIdentityVersion",
+          "impactToken",
+          "acknowledgementVersion"
+        ]
+      },
+      "CorrectionReviewInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expectedCaseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "sourceIdentityVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "expectedActivityVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "decision": {
+                "const": "APPROVE"
+              }
+            },
+            "required": [
+              "expectedCaseVersion",
+              "sourceIdentityVersion",
+              "expectedActivityVersion",
+              "decision"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expectedCaseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "sourceIdentityVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "expectedActivityVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "REQUEST_ACTION",
+                  "REJECT"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "expectedCaseVersion",
+              "sourceIdentityVersion",
+              "expectedActivityVersion",
+              "decision",
+              "reason"
+            ]
+          }
+        ]
+      },
+      "CorrectionReviewResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "correction": {
+            "$ref": "#/components/schemas/IdentityCorrection"
+          },
+          "reviewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REQUEST_ACTION",
+              "REJECT"
+            ]
+          },
+          "reviewedActivityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "correction",
+          "reviewId",
+          "decision",
+          "reviewedActivityVersion"
+        ]
+      },
+      "CorrectionReviewDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "correction": {
+            "$ref": "#/components/schemas/IdentityCorrection"
+          },
+          "subjectAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "activityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionBlocker"
+            }
+          },
+          "lastReview": {
+            "$ref": "#/components/schemas/CorrectionReviewResult"
+          }
+        },
+        "required": [
+          "correction",
+          "subjectAccountId",
+          "activityVersion",
+          "blockers"
+        ]
+      },
+      "CorrectionApplied": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "correctionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "const": "COMPLETED"
+          },
+          "businessIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "identityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "identityEpoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "archiveId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reloginRequired": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "correctionId",
+          "status",
+          "businessIdentity",
+          "identityVersion",
+          "identityEpoch",
+          "archiveId",
+          "reloginRequired"
+        ]
+      },
+      "IdentityArchive": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "businessIdentity": {
+            "type": "string",
+            "enum": [
+              "DEMANDER",
+              "TUTOR"
+            ]
+          },
+          "identityEpoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correctionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resourceCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "requests": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "submissions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "roleProfiles": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "requests",
+              "submissions",
+              "roleProfiles"
+            ]
+          },
+          "supportedReaders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "REQUEST",
+                "REQUEST_SUBMISSION",
+                "ROLE_PROFILE"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "businessIdentity",
+          "identityEpoch",
+          "archivedAt",
+          "correctionId",
+          "resourceCounts",
+          "supportedReaders"
+        ],
+        "description": "本人旧epoch归档元信息；资源计数为当前可读取正文数量，不承诺永久保留；角色资料180天、草稿90天、提交历史分别计算。"
+      },
+      "PrivateEmail": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254,
+        "description": "一个邮箱一个账号；唯一键大小写不区分，域名IDNA规范化，点号/+保留；国际邮箱解析兼容性待验证。"
+      },
+      "EmailChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AWAITING_PROOFS",
+              "READY",
+              "COMPLETED",
+              "CANCELLED",
+              "EXPIRED"
+            ]
+          },
+          "sourceEmailVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "oldEmailMasked": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254
+          },
+          "newEmail": {
+            "$ref": "#/components/schemas/PrivateEmail"
+          },
+          "oldEmailConfirmed": {
+            "type": "boolean"
+          },
+          "newEmailVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "换绑证明24小时技术期限，非需求截止日"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "sourceEmailVersion",
+          "oldEmailMasked",
+          "newEmail",
+          "oldEmailConfirmed",
+          "newEmailVerified",
+          "createdAt",
+          "expiresAt",
+          "updatedAt"
+        ]
+      },
+      "EmailChangeCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "newEmail": {
+            "$ref": "#/components/schemas/PrivateEmail"
+          },
+          "expectedEmailVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "newEmail",
+          "expectedEmailVersion"
+        ]
+      },
+      "EmailChangeAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedCaseVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedCaseVersion"
+        ]
+      },
+      "EmailChangeComplete": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedCaseVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expectedEmailVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedCaseVersion",
+          "expectedEmailVersion"
+        ]
+      },
+      "EmailChanged": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "const": "COMPLETED"
+          },
+          "emailVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reloginRequired": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "changeId",
+          "status",
+          "emailVersion",
+          "reloginRequired"
+        ]
+      },
+      "CorrectionPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/IdentityCorrection"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CorrectionReviewPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/CorrectionReviewDetail"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ArchivePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/IdentityArchive"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "EmailChangePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/EmailChange"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PublishingRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "categoryCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "audienceStageCode": {
+            "type": "string",
+            "enum": [
+              "PRIMARY",
+              "JUNIOR",
+              "SENIOR",
+              "ADULT",
+              "OTHER"
+            ]
+          },
+          "serviceMode": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE",
+              "UNSPECIFIED"
+            ]
+          },
+          "allowSubmit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "categoryCode",
+          "audienceStageCode",
+          "serviceMode",
+          "allowSubmit"
+        ]
+      }
+    }
+  }
+}

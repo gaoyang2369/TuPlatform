@@ -1,0 +1,286 @@
+{
+  "date": "2026-11-07",
+  "scope": "Design only; no auth/backend/database/mail/deployment",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/build-request-contract.mjs",
+      "exitCode": 0,
+      "stdout": "{\"generated\":[{\"title\":\"邻课：需求草稿—提交—审核—公开浏览\",\"paths\":12,\"operations\":14,\"schemas\":53},{\"title\":\"邻课：账号与权限前置\",\"paths\":34,\"operations\":37,\"schemas\":73}],\"implementation\":false}\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/build-request-contract.mjs",
+      "exitCode": 0,
+      "stdout": "{\"generated\":[{\"title\":\"邻课：需求草稿—提交—审核—公开浏览\",\"paths\":12,\"operations\":14,\"schemas\":53},{\"title\":\"邻课：账号与权限前置\",\"paths\":34,\"operations\":37,\"schemas\":73}],\"implementation\":false}\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/build-request-contract.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/account-contract-extensions.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/retention-contract-extensions.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/extend-retention-scenes-2026-11-07.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/validate-request-contract.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe --check docs/design/source/validate-retention-recovery.mjs",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/validate-request-contract.mjs",
+      "exitCode": 0,
+      "stdout": "{\n  \"status\": \"passed\",\n  \"reports\": [\n    {\n      \"name\": \"request-flow\",\n      \"paths\": 12,\n      \"operations\": 14,\n      \"schemas\": 53,\n      \"localReferences\": 197,\n      \"schemaExamples\": 42\n    },\n    {\n      \"name\": \"account-access\",\n      \"paths\": 34,\n      \"operations\": 37,\n      \"schemas\": 73,\n      \"localReferences\": 454,\n      \"schemaExamples\": 49\n    }\n  ],\n  \"checks\": \"local refs, exact path parameters, unique operations, CSRF/cache/operation headers, recursive public whitelist, shared schema parity, schema-subset fixtures\",\n  \"limitations\": \"Not full OAS/JSON Schema validation; format semantics, cross-field/domain rules, authorization, DB transactions, real mail and browser behavior not executed.\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Project\\Idea\\TuPlatform\\.tools\\design-validation\\Scripts\\python.exe docs/design/source/validate-openapi.py",
+      "exitCode": 0,
+      "stdout": "{\r\n  \"status\": \"passed\",\r\n  \"validator\": \"OpenAPIV31SpecValidator\",\r\n  \"packageVersion\": \"0.9.0\",\r\n  \"jsonschemaVersion\": \"4.26.0\",\r\n  \"reports\": [\r\n    {\r\n      \"file\": \"docs/contracts/request-flow.openapi.json\",\r\n      \"openapi\": \"3.1.1\",\r\n      \"version\": \"0.3.1-design-draft\",\r\n      \"schemasChecked\": 53,\r\n      \"sha256\": \"1b8239df892206647bf937dfddcc474a2a4cc7035982fad3a420623df8b94b8c\",\r\n      \"status\": \"passed\",\r\n      \"negativeControl\": \"missing info rejected\",\r\n      \"fullSchemaExamples\": 2\r\n    },\r\n    {\r\n      \"file\": \"docs/contracts/account-access.openapi.json\",\r\n      \"openapi\": \"3.1.1\",\r\n      \"version\": \"0.3.1-design-draft\",\r\n      \"schemasChecked\": 73,\r\n      \"sha256\": \"0df52f375faf24e61e18e6d00aaef807cd061ea3fe3872e25c2ca69929d233d0\",\r\n      \"status\": \"passed\",\r\n      \"negativeControl\": \"missing info rejected\",\r\n      \"fullSchemaExamples\": 22\r\n    }\r\n  ],\r\n  \"limits\": \"OAS document and schema meta-validation only; no API, authorization, mail, concurrency or retention behavior executed.\"\r\n}\r\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/build-preview.mjs",
+      "exitCode": 0,
+      "stdout": "Built a self-contained design preview with 84 scenes.\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/build-preview.mjs",
+      "exitCode": 0,
+      "stdout": "Built a self-contained design preview with 84 scenes.\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\Program Files\\nodejs\\node.exe docs/design/source/validate-design.mjs",
+      "exitCode": 0,
+      "stdout": "{\n  \"status\": \"passed\",\n  \"scenes\": 84,\n  \"uniqueSceneIds\": 84,\n  \"sceneNavigationReferences\": 144,\n  \"backTargets\": 34,\n  \"starts\": 12,\n  \"localLinkCount\": 186,\n  \"errors\": []\n}\n",
+      "stderr": ""
+    }
+  ],
+  "reproducibleContractGeneration": true,
+  "reproduciblePreviewGeneration": true,
+  "pluginScriptSyntax": "passed via AsyncFunction only; does not execute Plugin API",
+  "structural": {
+    "status": "passed",
+    "reports": [
+      {
+        "name": "request-flow",
+        "paths": 12,
+        "operations": 14,
+        "schemas": 53,
+        "localReferences": 197,
+        "schemaExamples": 42
+      },
+      {
+        "name": "account-access",
+        "paths": 34,
+        "operations": 37,
+        "schemas": 73,
+        "localReferences": 454,
+        "schemaExamples": 49
+      }
+    ],
+    "checks": "local refs, exact path parameters, unique operations, CSRF/cache/operation headers, recursive public whitelist, shared schema parity, schema-subset fixtures",
+    "limitations": "Not full OAS/JSON Schema validation; format semantics, cross-field/domain rules, authorization, DB transactions, real mail and browser behavior not executed."
+  },
+  "fullOpenApi": {
+    "status": "passed",
+    "validator": "OpenAPIV31SpecValidator",
+    "packageVersion": "0.9.0",
+    "jsonschemaVersion": "4.26.0",
+    "reports": [
+      {
+        "file": "docs/contracts/request-flow.openapi.json",
+        "openapi": "3.1.1",
+        "version": "0.3.1-design-draft",
+        "schemasChecked": 53,
+        "sha256": "1b8239df892206647bf937dfddcc474a2a4cc7035982fad3a420623df8b94b8c",
+        "status": "passed",
+        "negativeControl": "missing info rejected",
+        "fullSchemaExamples": 2
+      },
+      {
+        "file": "docs/contracts/account-access.openapi.json",
+        "openapi": "3.1.1",
+        "version": "0.3.1-design-draft",
+        "schemasChecked": 73,
+        "sha256": "0df52f375faf24e61e18e6d00aaef807cd061ea3fe3872e25c2ca69929d233d0",
+        "status": "passed",
+        "negativeControl": "missing info rejected",
+        "fullSchemaExamples": 22
+      }
+    ],
+    "limits": "OAS document and schema meta-validation only; no API, authorization, mail, concurrency or retention behavior executed."
+  },
+  "design": {
+    "status": "passed",
+    "scenes": 84,
+    "uniqueSceneIds": 84,
+    "sceneNavigationReferences": 144,
+    "backTargets": 34,
+    "starts": 12,
+    "localLinkCount": 186,
+    "errors": []
+  },
+  "markdownLinks": {
+    "files": 42,
+    "checked": 279,
+    "broken": []
+  },
+  "frontendHashes": {
+    "frontend/src/App.vue": {
+      "previousVerified": "e74ee649286a74841ff24bc30408c5dcfbc611784f2aaac46ce279945e72cf23",
+      "current": "e74ee649286a74841ff24bc30408c5dcfbc611784f2aaac46ce279945e72cf23",
+      "matchesPreviousVerified": true
+    },
+    "frontend/src/domain.ts": {
+      "previousVerified": "396b18a256bd435a71009d68d16a591e1e906053d576c321b3b2390e56946bbc",
+      "current": "396b18a256bd435a71009d68d16a591e1e906053d576c321b3b2390e56946bbc",
+      "matchesPreviousVerified": true
+    },
+    "frontend/src/style.css": {
+      "previousVerified": "4dc86450da6b6938492ac30f842ef4b6178ed9c734f7df1e5bf032f43c59db86",
+      "current": "4dc86450da6b6938492ac30f842ef4b6178ed9c734f7df1e5bf032f43c59db86",
+      "matchesPreviousVerified": true
+    },
+    "frontend/src/main.ts": {
+      "previousVerified": "41a79ccb7d440dcb55dd3a28c6a62056c59b4e877d9fcbe17c9cd5d7fbbe2c14",
+      "current": "41a79ccb7d440dcb55dd3a28c6a62056c59b4e877d9fcbe17c9cd5d7fbbe2c14",
+      "matchesPreviousVerified": true
+    },
+    "frontend/package.json": {
+      "previousVerified": "c04d194ef4583c92a2b8d31d751ae3a2d1995409f2aceec120824a8042eab517",
+      "current": "c04d194ef4583c92a2b8d31d751ae3a2d1995409f2aceec120824a8042eab517",
+      "matchesPreviousVerified": true
+    },
+    "frontend/package-lock.json": {
+      "previousVerified": "fff967e8edcaf46e83471fe3850416d5d8839a561677676c5d44ddc2350c93aa",
+      "current": "fff967e8edcaf46e83471fe3850416d5d8839a561677676c5d44ddc2350c93aa",
+      "matchesPreviousVerified": true
+    },
+    "frontend/vite.config.ts": {
+      "previousVerified": "796bc5143744eabd4e7ef5a6d0c55079d08fde701e9389fd7a94a9b4ee38b356",
+      "current": "796bc5143744eabd4e7ef5a6d0c55079d08fde701e9389fd7a94a9b4ee38b356",
+      "matchesPreviousVerified": true
+    }
+  },
+  "artifactSha256": {
+    "docs/contracts/request-flow.openapi.json": "1b8239df892206647bf937dfddcc474a2a4cc7035982fad3a420623df8b94b8c",
+    "docs/contracts/account-access.openapi.json": "0df52f375faf24e61e18e6d00aaef807cd061ea3fe3872e25c2ca69929d233d0",
+    "README.md": "f651c25d256250d511ac8723d9d1ae6c249ed05b12eaf28a6492506126937b08",
+    "docs/acceptance/first-flow-cases-v0.1.md": "2371d17b29f455c272a91dd71879a48b717beac2fe92c0f154eaff567c51b0fd",
+    "docs/acceptance/identity-lifecycle-cases-v0.1.md": "4628d11e759e7d92af07c658a5fda485b1a89b7fa85b77b8c9062726e2853bc8",
+    "docs/acceptance/p0-report.md": "4f5e71c466065c9544a9504d5ac0500e9e015f9f12d3c8c0864f37f02f4c6148",
+    "docs/acceptance/retention-recovery-cases-v0.1.md": "4ffe46bbc4e35cdae168a42f0f16f034631b5b2563fb703ea5f798b5f1328054",
+    "docs/contracts/account-access-contract-v0.1.md": "824db1bd28a7e45638e48746f383993b327cc19e334a648bd3a48649fe8915c1",
+    "docs/contracts/request-flow-contract-v0.1.md": "1a38ee1a259cbe1dd25202afd5c87f687e81a991d3bd85cc3e0c0c50103750f1",
+    "docs/contracts/request-flow-contract-v0.2.md": "d16fbea2750dd40321bcd78d5f3db974718e1e7871e4f327c95b88df6ddcb531",
+    "docs/decisions/account-lifecycle-baseline-2026-11-07.md": "1bad0e6215abce71f6629931e2284434796ba1e1de78c38a8d2c1a7129bd58b6",
+    "docs/decisions/product-baseline-2026-11-06.md": "141bad6c05249c5ce2e649e4f2d490be56703caf2a12c1ee461462c01f139f65",
+    "docs/decisions/retention-recovery-baseline-2026-11-07.md": "83bcb7b75f79e06f10b7076d173c40d49a4c9a23315d6a1209bb101851a9701f",
+    "docs/demo/README.md": "d12dfb9d3e488b32bf3d4fac64aab7505b8bf9037f0421db30c6380acc0ff514",
+    "docs/design/account-contact-review-2026-11-06.md": "ba85560a5db4781e74af61cbc87b73c3ae839e4e7cf33931d4fc85b2328b17df",
+    "docs/design/account-contact-spec-v0.2.md": "ded3124b31f5ef28537bc65dcecdb9b03d67257267ece4c15357dc8aa04a05c2",
+    "docs/design/account-lifecycle-spec-v0.1.md": "825fb78c24d2ef4030b2aee5fe5afc17e606d6bf4afab53b034f688087f5a19c",
+    "docs/design/current-flow-readiness-v0.1.md": "955f15151598bce05ef6b6cd201a8cab720c169c9842e1854e18f1eb0fbef163",
+    "docs/design/current-flow-review-2026-11-06.md": "4ab7a37fbe427cc3625f99e355897b38c1046fed4c3c35e69978cb066fe77a3d",
+    "docs/design/data-retention-spec-v0.1.md": "26a72d972935841a140e10e8a6ceac631f6701e2d3bbe1ce5c186edb505a6bd0",
+    "docs/design/decision-sync-record-2026-11-06.md": "913427264dac05e1e05f333b2083cc80ab25d41446f90ca49ffff7fedfb0b525",
+    "docs/design/first-flow-data-model-v0.1.md": "c95c4329109f268d954f83be4cc9ad7a5603595e31fce05e4c4cddf785519d35",
+    "docs/design/first-flow-review-v0.1.md": "8b4a6415be4c48b5054f2346cfc350a5495741f4ddf3e7110375450f97c6693c",
+    "docs/design/identity-correction-spec-v0.1.md": "0f639fa2eaaef00eed794c6bdc808a5a65d791effe1b713e029e80b8edf4dde4",
+    "docs/design/identity-lifecycle-review-2026-11-07.md": "f6951bb9babf1f274b88aee9bb8bac39592a03f4d5932c3b2f74983455c2e730",
+    "docs/design/interaction-spec-v0.1.md": "d589d4bf233eaba5b9005659d6a1b11c4d4852776e96868d3baa9d1674ad0cb2",
+    "docs/design/lost-email-recovery-spec-v0.1.md": "4fdc6068a73a741d86d865553b94b2c3883ec042ad9aeb6abbe093699d02fc23",
+    "docs/design/page-inventory.md": "b48a3d68d3076f5f4d53b7a1c6379bedcedfd4d8ee5d5d433efff7430b077f92",
+    "docs/design/README.md": "c35bf32da22711c6a1524c80e874f5075417c846df99e1d9caa23ddce3461e94",
+    "docs/design/request-publishing-config-v0.1.md": "285f9c3f0b6a05859dd1156ad91c0687e32c5eec1cbb206d94efb6e4442466b7",
+    "docs/design/retention-recovery-review-2026-11-07.md": "54497143cd8edb9c2ab34a48f8e694f2d63c0abbaffb0a2cbf0312fb9a109140",
+    "docs/design/review-record-2026-11-05.md": "783d0e691933af1e1ddd2fa6db44b0136588bf1f6ab8cb14e7b8b8892f59954d",
+    "docs/design/review-record-2026-11-06.md": "5c52e705b52057ed643287b6f0bc466d27cfb7d1973ae802ef71e61cd6e19270",
+    "docs/design/source/README.md": "a681998f3f856da6a4483f83c535015ad6c09cae87f254bf5f8528d35d8dbb4f",
+    "docs/handoffs/design-handoff-2026-11-07.md": "0fb962243b7a8d2008c89c1b6d5f11db57471806ad4f0505406b2c6141865e30",
+    "docs/p0/acceptance-cases.md": "b61171e9115b8c051fb1e66f1d0a563877ecd16bb6a2051b5d7bfbe758dbaafa",
+    "docs/p0/field-visibility.md": "d3a1da766ac21e12bb6e3ef81c93431e6618fb56cfbb1c5414f099ba62cca36a",
+    "docs/p0/scope-and-decisions.md": "bc0ae07a1b25ffe93af27f0146330b56d45c7f74f771dee12da229677f25f05f",
+    "docs/p0/state-actions.md": "65494b0390971ec3bd9a75df715ac241e9bb2bae8f58c2382e4989d392130a78",
+    "docs/pre-development-design-research-2026-11-02.md": "62bec2202c60fc6eb50f2a1d8456dfaedc8e9ba3280de1b89c429d5354ade716",
+    "docs/product-architecture-v0.1.md": "9a9721d755289d30815d89ff24fffffe610f37a76e343c6554e26b64a3f83d7b",
+    "docs/tasks/current-slice-implementation-pack-v0.1.md": "f994daf75f9510d012067b0682c1310def7f5cc7a13839fd8b65e1a634686c04",
+    "docs/tasks/p1-backlog.md": "570b82ca5ea0d8808c9d86d894e7856db5cd230074a3cffb4b1316272c9ed3a5",
+    "docs/technical-implementation-plan-v0.1.md": "7f9b37b7a9bc7c0f9b21dd041cc93ca823e54f2b31028319c178535612204601",
+    "docs/design/source/account-contract-extensions.mjs": "18dd2cf7c8eea82349aa083e7f1f40fd802480986f24314746ed8c3d84f84775",
+    "docs/design/source/build-request-contract.mjs": "c66f1ad6a1fd15af3cf382599a70a21c7d54668804b3da861d6cfbb3c249d10e",
+    "docs/design/source/extend-retention-scenes-2026-11-07.mjs": "29773e4d05099a501333645732ca9b3864b98ce5bc8e484054fc6dc4cc0df224",
+    "docs/design/source/navigation.json": "46c58cc8fff09c31bb05dad187a5056a3066b53c6f5cec3ac4b38bd72113a9be",
+    "docs/design/source/openapi-validation-requirements.txt": "89821028f0ef014c97b2ca0044ecad0cf99611c4dab8f1ba1c375937ea87edc8",
+    "docs/design/source/preview-template.html": "701e864b25cc883bb0ee3fb8b6fb357f474b8d25deef3aaf75311cd287f9f63e",
+    "docs/design/source/retention-contract-extensions.mjs": "941e69db28028e567d03aac60cf76eba127e8da53e7e82952a6122c542231318",
+    "docs/design/source/scenes.json": "d7fa26d1b02d56b0b2ae91a771d22c45e8313eb75a6b6a502e63eaa1a20f311d",
+    "docs/design/source/sync-retention-scenes-2026-11-07.js": "fff3fe2047ef925f8b4efab1323b0c5e8d6658150c381dc51d6b18abee5abaac",
+    "docs/design/source/validate-openapi.py": "13ca0893a11debad6bc0ddb32dfed088d1515b0cdae25d230d4848b2c403407c",
+    "docs/design/source/validate-request-contract.mjs": "e0f512f9942ceca470ad3e9b4f70e0f3328c8945421d8227da86757580975f5c",
+    "docs/design/source/validate-retention-recovery.mjs": "1f5bff7c4ab24c577f332af1265780d83129ecc03db91a39a9f7f06258ff7c39",
+    "docs/contracts/account-extension-examples.json": "8d63d48b2cfcae7e784db917c9add8924493f70bed0a6bd5ace8f68167121db1",
+    "docs/design/interaction-preview.html": "dbf7a04f44bc390e00fe98fbe29bc63fd116a90a6b84b89b9a5938d48af3ef3a",
+    "docs/design/figma-state.json": "26b0bf9ca92571f4aa70708d0b0de07ba8807a77d3295cd5e4056e4e506d946a",
+    "docs/design/evidence/retention-recovery-figma-sync-2026-11-07.json": "1ad1deeed2b4c29dc2182a751cb0f61307094beaa570d08b830905385b10cdce",
+    "docs/design/evidence/retention-scene-targets-2026-11-07.json": "279c02520a68f22a49c3654f2e97e8d96e0ac2a60897dfc67b31e1aa59304144",
+    ".gitignore": "9ddb659c5a1bfd94e230b541fd448eace6ae8bdfa0aea13d7946ebd9bf3bfb92"
+  },
+  "figma": {
+    "evidence": "docs/design/evidence/retention-recovery-figma-sync-2026-11-07.json",
+    "scenes": 84,
+    "affected": 25,
+    "textParity": "passed",
+    "visual": "25 affected roots inspected in current inline tool screenshots; long-form QA clone removed",
+    "playbackExecuted": false
+  },
+  "acceptance": {
+    "existingFirstFlowCases": 43,
+    "previousIdentityLifecycleCases": 28,
+    "newRetentionRecoveryCases": 23,
+    "businessCasesExecuted": 0
+  },
+  "git": {
+    "exitCode": 128,
+    "stdout": "",
+    "stderr": "fatal: not a git repository (or any of the parent directories): .git\n",
+    "initializedByThisRun": false
+  },
+  "agents": {
+    "ancestorMatches": [],
+    "projectTree": "Separately searched with rg --files --hidden -g AGENTS.md excluding generated dependencies; no matches"
+  },
+  "limitations": [
+    "Full OAS applies only to generated 0.3.1 files; pre-contract manual recovery endpoints are excluded",
+    "No actual API, authorization, PostgreSQL, concurrency, business-time, cleanup, mail or restore tests",
+    "No browser/Figma playback, scrolling, real-device or full accessibility checks",
+    "Production legal applicability and operational staffing remain unresolved"
+  ]
+}

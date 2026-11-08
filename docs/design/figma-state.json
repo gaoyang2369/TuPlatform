@@ -1,0 +1,1370 @@
+{
+  "fileKey": "mIWvLoDcD6W0MlDny0ZwqB",
+  "fileUrl": "https://www.figma.com/design/mIWvLoDcD6W0MlDny0ZwqB",
+  "pageId": "0:1",
+  "lastCanvasReadDate": "2026-11-07",
+  "canvasModifiedDuringDocCleanup": false,
+  "scope": "Original file; current first-release task paths with deferred history marked and disconnected from core navigation.",
+  "screens": {
+    "P-03a": {
+      "id": "4:320"
+    },
+    "P-04a": {
+      "id": "4:387",
+      "name": "P-04a · 说说你的需求",
+      "x": 590,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 880,
+      "scrollHeight": 681,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-04b": {
+      "id": "4:434",
+      "name": "P-04b · 安排时间与预算",
+      "x": 1060,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 1877,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-05": {
+      "id": "4:494",
+      "name": "P-05 · 提交前，再看一遍",
+      "x": 1530,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 731,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-06-pending": {
+      "id": "4:528"
+    },
+    "P-06-rejected": {
+      "id": "4:566"
+    },
+    "A-01": {
+      "id": "5:100"
+    },
+    "A-02": {
+      "id": "5:156"
+    },
+    "A-02-reject": {
+      "id": "5:198"
+    },
+    "A-02-done": {
+      "id": "5:238"
+    },
+    "T-01": {
+      "id": "5:277",
+      "name": "T-01 · 附近的需求",
+      "x": 120,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 761,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-02": {
+      "id": "5:329",
+      "name": "T-02 · 了解这条需求",
+      "x": 590,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 696,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-06": {
+      "id": "5:359"
+    },
+    "X-validation": {
+      "id": "6:170"
+    },
+    "X-timeout": {
+      "id": "6:223"
+    },
+    "X-conflict": {
+      "id": "6:254"
+    },
+    "X-permission": {
+      "id": "6:275"
+    },
+    "X-empty": {
+      "id": "6:293"
+    },
+    "X-close": {
+      "id": "6:320",
+      "phase": "later",
+      "name": "延期 · X-close · 暂停或关闭需求"
+    },
+    "P-01": {
+      "id": "7:206",
+      "name": "P-01 · 先认识，再连接",
+      "x": 120,
+      "y": 5400,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 950,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-02": {
+      "id": "7:247",
+      "name": "P-02 · 林老师",
+      "x": 590,
+      "y": 5400,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 556,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04": {
+      "id": "7:282",
+      "name": "T-04 · 我的老师资料",
+      "x": 1060,
+      "y": 5400,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 1378,
+      "scrollHeight": 681,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01": {
+      "id": "7:319",
+      "name": "S-01 · 一步步，了解彼此",
+      "x": 1530,
+      "y": 5400,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 465,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-03": {
+      "id": "7:357",
+      "name": "S-03 · 由你决定是否分享",
+      "x": 2000,
+      "y": 5400,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 468,
+      "scrollHeight": 708
+    },
+    "S-04": {
+      "id": "7:394",
+      "phase": "later",
+      "name": "延期 · S-04 · 确认同一份安排"
+    },
+    "S-05": {
+      "id": "7:423",
+      "phase": "later",
+      "name": "延期 · S-05 · 记录这次体验"
+    },
+    "S-06": {
+      "id": "7:460",
+      "phase": "later",
+      "name": "延期 · S-06 · 把合作约定说清楚"
+    },
+    "S-07": {
+      "id": "7:482",
+      "phase": "later",
+      "name": "延期 · S-07 · 留下有依据的反馈"
+    },
+    "S-08": {
+      "id": "7:510",
+      "phase": "later",
+      "name": "延期 · S-08 · 说明发生了什么"
+    },
+    "S-01-applied": {
+      "id": "7:540",
+      "name": "S-01-applied · 投递已送出",
+      "x": 2000,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 402,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-response": {
+      "id": "7:567",
+      "name": "S-01-response · 林老师希望了解需求",
+      "x": 2470,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 547,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-invited": {
+      "id": "7:594",
+      "name": "S-01-invited · 收到一份需求方邀请",
+      "x": 2940,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 477,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-04-confirmed": {
+      "id": "7:621",
+      "phase": "later",
+      "name": "延期 · S-04-confirmed · 预约已确认"
+    },
+    "P-02-invited": {
+      "id": "17:500",
+      "name": "P-02-invited · 邀请已送出",
+      "x": 3410,
+      "y": 3300,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 237,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-01": {
+      "id": "31:484",
+      "name": "G-01 · 欢迎回到邻课",
+      "x": 120,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 560,
+      "scrollHeight": 708
+    },
+    "G-01-register": {
+      "id": "31:532",
+      "name": "G-01-register · 创建你的账号",
+      "x": 590,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 692,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-01-verify": {
+      "id": "31:580",
+      "name": "G-01-verify · 请验证你的邮箱",
+      "x": 1060,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 418,
+      "scrollHeight": 708
+    },
+    "G-01-verified": {
+      "id": "31:628",
+      "name": "G-01-verified · 确认验证邮箱",
+      "x": 1530,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 334,
+      "scrollHeight": 708
+    },
+    "G-01-verify-done": {
+      "id": "31:676",
+      "name": "G-01-verify-done · 邮箱验证完成",
+      "x": 2000,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 232,
+      "scrollHeight": 708
+    },
+    "G-01-verify-error": {
+      "id": "31:724",
+      "name": "G-01-verify-error · 验证链接无法使用",
+      "x": 2470,
+      "y": 7560,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 278,
+      "scrollHeight": 708
+    },
+    "G-01-forgot": {
+      "id": "31:772",
+      "name": "G-01-forgot · 找回密码",
+      "x": 120,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 356,
+      "scrollHeight": 708
+    },
+    "G-01-sent": {
+      "id": "31:820",
+      "name": "G-01-sent · 请检查你的邮箱",
+      "x": 590,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 352,
+      "scrollHeight": 708
+    },
+    "G-01-reset": {
+      "id": "31:868",
+      "name": "G-01-reset · 设置新密码",
+      "x": 1060,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 384,
+      "scrollHeight": 708
+    },
+    "G-01-reset-done": {
+      "id": "31:916",
+      "name": "G-01-reset-done · 密码已重置",
+      "x": 1530,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 232,
+      "scrollHeight": 708
+    },
+    "G-01-error": {
+      "id": "31:964",
+      "name": "G-01-error · 暂时无法登录",
+      "x": 2000,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 412,
+      "scrollHeight": 708
+    },
+    "G-02-select": {
+      "id": "31:1012",
+      "name": "G-02-select · 你想怎样使用邻课？",
+      "x": 2470,
+      "y": 8580,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 566,
+      "scrollHeight": 734
+    },
+    "G-02-confirm": {
+      "id": "31:1060",
+      "name": "G-02-confirm · 确认以需求方身份继续",
+      "x": 120,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 351,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-02-confirm-teacher": {
+      "id": "31:1108",
+      "name": "G-02-confirm-teacher · 确认以老师身份继续",
+      "x": 590,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 351,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-02": {
+      "id": "31:1156",
+      "name": "G-02 · 我的账号",
+      "x": 1060,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 395,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-02-teacher": {
+      "id": "31:1204",
+      "name": "G-02-teacher · 我的账号",
+      "x": 1530,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 455,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-02-expired": {
+      "id": "31:1252",
+      "name": "G-02-expired · 请重新登录",
+      "x": 2000,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 278,
+      "scrollHeight": 708
+    },
+    "G-02-unknown": {
+      "id": "31:1300",
+      "name": "G-02-unknown · 正在确认身份选择结果",
+      "x": 2470,
+      "y": 9600,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 406,
+      "scrollHeight": 708
+    },
+    "G-02-logout": {
+      "id": "31:1348",
+      "name": "G-02-logout · 退出当前账号？",
+      "x": 120,
+      "y": 10620,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 344,
+      "scrollHeight": 708
+    },
+    "G-02-guard": {
+      "id": "31:1396",
+      "name": "G-02-guard · 先选择你的业务身份",
+      "x": 590,
+      "y": 10620,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 292,
+      "scrollHeight": 708
+    },
+    "S-03-confirm": {
+      "id": "31:1444",
+      "name": "S-03-confirm · 确认本次分享范围",
+      "x": 590,
+      "y": 11800,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 534,
+      "scrollHeight": 708
+    },
+    "S-03-not-mutual": {
+      "id": "31:1492",
+      "name": "S-03-not-mutual · 互选后才能申请分享",
+      "x": 1060,
+      "y": 11800,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 266,
+      "scrollHeight": 708
+    },
+    "S-03-mine": {
+      "id": "31:1540",
+      "name": "S-03-mine · 已同意，等待对方",
+      "x": 1530,
+      "y": 11800,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 592,
+      "scrollHeight": 708
+    },
+    "S-03-theirs": {
+      "id": "31:1588",
+      "name": "S-03-theirs · 对方已同意，由你决定",
+      "x": 2000,
+      "y": 11800,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 510,
+      "scrollHeight": 708
+    },
+    "S-03-both": {
+      "id": "31:1636",
+      "name": "S-03-both · 双方已同意分享",
+      "x": 120,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 592,
+      "scrollHeight": 708
+    },
+    "S-03-teacher": {
+      "id": "31:1684",
+      "name": "S-03-teacher · 双方已同意分享",
+      "x": 590,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 599,
+      "scrollHeight": 708
+    },
+    "S-03-withdraw-confirm": {
+      "id": "31:1732",
+      "name": "S-03-withdraw-confirm · 撤回我本次的授权？",
+      "x": 1060,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 319,
+      "scrollHeight": 708
+    },
+    "S-03-withdrawn": {
+      "id": "31:1780",
+      "name": "S-03-withdrawn · 已停止联系方式展示",
+      "x": 1530,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 430,
+      "scrollHeight": 708
+    },
+    "S-03-changed": {
+      "id": "31:1828",
+      "name": "S-03-changed · 分享内容已更新",
+      "x": 2000,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 442,
+      "scrollHeight": 708
+    },
+    "S-03-invalid": {
+      "id": "31:1876",
+      "name": "S-03-invalid · 当前无法分享联系方式",
+      "x": 2470,
+      "y": 12820,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 278,
+      "scrollHeight": 708
+    },
+    "S-03-conflict": {
+      "id": "31:1924",
+      "name": "S-03-conflict · 授权状态已经变化",
+      "x": 120,
+      "y": 13840,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 260,
+      "scrollHeight": 708
+    },
+    "S-03-unknown": {
+      "id": "31:1972",
+      "name": "S-03-unknown · 正在确认授权结果",
+      "x": 590,
+      "y": 13840,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 406,
+      "scrollHeight": 734
+    },
+    "S-03-failed": {
+      "id": "31:2020",
+      "name": "S-03-failed · 本次授权未生效",
+      "x": 1060,
+      "y": 13840,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 278,
+      "scrollHeight": 708
+    },
+    "S-03-confirm-ready": {
+      "id": "31:2068",
+      "name": "S-03-confirm-ready · 确认本次分享范围",
+      "x": 2470,
+      "y": 11800,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 534,
+      "scrollHeight": 708
+    },
+    "S-03-teacher-withdraw-confirm": {
+      "id": "37:850",
+      "name": "S-03-teacher-withdraw-confirm · 撤回我本次的授权？",
+      "x": 1530,
+      "y": 13840,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 319,
+      "scrollHeight": 708
+    },
+    "S-03-teacher-withdrawn": {
+      "id": "37:898",
+      "name": "S-03-teacher-withdrawn · 已停止联系方式展示",
+      "x": 2000,
+      "y": 13840,
+      "width": 390,
+      "height": 844,
+      "detail": "detailed",
+      "phase": "first-release",
+      "contentHeight": 378,
+      "scrollHeight": 708
+    },
+    "G-01-verify-password": {
+      "id": "53:1295",
+      "name": "G-01-verify-password · 补充注册密码核对",
+      "x": 120,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 450,
+      "scrollHeight": 708
+    },
+    "G-02-correction": {
+      "id": "53:1361",
+      "name": "延期 · G-02-correction · 核对身份纠错方式",
+      "x": 590,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 484,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-correction-teacher": {
+      "id": "53:1433",
+      "name": "延期 · G-02-correction-teacher · 核对身份纠错方式",
+      "x": 1060,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 424,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-correction-confirm": {
+      "id": "53:1496",
+      "name": "延期 · G-02-correction-confirm · 确认更改为老师？",
+      "x": 1530,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 450,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-correction-manual": {
+      "id": "53:1562",
+      "name": "延期 · G-02-correction-manual · 身份纠错申请进度",
+      "x": 2000,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 404,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-correction-complete": {
+      "id": "53:1617",
+      "name": "延期 · G-02-correction-complete · 身份更改已完成",
+      "x": 2470,
+      "y": 15120,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 258,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-archive": {
+      "id": "53:1667",
+      "name": "延期 · G-02-archive · 旧身份只读归档",
+      "x": 120,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 448,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-email": {
+      "id": "53:1730",
+      "name": "延期 · G-02-email · 更换账号邮箱",
+      "x": 590,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 502,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-email-ready": {
+      "id": "53:1801",
+      "name": "延期 · G-02-email-ready · 最后确认新邮箱",
+      "x": 1060,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 456,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-email-done": {
+      "id": "53:1861",
+      "name": "延期 · G-02-email-done · 邮箱更换已完成",
+      "x": 1530,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 258,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-recovery": {
+      "id": "53:1911",
+      "name": "延期 · G-02-recovery · 原邮箱已无法使用",
+      "x": 2000,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 428,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-recovery-wait": {
+      "id": "53:1966",
+      "name": "延期 · G-02-recovery-wait · 恢复申请等待本人确认",
+      "x": 2470,
+      "y": 16140,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 428,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-recovery-unavailable": {
+      "id": "53:2021",
+      "name": "延期 · G-02-recovery-unavailable · 原邮箱和密码都不可用？",
+      "x": 120,
+      "y": 17160,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 424,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "G-02-history-limits": {
+      "id": "53:2084",
+      "name": "延期 · G-02-history-limits · 历史与资料如何保留",
+      "x": 590,
+      "y": 17160,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 566,
+      "scrollHeight": 708,
+      "phase": "later"
+    },
+    "T-04-preview": {
+      "id": "65:1236",
+      "name": "T-04-preview · 公开前，再看一遍",
+      "x": 4700,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 443,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-saved": {
+      "id": "65:1308",
+      "name": "T-04-saved · 资料已保存",
+      "x": 5170,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 275,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-published": {
+      "id": "65:1380",
+      "name": "T-04-published · 资料已公开",
+      "x": 5640,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 509,
+      "scrollHeight": 681,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-stop-confirm": {
+      "id": "65:1688",
+      "name": "T-04-stop-confirm · 停止公开资料？",
+      "x": 6580,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 297,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-stopped": {
+      "id": "65:1759",
+      "name": "T-04-stopped · 资料已停止公开",
+      "x": 7050,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 208,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-02-invite-confirm": {
+      "id": "66:2034",
+      "name": "P-02-invite-confirm · 确认邀请林老师？",
+      "x": 5170,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 319,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-02-apply-confirm": {
+      "id": "66:2106",
+      "name": "T-02-apply-confirm · 确认投递这条需求？",
+      "x": 5640,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 319,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-03": {
+      "id": "66:2178",
+      "name": "T-03 · 我的投递与邀请",
+      "x": 6110,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 713,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-invite-wait": {
+      "id": "66:2279",
+      "name": "S-01-invite-wait · 等待老师回应",
+      "x": 6580,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 275,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-accept-confirm": {
+      "id": "66:2350",
+      "name": "S-01-accept-confirm · 确认接受这次意向？",
+      "x": 7050,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 319,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-reject-confirm": {
+      "id": "66:2422",
+      "name": "S-01-reject-confirm · 拒绝这次意向？",
+      "x": 4700,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 297,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-teacher-accept-confirm": {
+      "id": "66:2555",
+      "name": "S-01-teacher-accept-confirm · 确认接受这次意向？",
+      "x": 5640,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 319,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-teacher-reject-confirm": {
+      "id": "66:2626",
+      "name": "S-01-teacher-reject-confirm · 拒绝这次意向？",
+      "x": 6110,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 297,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-teacher": {
+      "id": "67:1549",
+      "name": "S-01-teacher · 已与需求方互选",
+      "x": 7050,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 341,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-withdraw-confirm": {
+      "id": "67:1626",
+      "name": "S-01-withdraw-confirm · 撤回这次意向？",
+      "x": 4700,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 227,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-invite-withdraw-confirm": {
+      "id": "67:1756",
+      "name": "S-01-invite-withdraw-confirm · 撤回这次意向？",
+      "x": 5640,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 227,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-expired-existing": {
+      "id": "67:1886",
+      "name": "S-01-expired-existing · 这条需求已到期",
+      "x": 6580,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 237,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-03-teacher-start": {
+      "id": "67:1951",
+      "name": "S-03-teacher-start · 由你决定是否分享",
+      "x": 7050,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 424,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-03-teacher-confirm": {
+      "id": "67:2043",
+      "name": "S-03-teacher-confirm · 确认本次分享范围",
+      "x": 4700,
+      "y": 5360,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 373,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-03-teacher-mine": {
+      "id": "67:2115",
+      "name": "S-03-teacher-mine · 已同意，等待对方",
+      "x": 5170,
+      "y": 5360,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 319,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-08": {
+      "id": "67:2187",
+      "name": "P-08 · 本人基本资料",
+      "x": 5640,
+      "y": 5360,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 261,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-contact": {
+      "id": "67:2257",
+      "name": "P-contact · 我的私密联系方式",
+      "x": 6110,
+      "y": 5360,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 453,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-contact": {
+      "id": "67:2342",
+      "name": "T-contact · 我的私密联系方式",
+      "x": 6580,
+      "y": 5360,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 453,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-05-ready": {
+      "id": "67:2427",
+      "name": "P-05-ready · 提交前，再看一遍",
+      "x": 4700,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 731,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-edit": {
+      "id": "65:1464",
+      "name": "T-04-edit · 修改公开资料",
+      "x": 6110,
+      "y": 1200,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 1432,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "G-01-register-ready": {
+      "id": "69:2557",
+      "name": "G-01-register-ready · 创建你的账号",
+      "x": 5170,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 692,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-declined": {
+      "id": "69:2667",
+      "name": "S-01-declined · 对方已拒绝这次意向",
+      "x": 5640,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 237,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-rejected": {
+      "id": "66:2493",
+      "name": "S-01-rejected · 已拒绝这次意向",
+      "x": 5170,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 262,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-teacher-rejected": {
+      "id": "67:1485",
+      "name": "S-01-teacher-rejected · 已拒绝这次意向",
+      "x": 6580,
+      "y": 3280,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 262,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-withdrawn": {
+      "id": "67:1694",
+      "name": "S-01-withdrawn · 本次意向已撤回",
+      "x": 5170,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 262,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "S-01-invite-withdrawn": {
+      "id": "67:1824",
+      "name": "S-01-invite-withdrawn · 本次意向已撤回",
+      "x": 6110,
+      "y": 4320,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 262,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-02-profile-gate": {
+      "id": "70:1887",
+      "name": "T-02-profile-gate · 先完善并公开老师资料",
+      "x": 6110,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 259,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "P-02-no-request": {
+      "id": "70:1952",
+      "name": "P-02-no-request · 还没有可用于邀请的需求",
+      "x": 6580,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 237,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-save-failed": {
+      "id": "70:2017",
+      "name": "T-04-save-failed · 资料暂未保存成功",
+      "x": 7050,
+      "y": 8500,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 237,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-01-guest": {
+      "id": "71:1784",
+      "name": "T-01-guest · 附近的需求",
+      "x": 4700,
+      "y": 9540,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 581,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-02-guest": {
+      "id": "71:1865",
+      "name": "T-02-guest · 了解这条需求",
+      "x": 5170,
+      "y": 9540,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 576,
+      "scrollHeight": 662,
+      "phase": "first-release",
+      "detail": "detailed"
+    },
+    "T-04-invalid": {
+      "id": "65:1827",
+      "name": "T-04-invalid · 还有资料需要补齐",
+      "x": 4700,
+      "y": 2240,
+      "width": 390,
+      "height": 844,
+      "contentHeight": 483,
+      "scrollHeight": 708,
+      "phase": "first-release",
+      "detail": "detailed"
+    }
+  },
+  "prototypeStarts": [
+    {
+      "nodeId": "9:309",
+      "name": "首版核心设计索引"
+    },
+    {
+      "nodeId": "4:320",
+      "name": "需求方：发布需求"
+    },
+    {
+      "nodeId": "5:100",
+      "name": "运营：审核需求"
+    },
+    {
+      "nodeId": "5:277",
+      "name": "老师：浏览与投递"
+    },
+    {
+      "nodeId": "7:282",
+      "name": "老师：完善并公开资料"
+    },
+    {
+      "nodeId": "66:2178",
+      "name": "老师：我的投递与邀请"
+    },
+    {
+      "nodeId": "7:206",
+      "name": "需求方：邀请老师"
+    },
+    {
+      "nodeId": "7:567",
+      "name": "需求方：回应老师投递"
+    },
+    {
+      "nodeId": "7:594",
+      "name": "老师：回应需求方邀请"
+    },
+    {
+      "nodeId": "4:566",
+      "name": "需求方：驳回后修订"
+    },
+    {
+      "nodeId": "31:484",
+      "name": "账号：登录与注册"
+    },
+    {
+      "nodeId": "31:1012",
+      "name": "账号：单一身份选择"
+    },
+    {
+      "nodeId": "7:357",
+      "name": "授权：需求方本人"
+    },
+    {
+      "nodeId": "31:1684",
+      "name": "授权：老师观察视角"
+    },
+    {
+      "nodeId": "71:1784",
+      "name": "匿名：浏览公开需求"
+    }
+  ],
+  "verificationSummary": {
+    "scope": "Current core graph and edited design structure, not runtime behavior",
+    "structuralStatus": "passed",
+    "coreToDeferredLinks": 0,
+    "teacherToRequesterOwnActionLinks": 0,
+    "uncheckedDeclarationsHaveSubmitLinks": false,
+    "cancelGrantWithdrawalReturnsToPriorState": true,
+    "fonts": [
+      "Noto Sans SC"
+    ],
+    "imageFilledCoreNodes": 0,
+    "originalRootIdsRetained": 84,
+    "visualReview": "Teacher form; request time/budget form; teacher detail; invitation response; index; unchecked declaration; corrected field errors inspected inline.",
+    "fullTextParity": "Not asserted for every historical scene",
+    "browserPlayback": "Not verified",
+    "realBusinessTests": "Not executed",
+    "currentEvidence": "../../.tools/core-design-validation-2026-11-07.json"
+  },
+  "nextCoreDesignWork": [
+    "Implement the current contract incrementally only after explicit development authorization",
+    "Verify real forms, cross-account behavior, mail, permissions, and database outcomes during implementation"
+  ],
+  "sessionId": "fe10c38c-cb5b-4e1f-8cfd-745d055c775f",
+  "historicalVerificationSummary": {
+    "sceneRoots": 84,
+    "priorRootIdsRetained": 70,
+    "boardsRetained": 3,
+    "lastAffectedRootsInspected": 25,
+    "sourceTextParity": "passed for the prior 25 affected roots",
+    "browserPlayback": "not verified",
+    "realBusinessTests": "not executed",
+    "historicalEvidence": "../archive/contract-snapshot-2026-11-07/evidence/retention-recovery-figma-sync-2026-11-07.json"
+  }
+}

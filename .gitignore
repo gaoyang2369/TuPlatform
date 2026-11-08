@@ -1,0 +1,58 @@
+# Dependencies and build output (keep package-lock.json and build scripts)
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+
+# Project-local tools and package caches
+.npm-cache/
+.tools/
+.m2/
+.vite/
+.cache/
+
+# Test reports and language caches
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local environment and credentials (commit placeholder examples only)
+.env
+.env.*
+!.env.example
+*.local
+application-local.yml
+application-local.yaml
+application-local.properties
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDE and OS metadata
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+Thumbs.db
+Desktop.ini
