@@ -1,8 +1,10 @@
 # 首版必要接口与数据设计
 
-2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-08已获第一段代码开发授权，auth、本人身份/资料、老师公开/停止公开及公开详情的服务代码和V1迁移已落地；数据库、SMTP和真实联调待用户提供环境。本页仍包含后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
+2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10账号/资料已完成真实数据库及邮件联调，并实现需求草稿及V2迁移。本页仍包含后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
 
-第一段当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}。新增GET /auth/csrf返回{token,headerName}供同源SPA写入时使用；GET /profile-options返回当前开放的categoryCodes、serviceModes、areaCodes。老师发现列表、私密联系方式维护、需求、审核和撮合接口尚未实现。当前未生成这一段的OpenAPI机器稿，路由及字段以本页和对应Controller/Models代码核对，联调时继续校正。
+当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；新增草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。老师发现列表、私密联系方式维护、需求提交/审核/公开和撮合接口尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
+
+草稿当前返回SavedDraft：{id,status,version,fields,lastSavedAt,retentionReminder}，尚不是下文未来完整MyRequest。本人列表只支持cursor、固定每页20项，返回{items,nextCursor}，暂不支持status筛选。发布选项当前返回代码数组{categories,streets,audienceStages,serviceModes}，暂不返回提交声明；REQUEST_CATEGORIES为空时categories为空，页面解释可先保存其他字段。草稿写入同样检查X-Account-Id和CSRF；创建使用Idempotency-Key，相同键返回同一草稿当前保存状态，原草稿清理后该键返回DRAFT_REMOVED/410，不盲目重建。保存仅允许DRAFT，null清空、部分更新，旧版本VERSION_CONFLICT/409。最后保存83天起返回retentionReminder，90天起读接口即不可见；每小时清理过期DRAFT，保留提醒不发送邮件。该规则不依赖清理任务及时运行。
 
 ## 共用约定
 
@@ -101,7 +103,7 @@
 
 ## 所需核心实体
 
-下表是首版PostgreSQL实体设计。第一段账号/资料、会话与邮件凭据已写入backend/src/main/resources/db/migration/V1__accounts_and_profiles.sql，但尚未连接数据库执行；其余实体仍待后续业务段落地。字段列只列协作需要的主数据，不建设通用平台表。
+下表是首版PostgreSQL实体设计。V1账号/资料、会话与邮件凭据，以及V2的service_requests、request_creation_receipts已在获准的tuplatform和tuplatform_test执行；V2目前仅承载草稿，不包含提交/审核实体。其余实体仍待后续业务段落地。字段列只列协作需要的主数据，不建设通用平台表。
 
 | 实体 | 主要内容与约束 |
 | --- | --- |

@@ -26,7 +26,11 @@ export class AccountApi {
   private fetcher: typeof fetch;
   private accountId: string | null = null;
   private csrf: Promise<{ token: string; headerName: string }> | null = null;
-  constructor(fetcher: typeof fetch = fetch) { this.fetcher = fetcher; }
+  constructor(fetcher: typeof fetch = fetch) {
+    // Browser-native fetch requires Window as its receiver; storing it as an object method
+    // without binding works in Node tests but throws "Illegal invocation" in browsers.
+    this.fetcher = fetcher.bind(globalThis);
+  }
   private async csrfToken() {
     if (!this.csrf) {
       this.csrf = this.request<{ token: string; headerName: string }>("/auth/csrf");
@@ -36,7 +40,7 @@ export class AccountApi {
   }
   async request<T>(path: string, method = "GET", body?: unknown, key?: string, retryCsrf = true): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (this.accountId && (path.startsWith("/me/") || path.startsWith("/teachers/"))) headers["X-Account-Id"] = this.accountId;
+    if (this.accountId && (path.startsWith("/me/") || path.startsWith("/teachers/") || path === "/requests" || path.startsWith("/requests/"))) headers["X-Account-Id"] = this.accountId;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     if (method !== "GET") {

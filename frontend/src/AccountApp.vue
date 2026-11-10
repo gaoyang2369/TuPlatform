@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
+import RequestDrafts from "./RequestDrafts.vue";
 import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
 
-type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile";
+type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests";
 const screen = ref<Screen>("login");
+const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
 const me = ref<Me | null>(null);
 const profile = ref<Profile | null>(null);
 const busy = ref(false);
@@ -169,11 +171,25 @@ async function visibility(publish: boolean) { await run(async () => {
   else { profile.value = result; pendingVisibility = null; } // Preserve unsaved edits and the saved baseline when stopping public access.
   preview.value = false; stopConfirm.value = false; notice.value = publish ? "资料已主动公开。展示内容为本人自述，手机号、微信和邮箱不会随资料公开。" : "已停止公开。已有撮合关系不会因此结束。";
 }); }
+async function performLogout() { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); screen.value = "login"; notice.value = "已退出登录。"; }); }
 async function logout() {
   if (busy.value) return;
+  if (screen.value === "requests") { draftsRef.value?.requestLeave(performLogout); return; }
   if (dirty.value && !window.confirm("当前修改尚未保存，退出会放弃这些输入。确定退出？")) return;
-  await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); screen.value = "login"; notice.value = "已退出登录。"; });
+  await performLogout();
 }
+function showRequests() {
+  if (busy.value || screen.value === "requests") return;
+  if (dirty.value && !window.confirm("本人资料的修改尚未保存，是否放弃这些输入并查看需求？")) return;
+  if (profile.value) loadForm(profile.value);
+  resetMessages(); screen.value = "requests";
+}
+function showProfile() {
+  if (screen.value === "requests") { draftsRef.value?.requestLeave(() => run(loadAccount)); return; }
+  void run(loadAccount);
+}
+function draftSessionExpired() { clearPrivate(); screen.value = "login"; error.value = "账号或登录状态已变化，请重新登录。"; }
+
 function beforeUnload(event: BeforeUnloadEvent) { if (dirty.value) { event.preventDefault(); event.returnValue = ""; } }
 async function initialize() {
   booting.value = true;
@@ -217,6 +233,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
       <span v-else class="header-note">从认识彼此开始</span>
     </header>
     <main class="account-main" :aria-busy="busy || booting">
+      <nav v-if="me?.businessIdentity" class="account-nav" aria-label="本人任务"><button class="text-button" :disabled="busy" @click="showProfile">本人资料</button><button v-if="me.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy" @click="showRequests">我的需求</button></nav>
       <div v-if="booting" class="loading" role="status">正在读取账号状态…</div>
       <template v-else>
         <div v-if="error" class="message error" role="alert" tabindex="-1">{{ error }}<ul v-if="Object.keys(fieldErrors).length"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field">{{ message }}</a></li></ul></div>
@@ -269,6 +286,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
           <button v-if="conflict" class="secondary" :disabled="busy" @click="run(loadAccount)">读取已确认的账号身份</button>
         </section>
 
+        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" @expired="draftSessionExpired" />
         <section v-else-if="screen === 'profile'" class="profile-page">
           <div class="page-heading"><div><p class="eyebrow">MY PROFILE</p><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名即可为后续发布需求做准备。' }}</p></div><span v-if="isTutor" :class="['pill', { published: isPublic }]">{{ isPublic ? '资料已公开' : '仅本人可见' }}</span></div>
           <div v-if="!profile" class="form-card"><p>本人资料尚未成功读取。</p><button class="primary" :disabled="busy" @click="run(loadAccount)">重新读取</button></div>

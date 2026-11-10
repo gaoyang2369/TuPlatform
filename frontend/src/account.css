@@ -4,3 +4,7 @@
 @media(max-width:520px){.account-main{width:calc(100% - 32px);padding-bottom:40px}.site-header{padding:0 16px}.brand small{letter-spacing:0}.brand{font-size:21px;gap:8px}.brand-mark{width:36px;height:36px;font-size:24px}.account-summary{gap:10px;max-width:58%}.account-summary>span{max-width:160px;font-size:11px}.form-card{padding:24px 20px;border-radius:13px}.intro h1{font-size:27px}.intro>p:not(.eyebrow){font-size:13px}.identity-grid{grid-template-columns:1fr}.identity-card{padding:22px}.identity-card.selected{padding:21px}.identity-card strong{font-size:19px;margin:9px 0}.page-heading{align-items:flex-start;gap:10px}.page-heading h1{font-size:24px}.pill{padding:6px 10px;font-size:10px}.page-heading .eyebrow{margin-bottom:8px}.form-actions .primary,.form-actions .secondary{width:100%}.price-inputs{gap:12px}.site-footer{padding:20px 16px;font-size:10px}.dialog-backdrop{padding:16px}.dialog-card{padding:24px 20px;max-height:calc(100dvh - 32px)}.required{display:inline}.choice{padding:8px 10px;font-size:13px}}
 
 .native-dialog{padding:0;border:0;overflow:visible;background:transparent;color:inherit;width:min(570px,calc(100vw - 32px));max-width:none}.native-dialog::backdrop{background:#152b2199}.native-dialog .dialog-card{width:100%}
+
+.account-summary>.text-button{white-space:nowrap;flex-shrink:0}.account-summary>span{min-width:0;overflow-wrap:anywhere}
+
+.account-nav{display:flex;gap:28px;margin-bottom:25px;border-bottom:1px solid var(--line);padding-bottom:12px}

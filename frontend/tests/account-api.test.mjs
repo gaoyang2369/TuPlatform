@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import { AccountApi, ApiFailure } from "../src/account-api.ts";
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+test("原生fetch保持全局接收者，避免浏览器Illegal invocation", async () => {
+  const client = new AccountApi(function () {
+    assert.equal(this, globalThis);
+    return Promise.resolve(json({ ok: true }));
+  });
+  assert.deepEqual(await client.request("/profile-options"), { ok: true });
+});
 test("写入先取CSRF，通过同源Cookie发起，不在GET消费邮件凭据", async () => {
   const calls = [];
   const client = new AccountApi(async (url, init) => {
