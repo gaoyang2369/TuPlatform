@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted,ref } from "vue";
 import { api } from "./account-api.ts";
+import type {Me} from "./account-api.ts";
+import type {PublicRequest} from "./match-types.ts";
+import MatchComposer from "./MatchComposer.vue";
 import RequestSummary from "./RequestSummary.vue";
 import { categoryNames,areaNames,modeNames } from "./request-display.ts";
-const props=defineProps<{ initialId?:string }>();
-type PublicRequest=Record<string,unknown>&{id:string;title:string;publisherDisplayName:string};
+const props=defineProps<{ initialId?:string;me?:Me|null }>();
+const emit=defineEmits<{matched:[id:string];expired:[];profile:[];login:[]}>();
 const items=ref<PublicRequest[]>([]), detail=ref<PublicRequest|null>(null), busy=ref(false), error=ref("");
 const cursor=ref<string|null>(null), category=ref(""), area=ref(""), mode=ref("");
 const options=ref<{categories:string[];streets:string[];serviceModes:string[]}>({categories:[],streets:[],serviceModes:[]});
@@ -31,7 +34,7 @@ onMounted(()=>void run(async()=>{
 <template>
   <section class="public-page"><div class="page-heading"><div><p class="eyebrow">NEARBY REQUESTS</p><h1>浏览需求</h1><p>深圳坪山区 · 仅展示审核通过且当前有效的需求。</p></div><button v-if="detail||initialId" class="secondary" :disabled="busy" @click="back">返回需求列表</button></div>
     <div v-if="error" class="message error" role="alert">{{ error }}<button class="text-button" :disabled="busy" @click="retry">重新读取</button><button class="text-button" :disabled="busy" @click="back">查看需求列表</button></div>
-    <article v-if="detail" class="form-card"><RequestSummary :fields="detail" :display-name="detail.publisherDisplayName" /><p class="privacy-note">具体安排需双方沟通。平台不会在公开需求中展示联系方式。</p><button class="secondary" :disabled="busy" @click="open(detail.id)">刷新需求</button><button class="text-button" :disabled="busy" @click="back">返回需求列表</button></article>
+    <article v-if="detail" class="form-card"><RequestSummary :fields="detail" :display-name="detail.publisherDisplayName" /><p class="privacy-note">具体安排需双方沟通。平台不会在公开需求中展示联系方式。</p><button class="secondary" :disabled="busy" @click="open(detail.id)">刷新需求</button><button class="text-button" :disabled="busy" @click="back">返回需求列表</button><MatchComposer v-if="me?.businessIdentity==='TUTOR'" :key="detail.id" :me="me" :request-id="detail.id" @matched="emit('matched',$event)" @expired="emit('expired')" @profile="emit('profile')"/><button v-else-if="!me" class="primary" @click="emit('login')">登录后以老师身份投递</button></article>
     <template v-else-if="!error">
       <form class="form-card request-filters" @submit.prevent="run(()=>list())"><label>类别<select v-model="category"><option value="">全部类别</option><option v-for="code in options.categories" :key="code" :value="code">{{ categoryNames[code]||code }}</option></select></label><label>街道<select v-model="area"><option value="">全部街道</option><option v-for="code in options.streets" :key="code" :value="code">{{ areaNames[code]||code }}</option></select></label><label>方式<select v-model="mode"><option value="">全部方式</option><option v-for="code in options.serviceModes" :key="code" :value="code">{{ modeNames[code]||code }}</option></select></label><button class="secondary" :disabled="busy">筛选需求</button></form>
       <p v-if="!items.length" class="form-card" role="status">{{ busy?'正在读取需求…':'暂无符合条件的公开需求，可以稍后再来查看。' }}</p>

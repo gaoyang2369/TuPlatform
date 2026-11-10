@@ -83,5 +83,5 @@ class RequestDraftService {
         return result;
     }
     @Scheduled(fixedDelay=3600000,initialDelay=3600000)
-    public void cleanupExpiredDrafts() { db.update("DELETE FROM service_requests WHERE status='DRAFT' AND last_saved_at<=now()-interval '90 days'"); }
+    public void cleanupExpiredDrafts() { db.update("DELETE FROM service_requests WHERE status='DRAFT' AND latest_submission_id IS NULL AND last_saved_at<=now()-interval '90 days'"); }
 }

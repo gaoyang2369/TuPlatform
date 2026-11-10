@@ -72,6 +72,10 @@ public class BrowserFixture {
                 c.commit();System.out.println("{\"expired\":true}");
             } else if (action.equals("cleanup")) {
                 UUID id = UUID.fromString(args[1]);
+                // Only relationships involving this known synthetic browser actor are removed.
+                try (var s=c.prepareStatement("DELETE FROM match_relationships WHERE (requester_id=? OR tutor_id=?) AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND account_key LIKE 'btest\\_%' ESCAPE '\\')")) {
+                    s.setObject(1,id);s.setObject(2,id);s.setObject(3,id);s.executeUpdate();
+                }
                 try (var s = c.prepareStatement("DELETE FROM accounts WHERE id=? AND account_key LIKE 'btest\\_%' ESCAPE '\\'")) { s.setObject(1, id); s.executeUpdate(); }
                 c.commit(); System.out.println("{\"cleaned\":true}");
             } else throw new IllegalArgumentException("Unknown fixture action");

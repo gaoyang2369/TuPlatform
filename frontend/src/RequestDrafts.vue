@@ -7,7 +7,7 @@ import type { SavedRequest } from "./request-display.ts";
 type Slot = { weekday: number; startMinute: number; endMinute: number };
 type Saved = SavedRequest;
 type Options = { categories: string[]; streets: string[]; audienceStages: string[]; serviceModes: string[]; publisherDeclarations?: {code:string;version:string;label:string}[] };
-const emit = defineEmits<{ expired: []; dirty: [value: boolean]; profile: [] }>();
+const emit = defineEmits<{ expired: []; dirty: [value: boolean]; profile: []; matches: [id:string] }>();
 const view = ref<"list" | "edit">("list"), busy = ref(false), message = ref(""), error = ref("");
 const items = ref<Saved[]>([]), nextCursor = ref<string | null>(null), current = ref<Saved | null>(null), latest = ref<Saved | null>(null);
 const conflict = ref(false), step = ref(1), reached = ref(1);
@@ -137,7 +137,7 @@ defineExpose({requestLeave});
       <p v-if="current.latestSubmission?.reviewFeedback" class="message warning">驳回理由：{{ current.latestSubmission.reviewFeedback }}</p>
       <RequestSummary :fields="current.latestSubmission?.fields??current.fields" :display-name="current.latestSubmission?.publisherDisplayName" />
       <details v-if="current.latestSubmission"><summary>本次提交声明（仅本人及审核人员可见）</summary><p>{{ declarationNames[current.latestSubmission.publisherDeclaration] }}</p></details>
-      <div class="form-actions"><button class="secondary" :disabled="busy" @click="refresh">刷新进度</button><button v-if="['REJECTED','EXPIRED'].includes(current.status)" class="primary" :disabled="busy" @click="revise">修改后重新提交</button></div>
+      <div class="form-actions"><button class="secondary" :disabled="busy" @click="refresh">刷新进度</button><button v-if="current.latestSubmission" class="secondary" :disabled="busy" @click="emit('matches',current.id)">查看候选与撮合</button><button v-if="['REJECTED','EXPIRED'].includes(current.status)" class="primary" :disabled="busy" @click="revise">修改后重新提交</button></div>
     </article>
     <template v-else-if="current">
       <details v-if="current.latestSubmission" class="form-card"><summary>上次提交及反馈</summary><p v-if="current.latestSubmission.reviewFeedback">驳回理由：{{ current.latestSubmission.reviewFeedback }}</p><RequestSummary :fields="current.latestSubmission.fields" :display-name="current.latestSubmission.publisherDisplayName" /><p>上次内容会保留，本次修改不会覆盖该提交。</p></details>

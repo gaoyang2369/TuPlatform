@@ -57,3 +57,15 @@ test("已读取账号后，资料操作携带账号前置条件，阻止跨标�
   await client.request("/me"); await client.request("/me/profile", "PATCH", { expectedVersion: 0, displayName: "甲" });
   assert.equal(accountHeader, "account-a");
 });
+test("撮合与发现请求携带账号前置条件，撮合写入保留幂等键", async () => {
+  const calls=[];
+  const client=new AccountApi(async(url,init)=>{
+    if(url.endsWith('/csrf'))return json({token:'csrf',headerName:'X-XSRF-TOKEN'});
+    if(url==='/api/v1/me')return json({id:'account-a'});
+    calls.push(init);return json({});
+  });
+  await client.request('/me');
+  for(const path of ['/teachers?categoryCode=DRAWING','/matches','/matches/relation/accept','/me/matches?state=WAITING'])await client.request(path,path==='/matches'||path.endsWith('/accept')?'POST':'GET',{},'same-intention-key');
+  assert.equal(calls.length,4);
+  for(const init of calls){assert.equal(init.headers['X-Account-Id'],'account-a');assert.equal(init.headers['Idempotency-Key'],'same-intention-key');}
+});

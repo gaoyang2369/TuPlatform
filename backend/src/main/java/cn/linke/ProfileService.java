@@ -113,6 +113,41 @@ class ProfileService {
     // Allowlisted public projection only; caller must be a verified, signed-in requester.
     public Map<String, Object> publicTeacher(String session, UUID id) {
         auth.business(session, "REQUESTER");
+        return teacherProjection(id);
+    }
+    static UUID pageCursor(String cursor) {
+        if (cursor==null || cursor.isBlank()) return new UUID(-1,-1);
+        try { return UUID.fromString(cursor); }
+        catch (IllegalArgumentException e) { throw ApiError.invalid("cursor","列表位置已失效，请重新读取"); }
+    }
+    public Map<String,Object> publicTeachers(String session,String cursor,String category,String area,String mode) {
+        auth.business(session,"REQUESTER");
+        String condition="a.email_verified AND a.business_identity='TUTOR' AND p.is_public AND a.id<?";
+        var args=new java.util.ArrayList<Object>();args.add(pageCursor(cursor));
+        String[][] filters={{"category_codes",category},{"area_codes",area},{"service_modes",mode}};
+        for (var filter:filters) if(filter[1]!=null&&!filter[1].isBlank()) {
+            var allowed=switch(filter[0]){case "category_codes"->Rules.CATEGORIES;case "area_codes"->Rules.AREAS;default->Rules.MODES;};
+            if(!allowed.contains(filter[1]))throw ApiError.invalid("filter","请选择有效的筛选条件");
+            condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
+        }
+        var ids=db.queryForList("SELECT a.id FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE "+condition+" ORDER BY a.id DESC LIMIT 21",UUID.class,args.toArray());
+        var result=new LinkedHashMap<String,Object>();result.put("items",ids.stream().limit(20).map(this::teacherProjection).toList());
+        result.put("nextCursor",ids.size()>20?ids.get(19).toString():null);return result;
+    }
+    Map<String,Object> matchTeacher(UUID id,long expectedVersion) {
+        var teacher=teacherProjectionForMatch(id);
+        if(((Number)teacher.get("profileVersion")).longValue()!=expectedVersion)throw new ApiError(409,"TEACHER_PROFILE_CHANGED","老师资料已变化，请重新读取并核对");
+        @SuppressWarnings("unchecked") var categoryCodes=(List<String>)teacher.get("categoryCodes");
+        @SuppressWarnings("unchecked") var modes=(List<String>)teacher.get("serviceModes");
+        @SuppressWarnings("unchecked") var areas=(List<String>)teacher.get("areaCodes");
+        validateTeacher(new TeacherBody(expectedVersion,(String)teacher.get("displayName"),categoryCodes,modes,areas,(String)teacher.get("introduction"),(String)teacher.get("priceMin"),(String)teacher.get("priceMax"),(String)teacher.get("availabilityText")),true);
+        return teacher;
+    }
+    private Map<String,Object> teacherProjectionForMatch(UUID id) {
+        try { return teacherProjection(id); }
+        catch(ApiError e) { throw new ApiError(422,"PROFILE_NOT_PUBLIC","老师须先补齐必填资料并主动公开，才能投递或被邀请"); }
+    }
+    private Map<String,Object> teacherProjection(UUID id) {
         List<Map<String, Object>> rows = db.queryForList("""
             SELECT a.id,p.version,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
             FROM profiles p JOIN accounts a ON a.id=p.account_id

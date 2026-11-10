@@ -1,8 +1,8 @@
 # 首版必要接口与数据设计
 
-2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10已完成账号/资料、需求草稿和提交审核公开增量，迁移至V3。本页仍包含后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
+2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10已完成账号/资料、需求草稿、提交审核公开及投递邀请回应互选增量，迁移至V4。本页仍包含联系方式后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
 
-当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft；以及POST /requests/{id}/submit、POST /requests/{id}/revisions、GET /public/requests及/{id}、GET /operations/submissions及/{id}、POST /operations/submissions/{id}/decision。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。老师发现列表、私密联系方式维护和撮合接口尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
+当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft；以及POST /requests/{id}/submit、POST /requests/{id}/revisions、GET /public/requests及/{id}、GET /operations/submissions及/{id}、POST /operations/submissions/{id}/decision。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。第四段已实现并真实联调GET /teachers、GET /me/matches、GET /matches/{id}、POST /matches以及accept/reject/withdraw-intent；V4已获准在两库执行。私密联系方式维护和授权尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
 
 本人需求当前返回SavedDraft：{id,status,version,fields,lastSavedAt,retentionReminder,latestSubmission}；latestSubmission为null或{id,fields,publisherDisplayName,publisherDeclaration,declarationVersion,submittedAt,reviewFeedback}。尚不包含未来撮合计数。status按读取时刻返回EXPIRED，不向普通用户返回expiresAt。本人列表只支持cursor、固定每页20项，返回{items,nextCursor}，暂不支持status筛选。发布选项返回代码数组{categories,streets,audienceStages,serviceModes}和publisherDeclarations:[{code,version,label}]；REQUEST_CATEGORIES为空时categories为空，页面解释可先保存其他字段。草稿写入检查X-Account-Id和CSRF；创建使用Idempotency-Key，相同键返回同一需求当前状态，原草稿清理后该键返回DRAFT_REMOVED/410，不盲目重建。保存仅允许DRAFT，null清空、部分更新，旧版本VERSION_CONFLICT/409。最后保存83天起返回retentionReminder，90天起读接口即不可见；每小时清理过期DRAFT，提醒不发送邮件。
 
@@ -107,7 +107,7 @@
 
 ## 所需核心实体
 
-下表是首版PostgreSQL实体设计。获准的tuplatform和tuplatform_test已执行V1账号/资料、V2草稿和V3提交审核迁移。V3新增request_submissions、review_decisions、request_action_receipts，并在service_requests增加latest_submission_id；固定快照与决定分开存储，提交版本和需求版本分别检查。其余撮合/联系方式实体待后续业务段落地。字段列只列协作需要的主数据，不建设通用平台表。
+下表是首版PostgreSQL实体设计。获准的tuplatform和tuplatform_test已执行V1账号/资料、V2草稿、V3提交审核及V4撮合迁移。V3新增request_submissions、review_decisions、request_action_receipts，并在service_requests增加latest_submission_id；V4新增关系、轮次与撮合回执三表。固定快照与决定分开存储，提交版本和需求版本分别检查。联系方式实体待第五段落地。字段列只列协作需要的主数据，不建设通用平台表。
 
 | 实体 | 主要内容与约束 |
 | --- | --- |
@@ -124,3 +124,11 @@
 跨实体动作在同一业务事务内完成：提交与快照/有效期、审核唯一决定、创建或重用同一撮合关系、回应与撤回竞争、已分享联系方式变更与受影响授权失效。使用当前对象版本与数据库唯一性处理必要冲突；不引入通用工作流、操作恢复中心或复杂权限配置。
 
 旧0.3.1机器稿只作[历史参考](../archive/README.md)，其中延期端点不实施。后续可在实际开发相应业务段时，把本页对应接口转为OpenAPI并随联调核对；无需先补完历史契约或一次性实现全部端点。
+
+## 第四段当前实现与迁移边界
+
+老师及撮合列表固定每页20项，cursor为上一页最后一个不透明UUID，按ID降序；老师筛选categoryCode/areaCode/serviceMode，撮合筛选state/requestId，后者始终与当前参与方范围取交集。Match另有submissionChanged、teacherProfileChanged，提醒查看时保留原快照；不返回对方邮箱、联系方式、私有声明、截止时刻及审核反馈。老师列表与关系根路径也检查X-Account-Id。
+
+V4脚本为backend/src/main/resources/db/migration/V4__match_relationships.sql：新增match_relationships、match_rounds、match_action_receipts三表，及双方列表、同版拒绝历史三个显式索引。关系唯一约束为(request_id,tutor_id)，当前轮次使用延迟外键绑定到同一关系。每轮保存提交引用及需求/老师白名单快照；回应时间、回应方独立记录。拒绝限制查询同提交版本的历史拒绝轮次，后续撤回不会绕过原限制。新增与回应按相同顺序锁定双方账号/资料，再锁需求或关系，避免双方相遇产生两条关系或自动互选。重复动作返回原回执，客户端成功后再读当前关系。
+
+需求与提交引用为RESTRICT；只清理从未提交且超过90天的草稿，修订草稿的旧提交和关系保留。私有草稿读取仍有90天边界，关系快照持续可读。既有V1—V3不修改。V4已获用户许可在测试库联调后应用两库；合成业务写入仅限_test并已清理。无关老师不能用发起错误探测私有草稿或待审提交，统一404。响应不可解析或连接失败保留同一操作凭据；回应已成功而详情刷新失败时明确区分写入成功与刷新失败，仍可同键恢复或读取最新结果。

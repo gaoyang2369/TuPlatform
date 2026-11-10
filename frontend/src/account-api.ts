@@ -40,7 +40,7 @@ export class AccountApi {
   }
   async request<T>(path: string, method = "GET", body?: unknown, key?: string, retryCsrf = true): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (this.accountId && (path.startsWith("/me/") || path.startsWith("/teachers/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
+    if (this.accountId && (path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     if (method !== "GET") {
