@@ -82,7 +82,10 @@ test("保存失败不进入下一步，保留输入并可重试",async({page})=>
   await page.getByRole("button",{name:"保存并下一步"}).click();await expect(page.getByLabel("预算下限")).toBeVisible();
   await page.getByLabel("预算下限").fill("1.001");await page.getByRole("button",{name:"保存并预览"}).click();
   await expect(page.getByRole("alert")).toContainText("两位小数");await expect(page.getByLabel("预算下限")).toHaveValue("1.001");
-  await page.getByLabel("预算下限").fill("100");await page.getByRole("button",{name:"保存并预览"}).click();
+  await page.getByLabel("预算下限").fill("100");
+  await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("PER_WEEK");await page.getByLabel("每周次数").fill("abc");
+  await page.getByRole("button",{name:"保存并预览"}).click();await expect(page.getByRole("alert")).toContainText("整数");await expect(page.getByLabel("每周次数")).toHaveValue("abc");
+  await page.getByLabel("每周次数").fill("2");await page.getByRole("button",{name:"保存并预览"}).click();
   await expect(page.getByRole("heading",{name:"网络失败时保留的标题",exact:true})).toBeVisible();
 });
 

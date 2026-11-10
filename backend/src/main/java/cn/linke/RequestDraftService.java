@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 record DraftPatch(Long expectedVersion, ObjectNode fields) {}
-record SavedDraft(UUID id, String status, long version, ObjectNode fields, OffsetDateTime lastSavedAt, boolean retentionReminder) {}
+record SavedDraft(UUID id, String status, long version, ObjectNode fields, OffsetDateTime lastSavedAt, boolean retentionReminder, SubmissionSnapshot latestSubmission) {}
 
 @Service
 @Transactional
@@ -23,14 +23,23 @@ class RequestDraftService {
         categories = Arrays.stream(configured.split(",")).map(String::strip).filter(s->!s.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
         if(!Rules.CATEGORIES.containsAll(categories)) throw new IllegalArgumentException("Unknown REQUEST_CATEGORIES");
     }
-    Map<String,Object> options() { return Map.of("categories",categories.stream().sorted().toList(),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE")); }
+    Set<String> categories() { return categories; }
+    Map<String,Object> options() { return Map.of("categories",categories.stream().sorted().toList(),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE"),"publisherDeclarations",List.of(
+        Map.of("code","SELF_ADULT","version","publisher-v1","label","我为已满18岁的本人发布本条需求。"),
+        Map.of("code","GUARDIAN_OF_MINOR","version","publisher-v1","label","我作为监护人为未成年人发布本条需求。"))); }
     private SavedDraft map(java.sql.ResultSet r,int index) throws java.sql.SQLException {
-        try { return new SavedDraft(r.getObject("id",UUID.class),r.getString("status"),r.getLong("version"),(ObjectNode)json.readTree(r.getString("fields")),r.getObject("last_saved_at",OffsetDateTime.class),r.getBoolean("reminder")); }
+        try {
+            SubmissionSnapshot submitted = r.getObject("submission_id")==null?null:new SubmissionSnapshot(r.getObject("submission_id",UUID.class),
+                (ObjectNode)json.readTree(r.getString("submission_fields")),r.getString("publisher_display_name"),r.getString("publisher_declaration"),r.getString("declaration_version"),r.getObject("submitted_at",OffsetDateTime.class),r.getString("review_feedback"));
+            return new SavedDraft(r.getObject("id",UUID.class),r.getString("effective_status"),r.getLong("version"),(ObjectNode)json.readTree(r.getString("fields")),r.getObject("last_saved_at",OffsetDateTime.class),r.getBoolean("reminder"),submitted);
+        }
         catch(java.io.IOException e) { throw new IllegalStateException("Stored draft invalid",e); }
     }
-    private static final String READ="SELECT *, last_saved_at<=now()-interval '83 days' AS reminder FROM service_requests ";
-    private SavedDraft own(UUID user,UUID id,boolean lock) {
-        var rows=db.query(READ+"WHERE id=? AND owner_id=? AND (status<>'DRAFT' OR last_saved_at>now()-interval '90 days')"+(lock?" FOR UPDATE":""),this::map,id,user);
+    private static final String READ="SELECT r.*, CASE WHEN r.status IN ('PENDING_REVIEW','OPEN') AND s.expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE r.status END AS effective_status, " +
+        "r.status='DRAFT' AND r.last_saved_at<=now()-interval '83 days' AS reminder, s.id AS submission_id,s.fields AS submission_fields,s.publisher_display_name,s.publisher_declaration,s.declaration_version,s.submitted_at,d.reason AS review_feedback " +
+        "FROM service_requests r LEFT JOIN request_submissions s ON s.id=r.latest_submission_id LEFT JOIN review_decisions d ON d.submission_id=s.id ";
+    SavedDraft own(UUID user,UUID id,boolean lock) {
+        var rows=db.query(READ+"WHERE r.id=? AND r.owner_id=? AND (r.status<>'DRAFT' OR r.last_saved_at>now()-interval '90 days')"+(lock?" FOR UPDATE OF r":""),this::map,id,user);
         if(rows.isEmpty()) throw new ApiError(404,"NOT_FOUND","需求不存在或不可查看");
         return rows.getFirst();
     }
@@ -67,7 +76,7 @@ class RequestDraftService {
             try { String[] parts=new String(Base64.getUrlDecoder().decode(cursor),java.nio.charset.StandardCharsets.UTF_8).split("\\|",-1); time=OffsetDateTime.parse(parts[0]); after=UUID.fromString(parts[1]); }
             catch(Exception e) { throw ApiError.invalid("cursor","列表位置已失效，请重新读取列表"); }
         }
-        var rows=db.query(READ+"WHERE owner_id=? AND (status<>'DRAFT' OR last_saved_at>now()-interval '90 days') AND (last_saved_at,id)<(?,?) ORDER BY last_saved_at DESC,id DESC LIMIT 21",this::map,a.id(),time,after);
+        var rows=db.query(READ+"WHERE r.owner_id=? AND (r.status<>'DRAFT' OR r.last_saved_at>now()-interval '90 days') AND (r.last_saved_at,r.id)<(?,?) ORDER BY r.last_saved_at DESC,r.id DESC LIMIT 21",this::map,a.id(),time,after);
         List<SavedDraft> items=rows.stream().limit(20).toList();
         Map<String,Object> result=new LinkedHashMap<>(); result.put("items",items); result.put("nextCursor",null);
         if(rows.size()>20) { SavedDraft last=items.getLast(); result.put("nextCursor",Base64.getUrlEncoder().withoutPadding().encodeToString((last.lastSavedAt()+"|"+last.id()).getBytes(java.nio.charset.StandardCharsets.UTF_8))); }

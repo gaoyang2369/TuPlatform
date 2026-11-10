@@ -2,12 +2,16 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
 import RequestDrafts from "./RequestDrafts.vue";
+import PublicRequests from "./PublicRequests.vue";
+import OperationsReview from "./OperationsReview.vue";
 import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
 
-type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests";
+type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests" | "public" | "review";
 const screen = ref<Screen>("login");
 const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
+const reviewRef = ref<InstanceType<typeof OperationsReview>>();
+const publicRequestId=ref<string|undefined>(new URLSearchParams(location.search).get("request")??undefined);
 const me = ref<Me | null>(null);
 const profile = ref<Profile | null>(null);
 const busy = ref(false);
@@ -173,21 +177,30 @@ async function visibility(publish: boolean) { await run(async () => {
 }); }
 async function performLogout() { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); screen.value = "login"; notice.value = "已退出登录。"; }); }
 async function logout() {
-  if (busy.value) return;
+  if (busy.value || booting.value) return;
   if (screen.value === "requests") { draftsRef.value?.requestLeave(performLogout); return; }
+  if (screen.value === "review") { reviewRef.value?.requestLeave(performLogout); return; }
   if (dirty.value && !window.confirm("当前修改尚未保存，退出会放弃这些输入。确定退出？")) return;
   await performLogout();
 }
 function showRequests() {
-  if (busy.value || screen.value === "requests") return;
-  if (dirty.value && !window.confirm("本人资料的修改尚未保存，是否放弃这些输入并查看需求？")) return;
-  if (profile.value) loadForm(profile.value);
-  resetMessages(); screen.value = "requests";
+  if(screen.value!=="requests")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="requests";});
 }
 function showProfile() {
-  if (screen.value === "requests") { draftsRef.value?.requestLeave(() => run(loadAccount)); return; }
-  void run(loadAccount);
+  leaveCurrent(()=>{clearPublicUrl();return run(loadAccount);});
 }
+function clearPublicUrl(){publicRequestId.value=undefined;const url=new URL(location.href);url.searchParams.delete("request");history.replaceState(null,"",url.pathname+url.search+url.hash);}
+function leaveCurrent(action:()=>void|Promise<void>){
+  if(busy.value||booting.value)return;
+  if(screen.value==="requests"){draftsRef.value?.requestLeave(action);return;}
+  if(screen.value==="review"){reviewRef.value?.requestLeave(action);return;}
+  if(dirty.value&&!window.confirm("本人资料的修改尚未保存，是否放弃这些输入并离开？"))return;
+  if(profile.value)loadForm(profile.value);
+  void action();
+}
+function showPublic(){if(screen.value!=="public")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="public";});}
+function showReview(){if(screen.value!=="review")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="review";});}
+function showLogin(){leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="login";});}
 function draftSessionExpired() { clearPrivate(); screen.value = "login"; error.value = "账号或登录状态已变化，请重新登录。"; }
 
 function beforeUnload(event: BeforeUnloadEvent) { if (dirty.value) { event.preventDefault(); event.returnValue = ""; } }
@@ -207,7 +220,7 @@ async function initialize() {
   catch (e) {
     if (!(e instanceof ApiFailure && e.status === 401)) error.value = e instanceof Error ? e.message : "服务暂不可用";
     if (!me.value) screen.value = "login";
-  } finally { booting.value = false; }
+  } finally { if(publicRequestId.value)screen.value="public";booting.value = false; }
 }
 // Reconcile sessions after tab switches. Saving never trusts a cached identity.
 async function reconcileSession() {
@@ -229,11 +242,11 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
   <div class="account-shell">
     <header class="site-header">
       <a class="brand" href="/" aria-label="邻课首页"><span class="brand-mark">邻</span><span>邻课<small>坪山 · 认真相遇</small></span></a>
-      <div v-if="me" class="account-summary"><span>{{ me.account }} · {{ me.businessIdentity === 'TUTOR' ? '老师' : me.businessIdentity === 'REQUESTER' ? '需求方' : '未选身份' }}</span><button class="text-button" :disabled="busy" @click="logout">退出登录</button></div>
-      <span v-else class="header-note">从认识彼此开始</span>
+      <div v-if="me" class="account-summary"><span>{{ me.account }} · {{ me.businessIdentity === 'TUTOR' ? '老师' : me.businessIdentity === 'REQUESTER' ? '需求方' : '未选身份' }}</span><button class="text-button" :disabled="busy||booting" @click="logout">退出登录</button></div>
+      <button v-else class="text-button" :disabled="busy||booting" @click="showLogin">登录 / 注册</button>
     </header>
     <main class="account-main" :aria-busy="busy || booting">
-      <nav v-if="me?.businessIdentity" class="account-nav" aria-label="本人任务"><button class="text-button" :disabled="busy" @click="showProfile">本人资料</button><button v-if="me.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy" @click="showRequests">我的需求</button></nav>
+      <nav class="account-nav" aria-label="主要任务"><button class="text-button" :disabled="busy||booting" @click="showPublic">浏览需求</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showProfile">本人资料</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showRequests">我的需求</button><button v-if="me?.operatorGranted" class="text-button" :disabled="busy||booting" @click="showReview">需求审核</button></nav>
       <div v-if="booting" class="loading" role="status">正在读取账号状态…</div>
       <template v-else>
         <div v-if="error" class="message error" role="alert" tabindex="-1">{{ error }}<ul v-if="Object.keys(fieldErrors).length"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field">{{ message }}</a></li></ul></div>
@@ -286,7 +299,9 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
           <button v-if="conflict" class="secondary" :disabled="busy" @click="run(loadAccount)">读取已确认的账号身份</button>
         </section>
 
-        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" @expired="draftSessionExpired" />
+        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" @expired="draftSessionExpired" @profile="showProfile" />
+        <PublicRequests v-else-if="screen==='public'" :initial-id="publicRequestId" />
+        <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
         <section v-else-if="screen === 'profile'" class="profile-page">
           <div class="page-heading"><div><p class="eyebrow">MY PROFILE</p><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名即可为后续发布需求做准备。' }}</p></div><span v-if="isTutor" :class="['pill', { published: isPublic }]">{{ isPublic ? '资料已公开' : '仅本人可见' }}</span></div>
           <div v-if="!profile" class="form-card"><p>本人资料尚未成功读取。</p><button class="primary" :disabled="busy" @click="run(loadAccount)">重新读取</button></div>

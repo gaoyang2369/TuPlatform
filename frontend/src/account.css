@@ -7,4 +7,4 @@
 
 .account-summary>.text-button{white-space:nowrap;flex-shrink:0}.account-summary>span{min-width:0;overflow-wrap:anywhere}
 
-.account-nav{display:flex;gap:28px;margin-bottom:25px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.account-nav{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:25px;border-bottom:1px solid var(--line);padding-bottom:12px}

@@ -1,10 +1,14 @@
 # 首版必要接口与数据设计
 
-2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10账号/资料已完成真实数据库及邮件联调，并实现需求草稿及V2迁移。本页仍包含后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
+2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10已完成账号/资料、需求草稿和提交审核公开增量，迁移至V3。本页仍包含后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
 
-当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；新增草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。老师发现列表、私密联系方式维护、需求提交/审核/公开和撮合接口尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
+当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft；以及POST /requests/{id}/submit、POST /requests/{id}/revisions、GET /public/requests及/{id}、GET /operations/submissions及/{id}、POST /operations/submissions/{id}/decision。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。老师发现列表、私密联系方式维护和撮合接口尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
 
-草稿当前返回SavedDraft：{id,status,version,fields,lastSavedAt,retentionReminder}，尚不是下文未来完整MyRequest。本人列表只支持cursor、固定每页20项，返回{items,nextCursor}，暂不支持status筛选。发布选项当前返回代码数组{categories,streets,audienceStages,serviceModes}，暂不返回提交声明；REQUEST_CATEGORIES为空时categories为空，页面解释可先保存其他字段。草稿写入同样检查X-Account-Id和CSRF；创建使用Idempotency-Key，相同键返回同一草稿当前保存状态，原草稿清理后该键返回DRAFT_REMOVED/410，不盲目重建。保存仅允许DRAFT，null清空、部分更新，旧版本VERSION_CONFLICT/409。最后保存83天起返回retentionReminder，90天起读接口即不可见；每小时清理过期DRAFT，保留提醒不发送邮件。该规则不依赖清理任务及时运行。
+本人需求当前返回SavedDraft：{id,status,version,fields,lastSavedAt,retentionReminder,latestSubmission}；latestSubmission为null或{id,fields,publisherDisplayName,publisherDeclaration,declarationVersion,submittedAt,reviewFeedback}。尚不包含未来撮合计数。status按读取时刻返回EXPIRED，不向普通用户返回expiresAt。本人列表只支持cursor、固定每页20项，返回{items,nextCursor}，暂不支持status筛选。发布选项返回代码数组{categories,streets,audienceStages,serviceModes}和publisherDeclarations:[{code,version,label}]；REQUEST_CATEGORIES为空时categories为空，页面解释可先保存其他字段。草稿写入检查X-Account-Id和CSRF；创建使用Idempotency-Key，相同键返回同一需求当前状态，原草稿清理后该键返回DRAFT_REMOVED/410，不盲目重建。保存仅允许DRAFT，null清空、部分更新，旧版本VERSION_CONFLICT/409。最后保存83天起返回retentionReminder，90天起读接口即不可见；每小时清理过期DRAFT，提醒不发送邮件。
+
+提交、修订、审核当前返回{id,submissionId,status,version}，version为需求版本；审核请求的expectedVersion则来自运营读取的提交版本。三类动作分别保存本账号的幂等回执，相同键与内容返回原动作结果，同键不同内容返回IDEMPOTENCY_CONFLICT/409；读取最新对象确认当前状态。审核写入也检查X-Account-Id与CSRF，独立核对operator_granted，不能审核本人。运营列表支持cursor/status，状态为PENDING_REVIEW（默认）、APPROVED、REJECTED、EXPIRED，每页20项；目前返回与运营详情相同的固定提交结构，并增加publisherDisplayName、declarationVersion、reviewFeedback、priorReviewFeedback。驳回理由最多1000码点且不可仅空白。审核结果由本人进度页读取，当前不发送审核邮件。
+
+公开列表支持cursor/categoryCode/areaCode/serviceMode，返回{items,nextCursor}；详情和列表只映射PublicRequest白名单，展示名来自提交时快照。审核通过、最新提交、需求OPEN、未到期且类别当前允许才可见；任一条件不符详情404，列表过滤，不等待定时任务。自由文本以Vue文本插值显示，运营审核页面提示核对私密信息，不用自动字符串过滤代替人工审核。
 
 ## 共用约定
 
@@ -103,7 +107,7 @@
 
 ## 所需核心实体
 
-下表是首版PostgreSQL实体设计。V1账号/资料、会话与邮件凭据，以及V2的service_requests、request_creation_receipts已在获准的tuplatform和tuplatform_test执行；V2目前仅承载草稿，不包含提交/审核实体。其余实体仍待后续业务段落地。字段列只列协作需要的主数据，不建设通用平台表。
+下表是首版PostgreSQL实体设计。获准的tuplatform和tuplatform_test已执行V1账号/资料、V2草稿和V3提交审核迁移。V3新增request_submissions、review_decisions、request_action_receipts，并在service_requests增加latest_submission_id；固定快照与决定分开存储，提交版本和需求版本分别检查。其余撮合/联系方式实体待后续业务段落地。字段列只列协作需要的主数据，不建设通用平台表。
 
 | 实体 | 主要内容与约束 |
 | --- | --- |
