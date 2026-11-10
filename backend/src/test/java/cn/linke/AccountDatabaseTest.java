@@ -113,4 +113,17 @@ class AccountDatabaseTest {
         assertThrows(ApiError.class, () -> auth.reset(new ResetBody(first, "another synthetic password 789")));
         assertThrows(ApiError.class, () -> auth.reset(new ResetBody(second, "another synthetic password 789")));
     }
+    @Test void expiredVerificationAndResetTokensCannotBeConsumed() {
+        String account="test_"+UUID.randomUUID().toString().replace("-","").substring(0,20);
+        Registration registration=auth.register(new RegisterBody(account,password,account+"@example.invalid",true));
+        UUID id=db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?",UUID.class,registration.registrationFlowId());created.add(id);
+        String verify=verificationToken;
+        db.update("UPDATE email_tokens SET expires_at=clock_timestamp()-interval '1 second' WHERE account_id=?",id);
+        assertEquals(false,auth.inspect(verify,registration.context()).get("valid"));
+        assertEquals("LINK_INVALID",assertThrows(ApiError.class,()->auth.verify(new VerifyBody(verify,password),null)).code);
+        User u=user("REQUESTER");auth.forgot(auth.current(u.session(),false).email());String reset=resetToken;
+        db.update("UPDATE email_tokens SET expires_at=clock_timestamp()-interval '1 second' WHERE account_id=? AND purpose='RESET'",u.id());
+        assertEquals("LINK_INVALID",assertThrows(ApiError.class,()->auth.reset(new ResetBody(reset,"expired synthetic reset password"))).code);
+        assertEquals(u.id(),auth.current(u.session(),false).id());
+    }
 }

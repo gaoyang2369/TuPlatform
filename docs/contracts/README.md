@@ -1,8 +1,8 @@
 # 首版必要接口与数据设计
 
-2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10已完成账号/资料、需求草稿、提交审核公开及投递邀请回应互选增量，迁移至V4。本页仍包含联系方式后续业务段的设计，不能把下列全部端点视为已实现；不是旧0.3.1全部端点的延续。
+2026-11-07依据[主规格](../mvp-spec.md)和[核心页面](../design/page-inventory.md)整理。2026-11-10已完成五段首版闭环，包含本人私密联系方式和双方逐项授权/撤回，两库迁移至V5并完成真实数据库及Chrome验收。本页记录首版端点、权限和当前结构差异；不是旧0.3.1全部端点的延续。
 
-当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft；以及POST /requests/{id}/submit、POST /requests/{id}/revisions、GET /public/requests及/{id}、GET /operations/submissions及/{id}、POST /operations/submissions/{id}/decision。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。第四段已实现并真实联调GET /teachers、GET /me/matches、GET /matches/{id}、POST /matches以及accept/reject/withdraw-intent；V4已获准在两库执行。私密联系方式维护和授权尚未实现。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
+当前实现路径：/auth/*、/me、/me/business-identity、/me/profile、/me/teacher-profile及其publish/unpublish、/teachers/{id}；草稿GET /publishing-options、POST /requests、GET /me/requests、GET /requests/{id}、PATCH /requests/{id}/draft；以及POST /requests/{id}/submit、POST /requests/{id}/revisions、GET /public/requests及/{id}、GET /operations/submissions及/{id}、POST /operations/submissions/{id}/decision。GET /auth/csrf返回{token,headerName}供同源SPA写入；GET /profile-options返回categoryCodes、serviceModes、areaCodes。第四段已实现并真实联调GET /teachers、GET /me/matches、GET /matches/{id}、POST /matches以及accept/reject/withdraw-intent；V4已获准在两库执行。第五段已实现并联调GET/PUT /me/contacts和GET/PUT/DELETE /matches/{id}/contact-consent。未生成当前段OpenAPI机器稿，已实现路由及字段以本文和Controller/record代码核对。
 
 本人需求当前返回SavedDraft：{id,status,version,fields,lastSavedAt,retentionReminder,latestSubmission}；latestSubmission为null或{id,fields,publisherDisplayName,publisherDeclaration,declarationVersion,submittedAt,reviewFeedback}。尚不包含未来撮合计数。status按读取时刻返回EXPIRED，不向普通用户返回expiresAt。本人列表只支持cursor、固定每页20项，返回{items,nextCursor}，暂不支持status筛选。发布选项返回代码数组{categories,streets,audienceStages,serviceModes}和publisherDeclarations:[{code,version,label}]；REQUEST_CATEGORIES为空时categories为空，页面解释可先保存其他字段。草稿写入检查X-Account-Id和CSRF；创建使用Idempotency-Key，相同键返回同一需求当前状态，原草稿清理后该键返回DRAFT_REMOVED/410，不盲目重建。保存仅允许DRAFT，null清空、部分更新，旧版本VERSION_CONFLICT/409。最后保存83天起返回retentionReminder，90天起读接口即不可见；每小时清理过期DRAFT，提醒不发送邮件。
 
@@ -107,7 +107,7 @@
 
 ## 所需核心实体
 
-下表是首版PostgreSQL实体设计。获准的tuplatform和tuplatform_test已执行V1账号/资料、V2草稿、V3提交审核及V4撮合迁移。V3新增request_submissions、review_decisions、request_action_receipts，并在service_requests增加latest_submission_id；V4新增关系、轮次与撮合回执三表。固定快照与决定分开存储，提交版本和需求版本分别检查。联系方式实体待第五段落地。字段列只列协作需要的主数据，不建设通用平台表。
+下表是首版PostgreSQL实体设计。获准的tuplatform和tuplatform_test已执行V1账号/资料、V2草稿、V3提交审核、V4撮合及V5联系方式/授权迁移。V3新增request_submissions、review_decisions、request_action_receipts，并在service_requests增加latest_submission_id；V4新增关系、轮次与撮合回执三表。固定快照与决定分开存储，提交版本和需求版本分别检查。V5独立保存本人联系方式、本轮双方授权及不含私密值的动作回执。字段列只列协作需要的主数据，不建设通用平台表。
 
 | 实体 | 主要内容与约束 |
 | --- | --- |
@@ -132,3 +132,21 @@
 V4脚本为backend/src/main/resources/db/migration/V4__match_relationships.sql：新增match_relationships、match_rounds、match_action_receipts三表，及双方列表、同版拒绝历史三个显式索引。关系唯一约束为(request_id,tutor_id)，当前轮次使用延迟外键绑定到同一关系。每轮保存提交引用及需求/老师白名单快照；回应时间、回应方独立记录。拒绝限制查询同提交版本的历史拒绝轮次，后续撤回不会绕过原限制。新增与回应按相同顺序锁定双方账号/资料，再锁需求或关系，避免双方相遇产生两条关系或自动互选。重复动作返回原回执，客户端成功后再读当前关系。
 
 需求与提交引用为RESTRICT；只清理从未提交且超过90天的草稿，修订草稿的旧提交和关系保留。私有草稿读取仍有90天边界，关系快照持续可读。既有V1—V3不修改。V4已获用户许可在测试库联调后应用两库；合成业务写入仅限_test并已清理。无关老师不能用发起错误探测私有草稿或待审提交，统一404。响应不可解析或连接失败保留同一操作凭据；回应已成功而详情刷新失败时明确区分写入成功与刷新失败，仍可同键恢复或读取最新结果。
+
+## 第五段实现与V5范围
+
+联系方式五个端点已实现于ContactController/ContactService，测试库V5和真实数据库用例通过。Contacts以独立版本维护；PUT为完整替换，null或空字符串删除，不trim非空输入。字段版本只在该字段值实际变化时递增，私密修改不改变老师公开资料版本。Grant另返回roundId、otherRequiresReconfirmation；双方值对象只在canViewContacts=true时出现，未选字段完全省略。
+
+授权版本按当前轮次共享，双方动作均增加version；同意要求最新授权版本和本人选中字段版本。撤回仅清本人意愿及选择，保留对方独立意愿。联系方式修改在同一事务按关系ID加锁，对选中过已改字段的当前关系清除双方有效同意、标记双方重确认并递增授权版本；包括单方已同意、等待对方的状态。未选字段及其他关系不受影响。读取授权和授权动作均先按双方账号ID顺序加锁，再锁关系，与第四段顺序相同。每次读取检查当前轮次、互选和双方字段版本。
+
+contact_action_receipts只存动作指纹和关系/轮次标识，不保存响应或手机号/微信值。同键重试校验原动作内容后，返回当前授权投影，不重新执行同意或撤回，不恢复旧值。前端在开始刷新、失败、撤回及离开时清除旧分享对象；切回页面及15秒定期读取当前进度。页面刷新机制不能收回对方已知信息，也不承诺远程擦除已打开页面。
+
+V5具体脚本：backend/src/main/resources/db/migration/V5__private_contacts_and_consent.sql。新增三表，不更改V1—V4或已有业务表：
+
+| 表 | 列及约束 |
+| --- | --- |
+| private_contacts | account_id主键、账号外键级联清理；version、phone、wechat、phone_version、wechat_version；版本非负、手机号及微信长度/空白约束，服务端另检查Unicode格式字符 |
+| contact_grants | round_id主键，match_id/round_id复合外键绑定同一撮合轮次，随轮次级联清理；version；requester/tutor各自agreed、phone_version、wechat_version、reconfirm；已同意必须至少有一个字段版本且无需重确认；显式索引contact_grants_match(match_id) |
+| contact_action_receipts | actor_id/action/idempotency_key复合主键；账号外键、match_id/round_id复合外键及级联清理；fingerprint；action仅AGREE/WITHDRAW；不存分享值或响应 |
+
+用户已明确许可：先在tuplatform_test执行V5和重复启动校验，创建/修改/清理合成账号、会话、资料、需求、提交、审核、应用运营标记、撮合及回执，并新增合成private_contacts/contact_grants/contact_action_receipts写入；沿用_test夹具的邮件令牌、已知loopback限流桶及合成需求到期操作。清理核查后，仅在tuplatform应用同一V5结构及重复启动校验，业务库不写合成业务数据。不改服务器配置，不发真实邮件，不部署或授予真实运营权限。实际执行结果维护在交付计划和核心验收记录。

@@ -42,7 +42,7 @@ test("老师发现与投递、双方快照、明确接受后互选且不分享�
     await prepare(page,teacherPage,operatorPage);await apply(teacherPage);await expect(teacherPage.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();
     await progress(page);await expect(page.getByRole("heading",{name:"等待我回应",exact:true})).toBeVisible();
     await page.screenshot({path:path.join(root,`.tools/stage4-browser/waiting-${info.project.name}.png`),fullPage:true});
-    await page.getByRole("button",{name:"接受意向",exact:true}).click();await expect(page.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(page.getByText("双方已明确互选，当前尚未分享联系方式。")).toBeVisible();
+    await page.getByRole("button",{name:"接受意向",exact:true}).click();await expect(page.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(page.getByText("双方已明确互选，联系方式须经下方本轮授权后分享。")).toBeVisible();
     await teacherPage.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(teacherPage.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(teacherPage.getByRole("button",{name:"撤回本人意向"})).toHaveCount(0);
     await page.screenshot({path:path.join(root,`.tools/stage4-browser/mutual-${info.project.name}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
   }finally{await teacherContext.close();await operatorContext.close();}

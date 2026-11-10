@@ -14,7 +14,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class}, properties = {"app.secure-cookies=false"},
+@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class, ContactController.class}, properties = {"app.secure-cookies=false"},
     excludeAutoConfiguration = org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class)
 @Import({SecurityConfig.class, AccountContextConfig.class})
 class SecurityContractTest {
@@ -22,6 +22,7 @@ class SecurityContractTest {
     @MockitoBean AuthService auth;
     @MockitoBean ProfileService profiles;
     @MockitoBean MatchService matches;
+    @MockitoBean ContactService contacts;
     @MockitoBean RateLimits limits;
     // Spring Security's csrf() test helper replaces the cached filter's repository.
     // Bootstrap must inspect the real cookie repository, regardless of test order.
@@ -57,7 +58,7 @@ class SecurityContractTest {
     }
     @Test void matchStartAndResponseRequireCsrfAndCurrentAccountEvenAtRootPath() throws Exception {
         UUID current=UUID.randomUUID();
-        when(auth.current(isNull(),eq(false))).thenReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0));
+        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
         mvc.perform(post("/api/v1/matches").contentType("application/json").content("{}"))
             .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
         mvc.perform(post("/api/v1/matches").with(csrf()).contentType("application/json").content("{}"))
@@ -77,5 +78,22 @@ class SecurityContractTest {
         mvc.perform(get("/api/v1/profile-options")).andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("secret"))));
+    }
+    @Test void privateContactsAndConsentRequireSessionAccountAndCsrf() throws Exception {
+        when(auth.current(isNull(),eq(false))).thenThrow(new ApiError(401,"LOGIN_REQUIRED","请先登录"));
+        mvc.perform(get("/api/v1/me/contacts")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/matches/"+UUID.randomUUID()+"/contact-consent")).andExpect(status().isUnauthorized());
+        UUID current=UUID.randomUUID();
+        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
+        for(String method:java.util.List.of("PUT","DELETE")){
+            String path="/api/v1/matches/"+UUID.randomUUID()+"/contact-consent";
+            mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method),path).contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+            mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method),path).with(csrf()).header("X-Account-Id",UUID.randomUUID().toString()).contentType("application/json").content("{}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SESSION_CHANGED"));
+        }
+        mvc.perform(put("/api/v1/me/contacts").with(csrf()).contentType("application/json").content("{}"))
+            .andExpect(status().isConflict());
+        verifyNoInteractions(contacts);
     }
 }

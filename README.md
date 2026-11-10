@@ -2,7 +2,7 @@
 
 面向深圳坪山区的供需撮合产品，个人开发、Web首发。技术栈：Vue 3＋TypeScript、Java/Spring Boot、PostgreSQL。
 
-2026-11-10已完成账号/基本资料、三步草稿、需求提交审核与匿名公开浏览，以及老师发现、投递/邀请和回应互选。每轮保留当时需求与老师资料，重复/反向发起进入已有进度，接受不会自动分享联系方式。V1—V4已在获准的业务库及专用测试库执行，第四段真实数据库和Chrome联调已通过。私密联系方式与双方授权留第五段，当前不是完整首版，也未部署到服务器。
+2026-11-10已完成本地首版撮合闭环：注册登录、本人资料、需求草稿/提交审核/公开、老师发现、投递/邀请、回应互选，以及本人私密手机号/微信、双方逐项授权、撤回和已选字段变更后的双方重确认。邮箱不分享。获准的业务库及专用测试库均已执行V1—V5并通过重复启动校验；合成数据库和Chrome桌面/手机宽度验收完成。未部署到服务器，真实开放类别及运营账号尚未开放。
 
 业务规则从[首版规格](docs/mvp-spec.md)进入；当前进度看[交付计划](docs/tasks/mvp-delivery-plan-2026-11-07.md)，验收看[核心清单](docs/acceptance/mvp-cases.md)。
 
@@ -40,7 +40,7 @@ Windows可在项目根目录运行：
 
 脚本优先使用PATH中的Maven；否则下载并校验项目内的Maven 3.9.11，工具及依赖放在.tools下，不安装系统服务。其他平台可在backend目录使用Maven 3.6.3+执行mvn test、mvn package及mvn spring-boot:run。
 
-可用DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD分项配置，也可用DB_URL/DB_USERNAME覆盖。库名区分大小写，当前服务器实际库名为tuplatform。启动会校验V1—V4并执行尚未应用的迁移；两库V4已获许可执行，后续新增迁移仍须先准备具体脚本并取得许可。当前不自动创建数据库或运营账号。后端默认只监听127.0.0.1，本地HTTP须显式设置SECURE_COOKIES=false；HTTPS部署使用true。
+可用DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD分项配置，也可用DB_URL/DB_USERNAME覆盖。库名区分大小写，当前服务器实际库名为tuplatform。启动会校验V1—V5并执行尚未应用的迁移；两库V5已获许可执行，后续新增迁移仍须先准备具体脚本并取得许可。当前不自动创建数据库或运营账号。后端默认只监听127.0.0.1，本地HTTP须显式设置SECURE_COOKIES=false；HTTPS部署使用true。
 
 当前服务器PostgreSQL只监听回环地址。本地联调使用SSH本地转发，未修改服务器监听、防火墙、角色权限或重启服务。在单独终端运行以下命令并保持开启，按提示输入服务器密码：
 
@@ -68,8 +68,10 @@ $env:TEST_DB_PASSWORD = 'YOUR_TEST_PASSWORD'
 .\backend\mvnw.ps1 test
 ~~~
 
-测试只接受库名以_test结尾的专用测试库，不读取普通DB_URL。测试会执行迁移并创建/清理合成账号；常规数据库测试替换邮件传输。当前54项后端测试（含26项真实数据库测试）通过；两项真实SMTP测试此前已单独通过，本阶段常规回归跳过，不重复发信。
+测试只接受库名以_test结尾的专用测试库，不读取普通DB_URL。测试会执行迁移并创建/清理合成账号；常规数据库测试替换邮件传输。当前71项后端测试通过（32项普通检查、39项真实数据库，含12项联系方式用例）；两项真实SMTP测试此前已单独通过，本阶段跳过，不重复发信。首轮70项通过后补充过期邮件令牌拒绝及双字段分享定向验证，重复执行不重复计数。
 
-浏览器联调在frontend运行npm.cmd run test:e2e，需要上述TEST_DB_*环境变量、已启动的测试后端8081、代理到8081的Vite5174，以及本机Chrome。测试后端用DB_URL指向专用测试库、MAIL_ENABLED=false、TEACHER_CATEGORIES=DRAWING、REQUEST_CATEGORIES=DRAWING；Vite用API_PROXY_TARGET=http://127.0.0.1:8081和npm.cmd run dev -- --port 5174启动。Playwright会创建并清理合成账号，只接受_test库；运营与到期夹具也仅操作这些合成数据。完整36项通过，另扩展撮合失败恢复用例针对补测4项通过，不重复累加唯一用例数量。使用桌面及手机宽度仿真，不代表真机验证；结果默认在.tools/stage1-browser/results.json，可用E2E_RESULTS_FILE指定，当前放在.tools/stage4-browser/results.json和recovery-results.json，撮合页面截图也在stage4-browser。前端8项单元测试、类型检查及构建通过；实际覆盖范围见核心验收记录。
+浏览器联调在frontend运行npm.cmd run test:e2e，需要上述TEST_DB_*环境变量、已启动的测试后端8081、代理到8081的Vite5174，以及本机Chrome。测试后端用DB_URL指向专用测试库、MAIL_ENABLED=false、TEACHER_CATEGORIES=DRAWING、REQUEST_CATEGORIES=DRAWING；Vite用API_PROXY_TARGET=http://127.0.0.1:8081和npm.cmd run dev -- --port 5174启动。Playwright会创建并清理合成账号，只接受_test库；运营与到期夹具也仅操作这些合成数据。44个唯一场景最终通过，桌面1366×900和手机宽度390×844各22项；首轮42项通过，换账号测试补齐退出等待后6项定向复测通过，不重复累计。证据在.tools/stage5-browser/results.json、contact-final-results.json、final-browser-summary.json及双方授权截图；E2E_RESULTS_FILE可指定输出路径。手机宽度仿真不代表真机验证。前端8项、类型检查及生产构建通过，后端可运行JAR打包通过；实际边界见核心验收记录。
+
+两种身份都可在“私密联系方式”保存或删除选填手机号/微信；本轮互选详情中选择本人分享字段、核对实际值并明确同意。只有双方有效同意才展示选中值；撤回停止本关系双方后续平台访问，保留对方独立意愿。已选字段改值或删除后双方须重新确认，旧幂等回执不会恢复旧值。结束核查两库业务数据均0，测试服务8081/5174已停止，本地5173/8080及既有隧道保留。真实类别和运营账号、部署方案需另行落实；服务器配置变更仍须先询问。
 
 原Figma及[只读设计预览](docs/design/interaction-preview.html)继续作为设计参考；当前源码和测试证据与历史模拟演示分开记录。

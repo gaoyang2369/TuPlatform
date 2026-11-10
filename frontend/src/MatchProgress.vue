@@ -7,8 +7,9 @@ import type {Match} from "./match-types.ts";
 import RequestSummary from "./RequestSummary.vue";
 import TeacherSummary from "./TeacherSummary.vue";
 import MatchComposer from "./MatchComposer.vue";
+import ContactConsent from "./ContactConsent.vue";
 const props=defineProps<{me:Me;initialId?:string;requestId?:string}>();
-const emit=defineEmits<{expired:[];profile:[];requests:[];browse:[]}>();
+const emit=defineEmits<{expired:[];profile:[];requests:[];browse:[];contacts:[]}>();
 const items=ref<Match[]>([]),detail=ref<Match|null>(null),cursor=ref<string|null>(null),state=ref("");
 const busy=ref(false),error=ref(""),unknown=ref(false),conflict=ref(false),responseSaved=ref(false);
 let selectedId=props.initialId;
@@ -17,7 +18,7 @@ async function run(action:()=>Promise<void>){if(busy.value)return;busy.value=tru
 async function list(append=false){const q=new URLSearchParams();if(state.value)q.set("state",state.value);if(props.requestId)q.set("requestId",props.requestId);if(append&&cursor.value)q.set("cursor",cursor.value);const result=await api.request<{items:Match[];nextCursor:string|null}>("/me/matches?"+q);items.value=append?[...items.value,...result.items]:result.items;cursor.value=result.nextCursor;}
 async function read(id:string){const current=await api.request<Match>("/matches/"+encodeURIComponent(id));detail.value=current;selectedId=id;pending=null;unknown.value=false;conflict.value=false;responseSaved.value=false;}
 async function open(id:string){detail.value=null;await run(()=>read(id));}
-async function refresh(){await run(async()=>{if(selectedId)await read(selectedId);else await list();});}
+async function refresh(){detail.value=null;await run(async()=>{if(selectedId)await read(selectedId);else await list();});}
 async function respond(action:string){await run(async()=>{
   if(!pending){if(!detail.value)return;const messages:Record<string,string>={accept:"确认接受本次意向？互选不会自动分享联系方式，也不产生预约或合作。",reject:"确认拒绝本次意向？对方不能对本提交版本再次发起，你仍可主动改变主意重新发起。","withdraw-intent":"确认撤回本人发起的待回应意向？撤回后对方不能接受本轮意向。"};if(!window.confirm(messages[action]))return;pending={path:`/matches/${detail.value.id}/${action}`,body:{roundId:detail.value.roundId,expectedVersion:detail.value.version},key:crypto.randomUUID()};}
   // Keep the same receipt until the follow-up read succeeds, including when only that GET fails.
@@ -33,7 +34,8 @@ onMounted(()=>void refresh());
   <article v-if="detail" class="form-card"><h2>{{ matchLabel(detail) }}</h2><p v-if="detail.requestExpired" class="message warning">发起时的这版需求已到期，不再接收新意向。{{ detail.state==='WAITING'?'本次待回应意向仍可处理。':'当时资料继续保留。' }}</p><p v-if="!detail.teacherPublic" class="message warning">老师已停止公开，本次关系与当时资料保留。</p><p v-if="detail.submissionChanged" class="privacy-note">需求已有后续修订。本页保留本轮发起时内容，不复制原关系。</p><p v-if="detail.teacherProfileChanged" class="privacy-note">老师资料已有变化。本页保留当时内容，新意向请重新读取公开资料。</p>
     <h3>发起时的需求</h3><RequestSummary :fields="detail.submissionSnapshot" :display-name="detail.submissionSnapshot.publisherDisplayName"/><h3>发起时的老师资料</h3><TeacherSummary :teacher="detail.teacherSnapshot"/>
     <div class="form-actions"><button v-if="detail.canAccept" class="primary" :disabled="busy||unknown||conflict" @click="respond('accept')">接受意向</button><button v-if="detail.canReject" class="secondary" :disabled="busy||unknown||conflict" @click="respond('reject')">拒绝意向</button><button v-if="detail.canWithdraw" class="secondary" :disabled="busy||unknown||conflict" @click="respond('withdraw-intent')">撤回本人意向</button></div>
-    <p v-if="detail.state==='MUTUAL'" class="message success">双方已明确互选，当前尚未分享联系方式。</p>
+    <p v-if="detail.state==='MUTUAL'" class="message success">双方已明确互选，联系方式须经下方本轮授权后分享。</p>
+    <ContactConsent v-if="detail.state==='MUTUAL'" :key="detail.roundId" :match-id="detail.id" :round-id="detail.roundId" @expired="emit('expired')" @contacts="emit('contacts')"/>
     <MatchComposer v-if="detail.canInitiateAgain" :key="detail.roundId" :me="me" :request-id="detail.requestId" :teacher-id="detail.teacherSnapshot.id" @matched="open" @expired="emit('expired')" @profile="emit('profile')" @requests="emit('requests')"/>
     <p v-else-if="detail.state==='REJECTED'||detail.state==='WITHDRAWN'" class="privacy-note">当前不能重新发起。新意向须需求有效公开、老师资料公开；被拒绝方不能对同一提交版本再次发起。</p>
   </article>

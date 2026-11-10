@@ -6,14 +6,16 @@ import PublicRequests from "./PublicRequests.vue";
 import OperationsReview from "./OperationsReview.vue";
 import TeacherDiscovery from "./TeacherDiscovery.vue";
 import MatchProgress from "./MatchProgress.vue";
+import PrivateContacts from "./PrivateContacts.vue";
 import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
 
-type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests" | "public" | "review" | "teachers" | "matches";
+type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests" | "public" | "review" | "teachers" | "matches" | "contacts";
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
 const screen = ref<Screen>("login");
 const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
 const reviewRef = ref<InstanceType<typeof OperationsReview>>();
+const contactsRef = ref<InstanceType<typeof PrivateContacts>>();
 const publicRequestId=ref<string|undefined>(new URLSearchParams(location.search).get("request")??undefined);
 const me = ref<Me | null>(null);
 const profile = ref<Profile | null>(null);
@@ -184,6 +186,7 @@ async function logout() {
   if (busy.value || booting.value) return;
   if (screen.value === "requests") { draftsRef.value?.requestLeave(performLogout); return; }
   if (screen.value === "review") { reviewRef.value?.requestLeave(performLogout); return; }
+  if (screen.value === "contacts") { contactsRef.value?.requestLeave(performLogout); return; }
   if (dirty.value && !window.confirm("当前修改尚未保存，退出会放弃这些输入。确定退出？")) return;
   await performLogout();
 }
@@ -198,11 +201,13 @@ function leaveCurrent(action:()=>void|Promise<void>){
   if(busy.value||booting.value)return;
   if(screen.value==="requests"){draftsRef.value?.requestLeave(action);return;}
   if(screen.value==="review"){reviewRef.value?.requestLeave(action);return;}
+  if(screen.value==="contacts"){contactsRef.value?.requestLeave(action);return;}
   if(dirty.value&&!window.confirm("本人资料的修改尚未保存，是否放弃这些输入并离开？"))return;
   if(profile.value)loadForm(profile.value);
   void action();
 }
 function showPublic(){if(screen.value!=="public")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="public";});}
+function showContacts(){if(screen.value!=="contacts")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="contacts";});}
 function showReview(){if(screen.value!=="review")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="review";});}
 function showTeachers(){if(screen.value!=="teachers")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="teachers";});}
 function showMatches(id?:string,requestId?:string){leaveCurrent(()=>{resetMessages();clearPublicUrl();matchId.value=id;matchRequestId.value=requestId;screen.value="matches";});}
@@ -252,7 +257,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
       <button v-else class="text-button" :disabled="busy||booting" @click="showLogin">登录 / 注册</button>
     </header>
     <main class="account-main" :aria-busy="busy || booting">
-      <nav class="account-nav" aria-label="主要任务"><button class="text-button" :disabled="busy||booting" @click="showPublic">浏览需求</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showProfile">本人资料</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showRequests">我的需求</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showTeachers">发现老师</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showMatches()">撮合进度</button><button v-if="me?.operatorGranted" class="text-button" :disabled="busy||booting" @click="showReview">需求审核</button></nav>
+      <nav class="account-nav" aria-label="主要任务"><button class="text-button" :disabled="busy||booting" @click="showPublic">浏览需求</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showProfile">本人资料</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showContacts">私密联系方式</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showRequests">我的需求</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showTeachers">发现老师</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showMatches()">撮合进度</button><button v-if="me?.operatorGranted" class="text-button" :disabled="busy||booting" @click="showReview">需求审核</button></nav>
       <div v-if="booting" class="loading" role="status">正在读取账号状态…</div>
       <template v-else>
         <div v-if="error" class="message error" role="alert" tabindex="-1">{{ error }}<ul v-if="Object.keys(fieldErrors).length"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field">{{ message }}</a></li></ul></div>
@@ -308,7 +313,8 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
         <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" @expired="draftSessionExpired" @profile="showProfile" @matches="showMatches(undefined,$event)" />
         <PublicRequests v-else-if="screen==='public'" :initial-id="publicRequestId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="showProfile" @login="showLogin" />
         <TeacherDiscovery v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="showRequests" />
-        <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="(matchId||'list')+(matchRequestId||'')" :me="me" :initial-id="matchId" :request-id="matchRequestId" @expired="draftSessionExpired" @profile="showProfile" @requests="showRequests" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
+        <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="(matchId||'list')+(matchRequestId||'')" :me="me" :initial-id="matchId" :request-id="matchRequestId" @expired="draftSessionExpired" @profile="showProfile" @requests="showRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
+        <PrivateContacts v-else-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
         <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
         <section v-else-if="screen === 'profile'" class="profile-page">
           <div class="page-heading"><div><p class="eyebrow">MY PROFILE</p><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名即可为后续发布需求做准备。' }}</p></div><span v-if="isTutor" :class="['pill', { published: isPublic }]">{{ isPublic ? '资料已公开' : '仅本人可见' }}</span></div>
