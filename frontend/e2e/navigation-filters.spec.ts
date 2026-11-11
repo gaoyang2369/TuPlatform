@@ -23,9 +23,9 @@ for(const identity of ["REQUESTER","TUTOR"] as const) {
     const tabs=page.getByRole("navigation",{name:"个人资料栏目"});await tabs.getByRole("button",{name:"私密联系方式",exact:true}).click();
     await expect(page.getByRole("heading",{name:"本人私密联系方式",exact:true})).toBeVisible();await expect(entry).toHaveAttribute("aria-current","page");
     await page.screenshot({path:path.resolve(import.meta.dirname,"../../.tools/navigation-filters/contacts-"+identity+"-"+info.project.name+".png"),fullPage:true});
-    await page.locator("#contact-phone").fill("13800000000");page.once("dialog",dialog=>dialog.dismiss());await nav.getByRole("button",{name:target,exact:true}).click();
+    await page.locator("#contact-phone").fill("13800000000");await nav.getByRole("button",{name:target,exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"取消",exact:true}).click();
     await expect(page.locator("#contact-phone")).toHaveValue("13800000000");
-    page.once("dialog",dialog=>dialog.accept());await entry.click();await expect(page.locator("#field-displayName")).toBeVisible();await expect(page.locator("#contact-phone")).toHaveCount(0);
+    await entry.click();await page.getByRole("button",{name:"放弃并离开",exact:true}).click();await expect(page.locator("#field-displayName")).toBeVisible();await expect(page.locator("#contact-phone")).toHaveCount(0);
     expect(contactWrites).toBe(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   });
 }

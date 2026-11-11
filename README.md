@@ -1,79 +1,159 @@
 # TuPlatform · 邻课
 
-面向深圳坪山区的供需撮合产品，个人开发、Web首发。技术栈：Vue 3＋TypeScript、Java/Spring Boot、PostgreSQL。
+邻课是一个面向深圳坪山区的老师与需求方撮合 Web 项目。需求方可以直接邀请老师，也可以发布需求、等待老师投递；双方互选后，在有效同意的范围内交换联系方式，再自行沟通。
 
-2026-11-10已完成本地首版撮合闭环：注册登录、本人资料、需求草稿/提交审核/公开、老师发现、投递/邀请、回应互选，以及本人私密手机号/微信、双方逐项授权、撤回和已选字段变更后的双方重确认。邮箱不分享。获准的业务库及专用测试库均已执行V1—V5并通过重复启动校验；合成数据库和Chrome桌面/手机宽度验收完成。未部署到服务器，真实开放类别及运营账号尚未开放。
+项目由个人开发，目前处于本地 MVP 阶段，尚未部署为公开服务。仓库公开供阅读和交流，实际服务类别、运营账号与对外开放安排仍待落实。
 
-业务规则从[首版规格](docs/mvp-spec.md)进入；当前进度看[交付计划](docs/tasks/mvp-delivery-plan-2026-11-07.md)，验收看[核心清单](docs/acceptance/mvp-cases.md)。
+## 核心功能
 
-本地验收可直接双击根目录`local.cmd`，构建后打开http://127.0.0.1:8180；`local.cmd Stop`停止本次应用，`local.cmd Status`查看状态。使用既有私密配置和数据库隧道，不修改服务器；首次初始化无邮箱运营账号，凭据仅保存在本地忽略目录。详细说明见[本地启动与验收](docs/local-run.md)。
+| 使用者 | 可以做什么 |
+| --- | --- |
+| 需求方 | 浏览老师并直接邀请；保存需求草稿、提交审核；处理老师投递与撮合进度 |
+| 老师 | 维护并主动公开个人资料；浏览公开需求并投递；回应邀请 |
+| 运营 | 审核需求，通过或填写理由驳回；运营权限由服务端单独授予 |
+| 匿名访客 | 浏览审核通过且仍有效的公开需求 |
 
-## 前端
+两条联系路径独立存在：
 
-要求Node.js ≥24.11.0。依赖已锁定；首次使用在frontend中运行npm.cmd ci，然后：
+- **直接邀请**：发现老师 → 发送邀请（留言选填）→ 老师接受 → 交换联系方式，无需先发布需求。
+- **发布需求**：填写需求 → 审核公开 → 老师投递 → 需求方接受 → 交换联系方式。
 
-~~~powershell
+发送和接受意向时会说明本轮联系方式交换。手机号、微信不随公开资料展示；只有互选且双方同意仍有效时，对方才能查看。支持停止分享，已分享字段变更后需要重新确认；旧记录不追溯授权，邮箱不分享。老师资料为本人自述，不代表平台资质认证。
+
+当前不包含站内聊天、预约排课、支付、评价或原生 App。完整规则见[首版规格](docs/mvp-spec.md)。
+
+## 技术与目录
+
+| 部分 | 技术 / 要求 |
+| --- | --- |
+| 前端 | Vue 3、TypeScript、Vite；Node.js ≥ 24.11.0 |
+| 后端 | Java ≥ 21、Spring Boot 3.5.16；Maven ≥ 3.6.3 或仓库提供的 Windows 包装脚本 |
+| 数据库 | PostgreSQL；使用 Flyway 管理迁移 |
+| 测试 | Node.js Test Runner、JUnit / Spring Boot Test、Playwright |
+
+```text
+frontend/    前端应用，当前入口为 src/AccountApp.vue
+backend/     API、权限校验、数据库迁移与后端测试
+scripts/     本地启动脚本
+tools/       本地验收辅助工具
+docs/        业务规格、设计、验收和开发记录
+```
+
+## 本地开发
+
+以下命令以 Windows PowerShell 为例。其他平台可在 `frontend` 中使用 `npm`，在 `backend` 中使用已安装的 Maven 执行对应命令。
+
+### 1. 获取源码与依赖
+
+```powershell
+git clone https://github.com/gaoyang2369/TuPlatform.git
+cd TuPlatform
+cd frontend
+npm.cmd ci
+cd ..
+```
+
+### 2. 准备数据库与后端配置
+
+自行准备一个独立的 PostgreSQL 开发数据库及有建表权限的账号。仓库不提供数据库、邮件服务或预置业务账号。
+
+首次配置时，将 [backend/.env.example](backend/.env.example) 复制为 `backend/.env`；已有配置请直接编辑，避免覆盖：
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+按自己的环境填写以下配置，完整字段见示例文件和 [application.yml](backend/src/main/resources/application.yml)：
+
+| 配置 | 说明 |
+| --- | --- |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | 数据库地址、端口和实际库名，库名区分大小写 |
+| `DB_USER` / `DB_PASSWORD` | 数据库账号与密码 |
+| `DB_SSLMODE` | 按数据库 TLS 配置设置；仅本机无 TLS 的开发库可用 `disable` |
+| `DB_URL` / `DB_USERNAME` | 可选，分别覆盖分项连接地址与用户名 |
+| `PUBLIC_BASE_URL` | 用户访问前端的地址，用于邮件链接；本地开发可设为 `http://127.0.0.1:5173` |
+| `SECURE_COOKIES` | 本地 HTTP 设为 `false`；HTTPS 部署设为 `true` |
+| `MAIL_ENABLED` | 默认 `false`；完整注册、邮箱验证与找回密码需配置 SMTP 并开启邮件 |
+| `TEACHER_CATEGORIES` / `REQUEST_CATEGORIES` | 默认留空，表示未开放类别；隔离的合成开发环境可分别设为 `DRAWING` |
+
+后端启动时会校验并应用尚未执行的 Flyway 迁移，不会自动创建数据库。请使用自己的开发库；在共享数据库上应用新迁移前，应先审核脚本并取得该环境的授权。
+
+`backend/.env` 已被 Git 忽略。不要提交真实凭据，也不要把数据库或 SMTP 配置放进前端。后端从工作目录读取 `.env`，进程环境变量优先；下面的包装脚本会自动进入 `backend` 目录。
+
+### 3. 启动后端和前端
+
+在项目根目录启动后端：
+
+```powershell
+.\backend\mvnw.ps1 spring-boot:run
+```
+
+默认监听 `http://127.0.0.1:8080`。Windows 包装脚本使用项目内缓存或 PATH 中的 Maven；需要下载时会校验 Maven 3.9.11，工具及依赖缓存在 `.tools` 中。
+
+另开终端，在项目根目录启动前端：
+
+```powershell
 cd frontend
 npm.cmd run dev
-~~~
+```
 
-默认打开终端给出的地址。当前入口调用真实API，不使用浏览器模拟账号。未启动后端时，会提示连接失败并保留表单输入。开发代理默认转发/api到http://127.0.0.1:8080，可按[前端配置示例](frontend/.env.example)设置API_PROXY_TARGET；前端配置中不能放数据库或邮件凭据。
+打开 `http://127.0.0.1:5173`。开发服务器将 `/api` 代理到后端；若要修改目标，参照 [frontend/.env.example](frontend/.env.example) 设置 `API_PROXY_TARGET`。当前应用调用真实 API，需要运行后端。
 
-~~~powershell
+初次运行请留意：
+
+- 关闭邮件时，注册请求不会发送验证邮件，未验证账号不能登录；请配置自己的 SMTP 后再走完整注册流程。
+- 类别为空时，不能完成依赖类别的发布或老师公开流程；合成环境的测试类别不代表实际服务已开放。
+- 普通账号不能自行获得运营权限。Windows 本地验收启动器可初始化专用运营账号并打包前后端，详见[本地启动与验收](docs/local-run.md)。该工具包含既有环境的数据库名和 SSH 隧道约定，使用前请核对配置。
+
+生产构建分别运行 `npm.cmd run build`（在 `frontend` 中）和 `.\backend\mvnw.ps1 package`（在项目根目录）。前端输出为 `frontend/dist`；部署时前端与 `/api` 应同源。本地启动配置不等同于公网部署方案。
+
+## 测试与验证
+
+普通代码检查不需要数据库、Docker 或 SMTP：
+
+```powershell
+# 项目根目录
+.\backend\mvnw.ps1 test
+
+cd frontend
 npm.cmd test
 npm.cmd run typecheck
 npm.cmd run build
-~~~
+```
 
-构建结果为frontend/dist，部署时前端及/api应同源。旧App.vue、domain.ts和原型测试保留作历史参考，不从当前入口加载；旧测试可单独运行npm.cmd run test:legacy。当前构建不再导出旧p0-prototype.html，旧导出脚本与旧演示ZIP不是当前交付物。
+### 数据库集成测试
 
-## 后端与本地配置
+数据库测试默认跳过，只接受库名以 `_test` 结尾的专用测试库。测试会执行迁移并创建、清理合成数据，不要连接业务数据库。
 
-要求JDK 21或更高；当前使用JDK 25编译。Spring Boot固定3.5.16，数据库迁移由Flyway管理。配置字段见[backend/.env.example](backend/.env.example)，运行配置见[application.yml](backend/src/main/resources/application.yml)。复制示例为backend/.env后填写私密值；从backend目录运行时自动读取，进程环境变量优先。mvnw.ps1会进入该目录；.env已被Git忽略。
+在项目根目录设置自己的测试连接后运行：
 
-Windows可在项目根目录运行：
-
-~~~powershell
-.\backend\mvnw.ps1 test
-.\backend\mvnw.ps1 package
-# 填好backend/.env，必要时先开启下述SSH隧道：
-.\backend\mvnw.ps1 spring-boot:run
-~~~
-
-脚本优先使用PATH中的Maven；否则下载并校验项目内的Maven 3.9.11，工具及依赖放在.tools下，不安装系统服务。其他平台可在backend目录使用Maven 3.6.3+执行mvn test、mvn package及mvn spring-boot:run。
-
-可用DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD分项配置，也可用DB_URL/DB_USERNAME覆盖。库名区分大小写，当前服务器实际库名为tuplatform。启动会校验V1—V5并执行尚未应用的迁移；两库V5已获许可执行，后续新增迁移仍须先准备具体脚本并取得许可。当前不自动创建数据库或运营账号。后端默认只监听127.0.0.1，本地HTTP须显式设置SECURE_COOKIES=false；HTTPS部署使用true。
-
-当前服务器PostgreSQL只监听回环地址。本地联调使用SSH本地转发，未修改服务器监听、防火墙、角色权限或重启服务。在单独终端运行以下命令并保持开启，按提示输入服务器密码：
-
-~~~powershell
-.\backend\open-db-tunnel.ps1 -ServerHost YOUR_SERVER_IP -ServerUser YOUR_SERVER_USER
-~~~
-
-隧道默认本地端口15432；backend/.env中的DB_URL使用jdbc:postgresql://127.0.0.1:15432/tuplatform?sslmode=require。脚本忽略用户SSH配置中的其他转发，只绑定本地127.0.0.1。首次连接请核对主机指纹。TLS已验证可用，当前require加密不等于已配置数据库CA证书校验。
-
-邮件默认MAIL_ENABLED=false：注册可保存但明确返回未受理发信，未验证账号不能登录业务。配置SMTP_HOST/PORT/USERNAME/PASSWORD、SMTP_FROM（或MAIL_FROM）及PUBLIC_BASE_URL后开启MAIL_ENABLED。163端口465使用SMTP_SECURE=true和SMTP_STARTTLS=false；端口587通常使用相反设置。当前163诊断邮件已由用户确认收到，实际注册验证及重置模板也已被SMTP接受。忘记密码的受理响应不承诺送达，重置邮件在事务提交后由有限的内存队列发送；进程退出或发信故障时可能需要重新申请。
-
-TEACHER_CATEGORIES与REQUEST_CATEGORIES默认留空，不把历史类别代码自动视为真实开放。本次测试库显式配置DRAWING，仅用于合成测试；真实开放按业务决定配置。类别为空时草稿仍可保存其他内容。
-
-匿名可从“浏览需求”查看当前有效公开内容，详情链接可刷新重开。需求方在“我的需求”保存、预览并主动选择本次声明后提交；可从“发现老师”选本人有效公开需求邀请。主动公开资料的老师可从公开需求详情投递，双方在“撮合进度”核对当时内容并回应。到期/老师停止公开阻止新增和重发，已有待回应仍可处理；旧轮次与新轮次分开，不自动互选或分享联系方式。运营入口仅对服务端operator_granted=true的已验证账号显示；仅在测试库对合成账号设置该应用标记，未向业务库真实账号授权，也未改变PostgreSQL角色。实际运营账号由用户指定后单独授予，不提供客户端自选或通用权限后台。当前审核结果通过本人进度页刷新读取，不额外发送审核邮件。
-
-## 测试
-
-普通代码测试不需要数据库、Docker或SMTP。已准备额外的PostgreSQL集成测试，默认跳过；只有显式设置以下环境变量才会执行：
-
-~~~powershell
+```powershell
 $env:RUN_DATABASE_TESTS = 'true'
-$env:TEST_DB_URL = 'jdbc:postgresql://YOUR_TEST_SERVER:5432/linke_test?sslmode=verify-full'
+$env:TEST_DB_URL = 'jdbc:postgresql://YOUR_TEST_HOST:5432/tuplatform_test?sslmode=verify-full'
 $env:TEST_DB_USERNAME = 'YOUR_TEST_USER'
 $env:TEST_DB_PASSWORD = 'YOUR_TEST_PASSWORD'
 .\backend\mvnw.ps1 test
-~~~
+```
 
-测试只接受库名以_test结尾的专用测试库，不读取普通DB_URL。测试会执行迁移并创建/清理合成账号；常规数据库测试替换邮件传输。当前71项后端测试通过（32项普通检查、39项真实数据库，含12项联系方式用例）；两项真实SMTP测试此前已单独通过，本阶段跳过，不重复发信。首轮70项通过后补充过期邮件令牌拒绝及双字段分享定向验证，重复执行不重复计数。
+按测试环境配置 TLS 与证书；普通数据库测试替换邮件传输。真实 SMTP 测试另行显式开启，会实际发信，不属于默认检查。
 
-浏览器联调在frontend运行npm.cmd run test:e2e，需要上述TEST_DB_*环境变量、已启动的测试后端8081、代理到8081的Vite5174，以及本机Chrome。测试后端用DB_URL指向专用测试库、MAIL_ENABLED=false、TEACHER_CATEGORIES=DRAWING、REQUEST_CATEGORIES=DRAWING；Vite用API_PROXY_TARGET=http://127.0.0.1:8081和npm.cmd run dev -- --port 5174启动。Playwright会创建并清理合成账号，只接受_test库；运营与到期夹具也仅操作这些合成数据。44个唯一场景最终通过，桌面1366×900和手机宽度390×844各22项；首轮42项通过，换账号测试补齐退出等待后6项定向复测通过，不重复累计。证据在.tools/stage5-browser/results.json、contact-final-results.json、final-browser-summary.json及双方授权截图；E2E_RESULTS_FILE可指定输出路径。手机宽度仿真不代表真机验证。前端8项、类型检查及生产构建通过，后端可运行JAR打包通过；实际边界见核心验收记录。
+### 浏览器测试
 
-两种身份都可在“私密联系方式”保存或删除选填手机号/微信；本轮互选详情中选择本人分享字段、核对实际值并明确同意。只有双方有效同意才展示选中值；撤回停止本关系双方后续平台访问，保留对方独立意愿。已选字段改值或删除后双方须重新确认，旧幂等回执不会恢复旧值。结束核查两库业务数据均0，测试服务8081/5174已停止，本地5173/8080及既有隧道保留。真实类别和运营账号、部署方案需另行落实；服务器配置变更仍须先询问。
+Playwright 配置包含桌面 `1366 × 900` 和手机宽度 `390 × 844`，默认使用本机 Chrome。运行完整浏览器套件前需准备：
 
-原Figma及[只读设计预览](docs/design/interaction-preview.html)继续作为设计参考；当前源码和测试证据与历史模拟演示分开记录。
+1. 上述专用测试库及 `TEST_DB_*` 环境变量，供浏览器测试夹具使用。
+2. 监听 `8081` 的测试后端：将该进程的 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 设为同一测试库，设置 `SERVER_PORT=8081`、`SECURE_COOKIES=false`、`MAIL_ENABLED=false`，并将两个类别配置均设为 `DRAWING`。
+3. 代理到测试后端的前端：在另一个终端的 `frontend` 目录，设置 `$env:API_PROXY_TARGET = 'http://127.0.0.1:8081'`，运行 `npm.cmd run dev -- --port 5174`。
+
+随后在已设置 `TEST_DB_*` 的终端进入 `frontend`，运行 `npm.cmd run test:e2e`。手机宽度仿真不等于真机验证。历史检查结果与未验证边界见[核心验收清单](docs/acceptance/mvp-cases.md)及[产品体验评审](docs/design/product-experience-review.md)。
+
+## 文档导航
+
+- [首版规格](docs/mvp-spec.md)：当前业务规则与字段约束。
+- [本地启动与验收](docs/local-run.md)：Windows 打包运行、运营账号、状态与停止命令。
+- [核心验收清单](docs/acceptance/mvp-cases.md)：需求方与老师的完整流程及边界检查。
+- [产品体验评审](docs/design/product-experience-review.md)：界面截图、改进记录与对应验证结果。
+- [交付计划](docs/tasks/mvp-delivery-plan-2026-11-07.md)：开发进度与后续事项。
+- [文档索引](docs/README.md)：设计、接口和历史材料入口。
+
+参与修改前请阅读 [AGENTS.md](AGENTS.md)，遵循现有代码模式，使用合成数据，并验证受影响的双方流程。旧原型、演示包和归档接口仅供历史参考；当前实现以 `AccountApp.vue`、后端源码和首版规格为准。

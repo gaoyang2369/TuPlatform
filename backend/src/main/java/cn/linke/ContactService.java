@@ -21,6 +21,21 @@ class ContactService {
         return rows.isEmpty()?new Contacts(0,null,null,new ContactFields(0L,0L)):rows.getFirst();
     }
     public Contacts get(String session) { return stored(actor(session).id()); }
+    // Called only by MatchService after participant and relationship locks, in the SAME
+    // transaction as a fresh send/accept. Receipts and EXISTING results never reach here.
+    void exchangeWithIntention(UUID actor,UUID match,ContactExchange exchange) {
+        if(exchange==null)return; // Older clients/records have not agreed to the new disclosure.
+        if(!Boolean.TRUE.equals(exchange.agree()))throw ApiError.invalid("contactExchange","请同意互选后交换已填写的联系方式");
+        Contacts c=stored(actor);
+        if(exchange.expectedVersion()==null||exchange.expectedVersion()!=c.version())
+            throw new ApiError(409,"CONTACT_FIELD_CHANGED","联系方式已变化，请重新读取后确认");
+        // An empty address book must not authorize values filled in at a later time.
+        if(c.phone()==null&&c.wechat()==null)return;
+        var m=own(actor,match);String side=actor.equals(m.get("requester_id"))?"requester":"tutor";
+        db.update("INSERT INTO contact_grants(round_id,match_id) VALUES(?,?) ON CONFLICT DO NOTHING",m.get("current_round_id"),match);
+        db.update("UPDATE contact_grants SET "+side+"_agreed=true,"+side+"_reconfirm=false,"+side+"_phone_version=?,"+side+"_wechat_version=?,version=version+1 WHERE round_id=?",
+            c.phone()!=null?c.fieldVersions().phone():null,c.wechat()!=null?c.fieldVersions().wechat():null,m.get("current_round_id"));
+    }
     public Map<String,Object> save(String session,SaveContacts body) {
         // No participant locks are taken after this actor lock. A contact edit locks affected
         // relationships by ID only; grant operations lock BOTH accounts first, then relationships.

@@ -13,9 +13,9 @@ record MatchStartResult(MatchView match,String outcome) {}
 @Transactional
 class MatchService {
     private final JdbcTemplate db; private final AuthService auth; private final ProfileService profiles;
-    private final RequestPublicationService publication; private final ObjectMapper json; private final Secrets secrets;
-    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets) {
-        this.db=db;this.auth=auth;this.profiles=profiles;this.publication=publication;this.json=json;this.secrets=secrets;
+    private final RequestPublicationService publication; private final ObjectMapper json; private final Secrets secrets; private final ContactService contacts;
+    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts) {
+        this.db=db;this.auth=auth;this.profiles=profiles;this.publication=publication;this.json=json;this.secrets=secrets;this.contacts=contacts;
     }
     private Account actor(String session) {
         Account a=auth.current(session,false);
@@ -32,18 +32,19 @@ class MatchService {
     }
     private static final String READ="SELECT m.*,n.state,n.initiator_id,n.initiator_role,n.submission_id,n.teacher_profile_version,n.submission_snapshot,n.teacher_snapshot,"+
         "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id "+
-        "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id JOIN request_submissions s ON s.id=n.submission_id "+
-        "JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id ";
+        "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id LEFT JOIN request_submissions s ON s.id=n.submission_id "+
+        "LEFT JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id ";
     private Map<String,Object> own(UUID actor,UUID id) {
         var rows=db.queryForList(READ+"WHERE m.id=? AND (m.requester_id=? OR m.tutor_id=?)",id,actor,actor);
         if(rows.isEmpty())throw new ApiError(404,"NOT_FOUND","撮合进度不存在或不可查看");
         return rows.getFirst();
     }
     private boolean blocked(UUID match,UUID submission,UUID actor) {
-        return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM match_rounds WHERE match_id=? AND submission_id=? AND initiator_id=? AND state='REJECTED')",Boolean.class,match,submission,actor));
+        return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM match_rounds WHERE match_id=? AND submission_id IS NOT DISTINCT FROM ? AND initiator_id=? AND state='REJECTED')",Boolean.class,match,submission,actor));
     }
     private boolean canStart(Map<String,Object> r,UUID actor) {
         if(MatchRules.active((String)r.get("state"))||!Boolean.TRUE.equals(r.get("teacher_public")))return false;
+        if(r.get("request_id")==null)return actor.equals(r.get("requester_id"))&&!blocked((UUID)r.get("id"),null,actor);
         try { var current=publication.publicDetail((UUID)r.get("request_id"));return !blocked((UUID)r.get("id"),(UUID)current.get("submissionId"),actor); }
         catch(ApiError e){return false;}
     }
@@ -78,6 +79,7 @@ class MatchService {
     }
     public MatchStartResult start(String session,StartMatch body,String key) {
         Account a=actor(session);
+        if("DIRECT_INVITATION".equals(body.kind()))return directInvitation(session,a,body,key);
         boolean application="APPLICATION".equals(body.kind());
         if(!application&&!"INVITATION".equals(body.kind()))throw ApiError.invalid("kind","请选择投递或邀请");
         if(!(application?"TUTOR":"REQUESTER").equals(a.identity()))throw new ApiError(403,"IDENTITY_NOT_ALLOWED","当前身份不能发起此类意向");
@@ -91,6 +93,11 @@ class MatchService {
         lockParticipants(session,requester,tutor);
         db.queryForList("SELECT id FROM service_requests WHERE id=? FOR UPDATE",body.requestId());
         MatchStartResult replay=replay(a.id(),"START",key,body,MatchStartResult.class);if(replay!=null)return replay;
+        var direct=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.request_id IS NULL AND m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL') FOR UPDATE OF m",requester,tutor);
+        if(!direct.isEmpty()){
+            UUID existing=(UUID)direct.getFirst().get("id");
+            return remember(a.id(),"START",key,existing,body,new MatchStartResult(detail(session,existing),"EXISTING"));
+        }
         var previous=db.queryForList("SELECT id FROM match_relationships WHERE request_id=? AND tutor_id=? FOR UPDATE",body.requestId(),tutor);
         UUID match=previous.isEmpty()?UUID.randomUUID():(UUID)previous.getFirst().get("id");
         if(!previous.isEmpty()&&MatchRules.active((String)own(a.id(),match).get("state")))
@@ -112,6 +119,38 @@ class MatchService {
         if(previous.isEmpty())db.update("INSERT INTO match_relationships(id,request_id,requester_id,tutor_id,current_round_id) VALUES(?,?,?,?,?)",match,body.requestId(),requester,tutor,round);
         db.update("INSERT INTO match_rounds(id,match_id,submission_id,initiator_id,initiator_role,state,teacher_profile_version,submission_snapshot,teacher_snapshot) VALUES(?,?,?,?,?,'WAITING',?,CAST(? AS jsonb),CAST(? AS jsonb))",round,match,body.expectedSubmissionId(),a.id(),a.identity(),body.expectedTeacherProfileVersion(),encode(snapshot),encode(teacher));
         if(!previous.isEmpty())db.update("UPDATE match_relationships SET current_round_id=?,version=version+1 WHERE id=?",round,match);
+        contacts.exchangeWithIntention(a.id(),match,body.contactExchange());
+        return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
+    }
+    private MatchStartResult directInvitation(String session,Account a,StartMatch body,String key) {
+        if(!"REQUESTER".equals(a.identity()))throw new ApiError(403,"IDENTITY_NOT_ALLOWED","仅需求方可以直接邀请老师");
+        if(body.requestId()!=null||body.expectedSubmissionId()!=null)throw ApiError.invalid("requestId","直接邀请无需关联公开需求");
+        if(body.tutorUserId()==null||body.expectedTeacherProfileVersion()==null)throw ApiError.invalid("tutorUserId","请先读取老师资料");
+        String introduction=body.introduction()==null?"":body.introduction().strip();
+        if(introduction.codePointCount(0,introduction.length())>500||introduction.codePoints().anyMatch(c->Character.isISOControl(c)&&c!='\n'&&c!='\r'&&c!='\t'))
+            throw ApiError.invalid("introduction","邀请留言限500字，请勿包含控制字符");
+        UUID tutor=body.tutorUserId();
+        lockParticipants(session,a.id(),tutor);
+        MatchStartResult replay=replay(a.id(),"START",key,body,MatchStartResult.class);if(replay!=null)return replay;
+        var active=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL') ORDER BY m.created_at,m.id LIMIT 1 FOR UPDATE OF m",a.id(),tutor);
+        if(!active.isEmpty()){
+            UUID existing=(UUID)active.getFirst().get("id");
+            return remember(a.id(),"START",key,existing,body,new MatchStartResult(detail(session,existing),"EXISTING"));
+        }
+        var previous=db.queryForList("SELECT id FROM match_relationships WHERE request_id IS NULL AND requester_id=? AND tutor_id=? FOR UPDATE",a.id(),tutor);
+        UUID match=previous.isEmpty()?UUID.randomUUID():(UUID)previous.getFirst().get("id");
+        if(!previous.isEmpty()&&MatchRules.active((String)own(a.id(),match).get("state")))
+            return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"EXISTING"));
+        Map<String,Object> teacher=profiles.matchTeacher(tutor,body.expectedTeacherProfileVersion());
+        if(!previous.isEmpty()&&blocked(match,null,a.id()))throw new ApiError(422,"REAPPLY_BLOCKED","老师已婉拒本次邀请，请尊重对方选择，不能重复邀请");
+        String name=profiles.get(session).displayName();
+        if(name==null||name.isBlank())throw new ApiError(422,"PROFILE_REQUIRED","请先填写本人展示名，让老师知道是谁发来的邀请");
+        Map<String,Object> snapshot=Map.of("title","直接邀请","publisherDisplayName",name,"introduction",introduction);
+        UUID round=UUID.randomUUID();
+        if(previous.isEmpty())db.update("INSERT INTO match_relationships(id,requester_id,tutor_id,current_round_id) VALUES(?,?,?,?)",match,a.id(),tutor,round);
+        db.update("INSERT INTO match_rounds(id,match_id,initiator_id,initiator_role,state,teacher_profile_version,submission_snapshot,teacher_snapshot) VALUES(?,?,?,'REQUESTER','WAITING',?,CAST(? AS jsonb),CAST(? AS jsonb))",round,match,a.id(),body.expectedTeacherProfileVersion(),encode(snapshot),encode(teacher));
+        if(!previous.isEmpty())db.update("UPDATE match_relationships SET current_round_id=?,version=version+1 WHERE id=?",round,match);
+        contacts.exchangeWithIntention(a.id(),match,body.contactExchange());
         return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
     }
     public MatchView respond(String session,UUID id,RespondMatch body,String key,String action) {
@@ -127,6 +166,7 @@ class MatchService {
         String state=switch(action){case "ACCEPT"->"MUTUAL";case "REJECT"->"REJECTED";default->"WITHDRAWN";};
         db.update("UPDATE match_rounds SET state=?,responded_by=?,responded_at=clock_timestamp() WHERE id=?",state,a.id(),body.roundId());
         db.update("UPDATE match_relationships SET version=version+1 WHERE id=?",id);
+        if("ACCEPT".equals(action))contacts.exchangeWithIntention(a.id(),id,body.contactExchange());
         return remember(a.id(),action,key,id,fingerprint,detail(session,id));
     }
 }

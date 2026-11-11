@@ -15,6 +15,7 @@ async function fixture(page:Page,options:{identity?:'REQUESTER'|'TUTOR';loggedIn
     if(path==='/auth/login'){loggedIn=true;return route.fulfill({json:me});}
     if(path==='/auth/logout'){loggedIn=false;return route.fulfill({status:204});}
     if(path==='/me')return route.fulfill(loggedIn?{json:me}:{status:401,json:{code:'LOGIN_REQUIRED',message:'请先登录'}});
+    if(path==='/me/contacts')return route.fulfill({json:{version:0,phone:null,wechat:null,fieldVersions:{phone:0,wechat:0}}});
     if(path==='/me/profile')return route.fulfill({json:profile});
     if(path==='/me/teacher-profile'){profile={...profile,displayName:req.postDataJSON().displayName,version:2};return route.fulfill({json:profile});}
     if(path==='/profile-options')return route.fulfill({json:{categoryCodes:['DRAWING'],serviceModes:['ONLINE','OFFLINE'],areaCodes:[]}});
@@ -60,14 +61,14 @@ test('筛选与分页在刷新、详情返回、浏览器前进后退中恢复',
   await page.evaluate(()=>history.back());await expect(page.locator('.request-card')).toHaveCount(3);
 });
 
-test('老师详情可刷新，筛选可重置，慢网不会误报无可选需求',async({page})=>{
+test('老师详情可刷新，筛选可重置，直接邀请等待老师资料加载',async({page})=>{
   await fixture(page,{identity:'REQUESTER',loggedIn:true});await page.goto('/');await expect(page.locator('.teacher-card')).toHaveCount(1);
   await expandFilters(page);await page.getByRole('combobox',{name:'类别',exact:true}).selectOption('DRAWING');await page.getByRole('button',{name:'筛选老师',exact:true}).click();
   await page.getByRole('button',{name:'查看老师',exact:true}).click();await page.reload();await expect(page.getByRole('heading',{name:'示例老师',exact:true})).toBeVisible();
   let release!:()=>void;const hold=new Promise<void>(resolve=>release=resolve);
-  await page.route('**/api/v1/me/requests',async route=>{await hold;await route.fulfill({json:{items:[],nextCursor:null}});});
+  await page.route('**/api/v1/teachers/teacher-1',async route=>{await hold;await route.fallback();});
   await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.getByText('正在读取可用资料…')).toBeVisible();await expect(page.getByText(/还没有可邀请/)).toHaveCount(0);release();
-  await expect(page.getByText(/还没有可邀请/)).toBeVisible();await page.getByRole('button',{name:'返回老师列表'}).click();await expect(page.locator('.teacher-card')).toHaveCount(1);
+  await expect(page.getByRole('button',{name:'发送邀请',exact:true})).toBeEnabled();await page.getByRole('button',{name:'返回老师列表'}).click();await expect(page.locator('.teacher-card')).toHaveCount(1);
   await expandFilters(page);await page.getByRole('button',{name:'重置筛选',exact:true}).click();await expect(page).not.toHaveURL(/category=/);
 });
 
