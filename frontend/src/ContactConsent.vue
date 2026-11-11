@@ -41,25 +41,25 @@ function background(){if(document.hidden){++epoch;clearValues();preview.value=fa
 onMounted(()=>{void refresh();document.addEventListener('visibilitychange',background);window.addEventListener('focus',background);timer=setInterval(background,15000);});
 onBeforeUnmount(()=>{alive=false;++epoch;clearInterval(timer);document.removeEventListener('visibilitychange',background);window.removeEventListener('focus',background);clearValues();contacts.value=null;pending=null;});
 </script>
-<template><section class="consent" aria-labelledby="consent-title"><h2 id="consent-title">本轮联系方式授权</h2><p>互选不会自动分享。双方分别选择本人字段并明确同意，只有双方有效同意才展示选中值。邮箱不分享。</p>
+<template><section class="consent" aria-labelledby="consent-title"><h2 id="consent-title">交换联系方式</h2><p>各自选择要分享的手机号或微信，双方同意后才可查看。邮箱不分享。</p>
   <p v-if="error" class="message error" role="alert">{{error}}</p><p v-if="notice" class="message success" role="status">{{notice}}</p>
-  <p v-if="unknown" class="message warning">{{saved?'本次操作已成功，但最新授权未能刷新。':'上次操作结果尚未确认。'}}可同键重试，或读取最新授权核对。</p>
+  <p v-if="unknown" class="message warning">{{saved?'本次操作已成功，但最新授权未能刷新。':'上次操作结果尚未确认。'}}可以重试，或读取最新授权核对。</p>
   <p v-if="conflict" class="message warning">授权或联系方式已变化，请读取最新授权并重新核对。</p>
   <button class="secondary" :disabled="busy" @click="refresh">读取最新授权</button><button v-if="unknown" class="primary" :disabled="busy" @click="perform()">重试同一次授权操作</button>
   <template v-if="grant">
     <p v-if="grant.requiresReconfirmation||grant.otherRequiresReconfirmation" class="message warning">已选联系方式发生变化，本关系停止展示；双方须分别重新核对并确认。</p>
-    <p class="consent-status">我的授权：{{grant.myConsent?'已同意':'未有效同意'}} · 对方授权：{{grant.otherConsent?'已同意':'未有效同意'}}</p>
+    <p class="next-step" role="status">{{grant.canViewContacts?'现在可以通过下方联系方式与对方沟通。':!grant.myConsent?'下一步：选择你愿意分享的联系方式，核对后确认。':'你已同意分享，正在等待对方同意。'}}</p><p class="consent-status">我的授权：{{grant.myConsent?'已同意':'待同意'}} · 对方授权：{{grant.otherConsent?'已同意':'待同意'}}</p>
     <div v-if="grant.canViewContacts&&grant.otherSharedContacts" class="shared-contacts" data-testid="shared-contacts"><h3>对方本轮分享</h3><p v-if="grant.otherSharedContacts.phone">手机号：+86 {{grant.otherSharedContacts.phone}}</p><p v-if="grant.otherSharedContacts.wechat">微信：{{grant.otherSharedContacts.wechat}}</p><h3>本人本轮分享</h3><p v-if="grant.mySharedContacts?.phone">手机号：+86 {{grant.mySharedContacts.phone}}</p><p v-if="grant.mySharedContacts?.wechat">微信：{{grant.mySharedContacts.wechat}}</p></div>
-    <p v-else class="privacy-note">当前未满足双方有效授权，不展示双方分享值。</p>
-    <fieldset v-if="contacts" :disabled="busy||unknown||conflict"><legend>选择本人本次分享字段</legend>
+    <p v-else class="privacy-note">双方都同意后，这里会显示对方分享的联系方式。</p>
+    <fieldset v-if="contacts" :disabled="busy||unknown||conflict"><legend>选择要分享的联系方式</legend>
       <label class="check-line"><input v-model="selected" type="checkbox" value="PHONE" :disabled="!contacts.phone" @change="preview=false;confirmed=false"><span>分享本人手机号{{contacts.phone?'（已填写）':'（未填写）'}}</span></label>
       <label class="check-line"><input v-model="selected" type="checkbox" value="WECHAT" :disabled="!contacts.wechat" @change="preview=false;confirmed=false"><span>分享本人微信{{contacts.wechat?'（已填写）':'（未填写）'}}</span></label>
       <button class="secondary" :disabled="!canAgree" @click="prepare">预览本人分享内容</button>
       <div v-if="preview" class="consent-preview"><h3>请核对本人将分享的实际值</h3><p v-if="selected.includes('PHONE')">手机号：+86 {{contacts.phone}}</p><p v-if="selected.includes('WECHAT')">微信：{{contacts.wechat}}</p>
-        <label class="check-line"><input v-model="confirmed" type="checkbox"><span>我已核对，明确同意在本轮双方有效授权时分享以上本人联系方式。</span></label><button class="primary" :disabled="!confirmed||!canAgree" @click="perform()">确认本轮授权</button>
+        <label class="check-line"><input v-model="confirmed" type="checkbox"><span>我已核对，明确同意在双方都同意后分享以上本人联系方式。</span></label><button class="primary" :disabled="!confirmed||!canAgree" @click="perform()">同意分享所选联系方式</button>
       </div>
     </fieldset>
-    <div class="form-actions"><button class="text-button" :disabled="busy||unknown" @click="emit('contacts')">维护本人私密联系方式</button><button v-if="grant.myConsent||grant.requiresReconfirmation" class="secondary" :disabled="busy||unknown||conflict" @click="perform('DELETE')">撤回本人联系方式授权</button></div>
+    <div class="form-actions"><button class="text-button" :disabled="busy||unknown" @click="emit('contacts')">填写或修改我的联系方式</button><button v-if="grant.myConsent||grant.requiresReconfirmation" class="secondary" :disabled="busy||unknown||conflict" @click="perform('DELETE')">撤回本人联系方式授权</button></div>
   </template>
   <p class="privacy-note">任一方撤回会停止本关系双方后续平台访问，不能收回对方已知信息。页面切回及定期读取当前授权；对方已打开的页面无法被远程擦除。</p>
 </section></template>

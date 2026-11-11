@@ -49,7 +49,7 @@ class AccountDatabaseTest {
     }
     @AfterEach void cleanup() { for (UUID id : created) db.update("DELETE FROM accounts WHERE id=?", id); }
     private User user(String identity) {
-        String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
         Registration registration = auth.register(new RegisterBody(account, password, account + "@example.invalid", true));
         UUID id = db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, registration.registrationFlowId());
         created.add(id);
@@ -59,7 +59,7 @@ class AccountDatabaseTest {
         return new User(id, login.session());
     }
     @Test void verificationNeedsExplicitConfirmationAndCrossBrowserPassword() {
-        String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
         Registration r = auth.register(new RegisterBody(account, password, account + "@example.invalid", true));
         created.add(db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, r.registrationFlowId()));
         assertEquals(true, auth.inspect(verificationToken, null).get("requiresRegistrationPassword"));
@@ -68,6 +68,17 @@ class AccountDatabaseTest {
         auth.verify(new VerifyBody(verificationToken, password), null);
         assertEquals(false, auth.inspect(verificationToken, r.context()).get("valid"));
         assertNotNull(auth.login(new LoginBody(account.toUpperCase(java.util.Locale.ROOT), password)).session());
+    }
+    @Test void eightCharacterPasswordTriggersVerificationMailAndCanLoginAfterConfirmation() {
+        String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
+        String email = account + "@example.invalid", shortPassword = "Abcd1234";
+        Registration registration = auth.register(new RegisterBody(account, shortPassword, email, true));
+        created.add(db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, registration.registrationFlowId()));
+        assertTrue(registration.mailAccepted());
+        verify(mail).send(eq(email), anyString(), eq(false));
+        assertNotNull(verificationToken);
+        auth.verify(new VerifyBody(verificationToken, null), registration.context());
+        assertNotNull(auth.login(new LoginBody(account, shortPassword)).session());
     }
     @Test void concurrentIdentityChoiceHasExactlyOneWinner() throws Exception {
         User u = user(null);
@@ -113,8 +124,23 @@ class AccountDatabaseTest {
         assertThrows(ApiError.class, () -> auth.reset(new ResetBody(first, "another synthetic password 789")));
         assertThrows(ApiError.class, () -> auth.reset(new ResetBody(second, "another synthetic password 789")));
     }
+    @Test void managedOperatorLogsInWithoutMailboxAndCannotRequestEmailReset() {
+        User u=user(null);
+        String marker="operator_"+u.id()+"@operators.linke.invalid";
+        db.update("UPDATE accounts SET operator_granted=true,email=?,email_key=? WHERE id=?",marker,marker,u.id());
+        String account=db.queryForObject("SELECT account FROM accounts WHERE id=?",String.class,u.id());
+        LoginResult login=auth.login(new LoginBody(account,password));
+        assertTrue(login.me().operatorGranted());
+        assertEquals("",login.me().email());
+        assertFalse(login.me().emailVerified());
+        assertNull(login.me().businessIdentity());
+        auth.forgot(marker);
+        verify(mail,never()).resetAfterCommit(eq(marker),anyString());
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM email_tokens WHERE account_id=? AND purpose='RESET'",Integer.class,u.id()));
+        assertEquals(u.id(),auth.current(login.session(),false).id());
+    }
     @Test void expiredVerificationAndResetTokensCannotBeConsumed() {
-        String account="test_"+UUID.randomUUID().toString().replace("-","").substring(0,20);
+        String account="test_"+UUID.randomUUID().toString().replace("-","").substring(0,11);
         Registration registration=auth.register(new RegisterBody(account,password,account+"@example.invalid",true));
         UUID id=db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?",UUID.class,registration.registrationFlowId());created.add(id);
         String verify=verificationToken;

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 record DraftPatch(Long expectedVersion, ObjectNode fields) {}
+record DraftCreate(ObjectNode fields) {}
 record SavedDraft(UUID id, String status, long version, ObjectNode fields, OffsetDateTime lastSavedAt, boolean retentionReminder, SubmissionSnapshot latestSubmission) {}
 
 @Service
@@ -24,7 +25,7 @@ class RequestDraftService {
         if(!Rules.CATEGORIES.containsAll(categories)) throw new IllegalArgumentException("Unknown REQUEST_CATEGORIES");
     }
     Set<String> categories() { return categories; }
-    Map<String,Object> options() { return Map.of("categories",categories.stream().sorted().toList(),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE"),"publisherDeclarations",List.of(
+    Map<String,Object> options() { return Map.of("categories",categories.stream().sorted().toList(),"districts",List.of(Map.of("code","SZ_PINGSHAN","label","坪山区")),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE"),"publisherDeclarations",List.of(
         Map.of("code","SELF_ADULT","version","publisher-v1","label","我为已满18岁的本人发布本条需求。"),
         Map.of("code","GUARDIAN_OF_MINOR","version","publisher-v1","label","我作为监护人为未成年人发布本条需求。"))); }
     private SavedDraft map(java.sql.ResultSet r,int index) throws java.sql.SQLException {
@@ -45,6 +46,9 @@ class RequestDraftService {
     }
     public SavedDraft get(String session,UUID id) { Account a=auth.business(session,"REQUESTER"); return own(a.id(),id,false); }
     public SavedDraft create(String session,String key) {
+        return create(session,key,null);
+    }
+    public SavedDraft create(String session,String key,ObjectNode fields) {
         Account a=auth.business(session,"REQUESTER");
         if(key==null || !key.matches("[A-Za-z0-9_-]{16,100}")) throw ApiError.invalid("idempotencyKey","请提供有效的重复提交凭据");
         var receipt=db.queryForList("SELECT request_id FROM request_creation_receipts WHERE owner_id=? AND idempotency_key=?",a.id(),key);
@@ -52,10 +56,24 @@ class RequestDraftService {
             if(receipt.getFirst().get("request_id")==null) throw new ApiError(410,"DRAFT_REMOVED","原草稿已清理，请返回列表重新创建");
             return own(a.id(),(UUID)receipt.getFirst().get("request_id"),false);
         }
+        ObjectNode initial=json.createObjectNode();
+        if(fields!=null) {
+            DraftRules.checkNames(fields);
+            fields.fields().forEachRemaining(entry->{if(!entry.getValue().isNull())initial.set(entry.getKey(),entry.getValue());});
+        }
+        DraftRules.validate(initial,categories);
         UUID id=UUID.randomUUID();
-        db.update("INSERT INTO service_requests(id,owner_id) VALUES (?,?)",id,a.id());
+        db.update("INSERT INTO service_requests(id,owner_id,fields) VALUES (?,?,CAST(? AS jsonb))",id,a.id(),initial.toString());
         db.update("INSERT INTO request_creation_receipts(owner_id,idempotency_key,request_id) VALUES (?,?,?)",a.id(),key,id);
         return own(a.id(),id,false);
+    }
+    public void delete(String session,UUID id,VersionBody body) {
+        Account actor=auth.business(session,"REQUESTER");SavedDraft current=own(actor.id(),id,true);
+        if(!current.status().equals("DRAFT") || current.latestSubmission()!=null)
+            throw new ApiError(409,"REQUEST_DELETE_NOT_ALLOWED","仅未提交过的草稿可以删除，已提交的需求及历史记录会保留");
+        if(body==null || body.expectedVersion()==null) throw ApiError.invalid("expectedVersion","请先读取草稿，再确认删除");
+        if(body.expectedVersion()!=current.version()) throw new ApiError(409,"VERSION_CONFLICT","草稿已更新，请重新读取并核对后再删除");
+        db.update("DELETE FROM service_requests WHERE id=? AND owner_id=? AND status='DRAFT' AND latest_submission_id IS NULL",id,actor.id());
     }
     public SavedDraft save(String session,UUID id,DraftPatch patch) {
         Account a=auth.business(session,"REQUESTER"); SavedDraft current=own(a.id(),id,true);

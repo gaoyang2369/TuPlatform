@@ -7,12 +7,20 @@ import OperationsReview from "./OperationsReview.vue";
 import TeacherDiscovery from "./TeacherDiscovery.vue";
 import MatchProgress from "./MatchProgress.vue";
 import PrivateContacts from "./PrivateContacts.vue";
+import FeedbackToast from "./FeedbackToast.vue";
 import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
+import { readScreen, routeTo, writeUrl, listenHistory, restoreScroll, type Screen } from "./navigation.ts";
+import type {Match} from './match-types.ts';
 
-type Screen = "login" | "register" | "registered" | "forgot" | "verify" | "reset" | "identity" | "profile" | "requests" | "public" | "review" | "teachers" | "matches" | "contacts";
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
-const screen = ref<Screen>("login");
+const screen = ref<Screen>("home");
+const routeRevision = ref(0);
+const teacherId = ref<string>();
+const returnTarget = ref(safeReturn(new URLSearchParams(location.search).get("returnTo")));
+let stopHistory: (() => void) | undefined;
+const pendingReplies=ref<number|null>(null);
+let pendingRead=0,pendingTimer:ReturnType<typeof setInterval>|undefined;
 const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
 const reviewRef = ref<InstanceType<typeof OperationsReview>>();
 const contactsRef = ref<InstanceType<typeof PrivateContacts>>();
@@ -23,6 +31,7 @@ const busy = ref(false);
 const booting = ref(true);
 const notice = ref("");
 const error = ref("");
+const messageSequence = ref(0);
 const fieldErrors = ref<Record<string, string>>({});
 const options = ref<ProfileOptions>({ categoryCodes: [], serviceModes: [], areaCodes: [] });
 const credentials = reactive({ account: "", password: "", email: "", confirmation: "", adultConfirmed: false });
@@ -43,6 +52,57 @@ const form = reactive({ displayName: "", categoryCodes: [] as string[], serviceM
 let baseline = "";
 let pendingVisibility: { path: string; version: number; key: string } | null = null;
 const flowStorageKey = "linke-registration-flow";
+function safeReturn(value: string | null): string {
+  if (!value || value.length > 12000) return "";
+  try {
+    const url = new URL(value, location.origin);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || !["public", "teachers", "matches", "requests", "profile", "contacts"].includes(readScreen(url.search))) return "";
+    url.searchParams.delete("returnTo");
+    return url.pathname + url.search;
+  } catch { return ""; }
+}
+function defaultScreen(): Screen {
+  if (!me.value) return "home";
+  if (me.value.operatorGranted && !me.value.businessIdentity) return "review";
+  if (!me.value.businessIdentity) return "identity";
+  if (!profile.value?.displayName || (isTutor.value && !isPublic.value)) return "profile";
+  return isTutor.value ? "public" : "teachers";
+}
+function applyLocation() {
+  const query = new URLSearchParams(location.search);
+  let target = readScreen();
+  returnTarget.value = safeReturn(query.get("returnTo"));
+  if (target === "home" && me.value) target = defaultScreen();
+  if (needsIdentity.value) { returnTarget.value ||= safeReturn(location.pathname + location.search); target = "identity"; }
+  if (["verify", "reset"].includes(target) && !token.value) { target = "login"; routeTo(target, {}, true); }
+  const privatePages = ["profile", "contacts", "requests", "teachers", "matches", "review", "identity"];
+  if (!me.value && privatePages.includes(target)) {
+    returnTarget.value = safeReturn(location.pathname + location.search);
+    target = "login";
+    routeTo(target, { returnTo: returnTarget.value }, true);
+  } else if (me.value && ((["requests", "teachers"].includes(target) && me.value.businessIdentity !== "REQUESTER") || (target === "review" && !me.value.operatorGranted) || (["matches", "contacts"].includes(target) && !me.value.businessIdentity))) {
+    target = defaultScreen();
+    notice.value = "当前身份无法使用这个入口，已为你打开可用页面。";
+    routeTo(target, {}, true);
+  } else if (target !== readScreen()) routeTo(target, { returnTo: returnTarget.value }, true);
+  publicRequestId.value = target === "public" ? query.get("request") || undefined : undefined;
+  teacherId.value = target === "teachers" ? query.get("teacher") || undefined : undefined;
+  matchId.value = target === "matches" ? query.get("match") || undefined : undefined;
+  matchRequestId.value = target === "matches" ? query.get("forRequest") || undefined : undefined;
+  screen.value = target; routeRevision.value++;
+  void nextTick(restoreScroll);
+}
+function resumeDestination() {
+  if (needsIdentity.value) { routeTo("identity", { returnTo: returnTarget.value }, true); return; }
+  const destination = returnTarget.value;
+  if (destination) writeUrl(new URL(destination, location.origin).searchParams, true);
+  else routeTo(defaultScreen(), {}, true);
+  applyLocation();
+}
+function navigate(target: Screen, values: Record<string, string | undefined> = {}) {
+  routeTo(target, values); applyLocation();
+}
+function continueBrowsing() { leaveCurrent(() => { resetMessages(); resumeDestination(); }); }
 function rememberFlow(value: string) {
   registrationFlowId.value = value;
   // This opaque flow ID alone cannot resend or verify; the server also requires the HttpOnly context cookie.
@@ -56,15 +116,18 @@ watch([preview, stopConfirm], async () => {
   }
 });
 const dirty = computed(() => profile.value !== null && JSON.stringify(form) !== baseline);
+const needsIdentity = computed(() => !!me.value && !me.value.businessIdentity && !me.value.operatorGranted);
 const isTutor = computed(() => me.value?.businessIdentity === "TUTOR");
 const isPublic = computed(() => profile.value?.teacher?.public === true);
+const accountName = computed(() => profile.value?.displayName || me.value?.account || "");
 const categoryNames: Record<string, string> = { DRAWING: "绘画", DANCE: "舞蹈", OTHER_SKILL: "其他课外技能", EXTRACURRICULAR_STUDY: "课外学习" };
 const modeNames: Record<string, string> = { ONLINE: "线上", OFFLINE: "线下" };
 const areaNames: Record<string, string> = { PS_PINGSHAN: "坪山", PS_KENGZI: "坑梓", PS_LONGTIAN: "龙田", PS_SHIJING: "石井", PS_MALUAN: "马峦", PS_BILING: "碧岭" };
 
-function resetMessages() { error.value = ""; notice.value = ""; fieldErrors.value = {}; }
+function resetMessages() { messageSequence.value++; error.value = ""; notice.value = ""; fieldErrors.value = {}; }
 function clearPasswords() { credentials.password = ""; credentials.confirmation = ""; }
 function clearPrivate() {
+  pendingReplies.value=null;pendingRead++;
   matchId.value=undefined;matchRequestId.value=undefined;
   me.value = null; profile.value = null; latest.value = null; identity.value = ""; identityConfirmed.value = false;
   Object.assign(form, { displayName: "", categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
@@ -81,14 +144,14 @@ async function run(action: () => Promise<void>) {
       fieldErrors.value = e.fieldErrors;
       if (e.status === 401 && e.code === "LOGIN_REQUIRED") {
         // Expired sessions clear all private state before another account can sign in.
-        clearPrivate(); screen.value = "login";
+        draftSessionExpired();
       }
-      if (e.code === "SESSION_CHANGED") { clearPrivate(); screen.value = "login"; }
+      if (e.code === "SESSION_CHANGED") { clearPrivate(); returnTarget.value="";navigate("login"); }
       if (e.code === "VERSION_CONFLICT" || e.code === "IDENTITY_ALREADY_SELECTED") conflict.value = true;
     }
   } finally { busy.value = false; }
 }
-function go(target: Screen) { if (busy.value) return; resetMessages(); clearPasswords(); credentials.adultConfirmed = false; screen.value = target; }
+function go(target: Screen) { if (busy.value) return; resetMessages(); clearPasswords(); credentials.adultConfirmed = false; navigate(target, { returnTo: returnTarget.value }); }
 function loadForm(p: Profile) {
   profile.value = p;
   Object.assign(form, { displayName: p.displayName, categoryCodes: [...(p.teacher?.categoryCodes ?? [])], serviceModes: [...(p.teacher?.serviceModes ?? [])], areaCodes: [...(p.teacher?.areaCodes ?? [])], introduction: p.teacher?.introduction ?? "", priceMin: p.teacher?.priceMin ?? "", priceMax: p.teacher?.priceMax ?? "", availabilityText: p.teacher?.availabilityText ?? "" });
@@ -99,10 +162,28 @@ async function loadAccount() {
   // A session replaced in a different tab must not inherit the old user's unsaved values.
   if (me.value && me.value.id !== current.id) clearPrivate();
   me.value = current;
+  if (current.operatorGranted && !current.businessIdentity) { screen.value = "review"; return; }
   if (!current.businessIdentity) { screen.value = "identity"; return; }
   screen.value = "profile";
   const [p, o] = await Promise.all([api.request<Profile>("/me/profile"), api.request<ProfileOptions>("/profile-options")]);
   options.value = o; loadForm(p);
+  void refreshPendingReplies();
+}
+async function refreshPendingReplies() {
+  const account=me.value?.id;
+  if(!account||!me.value?.businessIdentity||document.hidden)return;
+  const sequence=++pendingRead;let cursor:string|null=null,count=0;
+  try {
+    const seen=new Set<string>();
+    for(let page=0;page<20;page++) {
+      const result:{items:Match[];nextCursor:string|null}=await api.request('/me/matches?state=WAITING'+(cursor?'&cursor='+encodeURIComponent(cursor):''));
+      if(sequence!==pendingRead||me.value?.id!==account)return;
+      for(const item of result.items)if(item.waitingForMe&&!seen.has(item.id)){seen.add(item.id);count++;}
+      cursor=result.nextCursor;
+      if(!cursor){pendingReplies.value=count;return;}
+    }
+    pendingReplies.value=null; // Never present a partial scan as the total.
+  } catch { if(sequence===pendingRead)pendingReplies.value=null; }
 }
 function checkPassword() {
   const message = passwordError(credentials.password);
@@ -124,7 +205,7 @@ async function resend() { await run(async () => {
 }); }
 async function login() { await run(async () => {
   await api.request<Me>("/auth/login", "POST", { account: credentials.account, password: credentials.password });
-  clearPrivate(); await loadAccount();
+  clearPrivate(); await loadAccount(); resumeDestination();
 }); }
 async function forgot() { await run(async () => {
   await api.request("/auth/forgot-password", "POST", { email: credentials.email });
@@ -144,9 +225,9 @@ async function reset() { await run(async () => {
   token.value = ""; clearPrivate(); screen.value = "login"; notice.value = "密码已重置，全部旧会话已退出，请重新登录。";
 }); }
 async function chooseIdentity() { await run(async () => {
-  if (!identity.value || !identityConfirmed.value) throw new Error("请选择一种业务身份，并确认首版暂不支持修改。");
+  if (!identity.value || !identityConfirmed.value) throw new Error("请选择一种业务身份，并确认已理解上述职责。");
   me.value = await api.request<Me>("/me/business-identity", "PUT", { identity: identity.value });
-  await loadAccount(); notice.value = "业务身份已确认，请完善本人资料。";
+  await loadAccount(); routeTo("profile", { returnTo: returnTarget.value }, true); notice.value = "业务身份已确认，请完善本人资料。";
 }); }
 async function save() { await run(async () => {
   if (!profile.value) throw new Error("请先读取本人资料。");
@@ -156,6 +237,11 @@ async function save() { await run(async () => {
   const body = isTutor.value ? { expectedVersion: profile.value.version, ...form } : { expectedVersion: profile.value.version, displayName: form.displayName };
   const result = await api.request<Profile>(isTutor.value ? "/me/teacher-profile" : "/me/profile", isTutor.value ? "PUT" : "PATCH", body);
   loadForm(result); notice.value = result.teacher?.public ? "资料已保存并更新公开展示。" : "资料已保存。";
+  if (isTutor.value && !result.teacher?.public) {
+    notice.value = "资料已保存。核对后点击“预览并公开”，公开后才能向需求方表达意向。";
+  } else resumeDestination();
+  await nextTick();
+  window.scrollTo({ top: 0, behavior: "instant" });
 }); }
 async function readLatest() { await run(async () => {
   const current = await api.request<Me>("/me");
@@ -181,7 +267,7 @@ async function visibility(publish: boolean) { await run(async () => {
   else { profile.value = result; pendingVisibility = null; } // Preserve unsaved edits and the saved baseline when stopping public access.
   preview.value = false; stopConfirm.value = false; notice.value = publish ? "资料已主动公开。展示内容为本人自述，手机号、微信和邮箱不会随资料公开。" : "已停止公开。已有撮合关系不会因此结束。";
 }); }
-async function performLogout() { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); screen.value = "login"; notice.value = "已退出登录。"; }); }
+async function performLogout() { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); returnTarget.value=""; navigate("home"); notice.value = "已退出登录。"; }); }
 async function logout() {
   if (busy.value || booting.value) return;
   if (screen.value === "requests") { draftsRef.value?.requestLeave(performLogout); return; }
@@ -191,12 +277,19 @@ async function logout() {
   await performLogout();
 }
 function showRequests() {
-  if(screen.value!=="requests")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="requests";});
+  if(screen.value!=="requests")leaveCurrent(()=>{resetMessages();navigate("requests");});
 }
 function showProfile() {
-  leaveCurrent(()=>{clearPublicUrl();return run(loadAccount);});
+  leaveCurrent(()=>run(async()=>{await loadAccount();navigate("profile");}));
 }
-function clearPublicUrl(){publicRequestId.value=undefined;const url=new URL(location.href);url.searchParams.delete("request");history.replaceState(null,"",url.pathname+url.search+url.hash);}
+function prepareProfile() {
+  const destination = safeReturn(location.pathname + location.search);
+  leaveCurrent(()=>run(async()=>{await loadAccount();navigate("profile", {returnTo:destination});}));
+}
+function prepareRequests() {
+  const destination = safeReturn(location.pathname + location.search);
+  leaveCurrent(()=>{resetMessages();navigate("requests", {returnTo:destination});});
+}
 function leaveCurrent(action:()=>void|Promise<void>){
   if(busy.value||booting.value)return;
   if(screen.value==="requests"){draftsRef.value?.requestLeave(action);return;}
@@ -206,13 +299,13 @@ function leaveCurrent(action:()=>void|Promise<void>){
   if(profile.value)loadForm(profile.value);
   void action();
 }
-function showPublic(){if(screen.value!=="public")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="public";});}
-function showContacts(){if(screen.value!=="contacts")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="contacts";});}
-function showReview(){if(screen.value!=="review")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="review";});}
-function showTeachers(){if(screen.value!=="teachers")leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="teachers";});}
-function showMatches(id?:string,requestId?:string){leaveCurrent(()=>{resetMessages();clearPublicUrl();matchId.value=id;matchRequestId.value=requestId;screen.value="matches";});}
-function showLogin(){leaveCurrent(()=>{resetMessages();clearPublicUrl();screen.value="login";});}
-function draftSessionExpired() { clearPrivate(); screen.value = "login"; error.value = "账号或登录状态已变化，请重新登录。"; }
+function showPublic(){if(!needsIdentity.value && screen.value!=="public")leaveCurrent(()=>{resetMessages();navigate("public");});}
+function showContacts(){if(screen.value!=="contacts")leaveCurrent(()=>{resetMessages();navigate("contacts", {returnTo:safeReturn(location.pathname+location.search)});});}
+function showReview(){if(screen.value!=="review")leaveCurrent(()=>{resetMessages();navigate("review");});}
+function showTeachers(){if(screen.value!=="teachers")leaveCurrent(()=>{resetMessages();navigate("teachers");});}
+function showMatches(id?:string,requestId?:string){leaveCurrent(()=>{resetMessages();navigate("matches", {match:id,forRequest:requestId});});}
+function showLogin(){leaveCurrent(()=>{resetMessages();navigate("login", {returnTo:safeReturn(location.pathname+location.search)||returnTarget.value});});}
+function draftSessionExpired() { const destination=safeReturn(location.pathname+location.search);clearPrivate();navigate("login",{returnTo:destination}); error.value = "账号或登录状态已变化，请重新登录。"; }
 
 function beforeUnload(event: BeforeUnloadEvent) { if (dirty.value) { event.preventDefault(); event.returnValue = ""; } }
 async function initialize() {
@@ -231,7 +324,7 @@ async function initialize() {
   catch (e) {
     if (!(e instanceof ApiFailure && e.status === 401)) error.value = e instanceof Error ? e.message : "服务暂不可用";
     if (!me.value) screen.value = "login";
-  } finally { if(publicRequestId.value)screen.value="public";booting.value = false; }
+  } finally { applyLocation();booting.value = false; }
 }
 // Reconcile sessions after tab switches. Saving never trusts a cached identity.
 async function reconcileSession() {
@@ -239,35 +332,48 @@ async function reconcileSession() {
   try {
     const current = await api.request<Me>("/me");
     if (current.id !== me.value.id || current.businessIdentity !== me.value.businessIdentity) {
-      clearPrivate(); await run(loadAccount);
-    }
+      clearPrivate(); returnTarget.value=""; await run(async()=>{await loadAccount();routeTo(defaultScreen(),{},true);applyLocation();});
+    } else void refreshPendingReplies();
   } catch (e) {
-    if (e instanceof ApiFailure && e.status === 401) { clearPrivate(); screen.value = "login"; error.value = "登录已失效，请重新登录。"; }
+    if (e instanceof ApiFailure && e.status === 401) { draftSessionExpired(); error.value = "登录已失效，请重新登录。"; }
   }
 }
-onMounted(() => { window.addEventListener("beforeunload", beforeUnload); document.addEventListener("visibilitychange", reconcileSession); void initialize(); });
-onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("visibilitychange", reconcileSession); });
+onMounted(() => { pendingTimer=setInterval(()=>void refreshPendingReplies(),60000);stopHistory=listenHistory(leaveCurrent,()=>{resetMessages();applyLocation();});window.addEventListener("beforeunload", beforeUnload); document.addEventListener("visibilitychange", reconcileSession); void initialize(); });
+onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.();window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("visibilitychange", reconcileSession); });
 </script>
 
 <template>
   <div class="account-shell">
     <header class="site-header">
-      <a class="brand" href="/" aria-label="邻课首页"><span class="brand-mark">邻</span><span>邻课<small>坪山 · 认真相遇</small></span></a>
-      <div v-if="me" class="account-summary"><span>{{ me.account }} · {{ me.businessIdentity === 'TUTOR' ? '老师' : me.businessIdentity === 'REQUESTER' ? '需求方' : '未选身份' }}</span><button class="text-button" :disabled="busy||booting" @click="logout">退出登录</button></div>
+      <a class="brand" href="/" aria-label="邻课首页" @click.prevent="leaveCurrent(()=>{resetMessages();navigate('home');})"><span class="brand-mark">邻</span><span>邻课<small>坪山 · 认真相遇</small></span></a>
+      <div v-if="me" class="account-summary"><button class="account-profile-button" aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"><span class="account-avatar" aria-hidden="true">{{ [...accountName][0] || '我' }}</span><span class="account-name">{{ accountName }}<small>{{ me.businessIdentity === 'TUTOR' ? '老师' : me.businessIdentity === 'REQUESTER' ? '需求方' : '未选身份' }}</small></span></button><button class="text-button" :disabled="busy||booting" @click="logout">退出登录</button></div>
       <button v-else class="text-button" :disabled="busy||booting" @click="showLogin">登录 / 注册</button>
     </header>
     <main class="account-main" :aria-busy="busy || booting">
-      <nav class="account-nav" aria-label="主要任务"><button class="text-button" :disabled="busy||booting" @click="showPublic">浏览需求</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showProfile">本人资料</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showContacts">私密联系方式</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showRequests">我的需求</button><button v-if="me?.businessIdentity==='REQUESTER'" class="text-button" :disabled="busy||booting" @click="showTeachers">发现老师</button><button v-if="me?.businessIdentity" class="text-button" :disabled="busy||booting" @click="showMatches()">撮合进度</button><button v-if="me?.operatorGranted" class="text-button" :disabled="busy||booting" @click="showReview">需求审核</button></nav>
+      <nav v-if="!booting && !needsIdentity" class="account-nav" aria-label="主要任务">
+        <button v-if="!me" class="nav-item" :disabled="busy" @click="showTeachers">找老师</button>
+        <button v-if="!me || me.businessIdentity==='TUTOR'" class="nav-item" :aria-current="screen === 'public' ? 'page' : undefined" :disabled="busy" @click="showPublic">浏览需求</button>
+        <button v-if="me?.businessIdentity==='REQUESTER'" class="nav-item" :aria-current="screen === 'teachers' ? 'page' : undefined" :disabled="busy" @click="showTeachers">发现老师</button>
+        <button v-if="me?.businessIdentity==='REQUESTER'" class="nav-item" :aria-current="screen === 'requests' ? 'page' : undefined" :disabled="busy" @click="showRequests">我的需求</button>
+        <button v-if="me?.businessIdentity" class="nav-item" aria-label="撮合进度" :aria-description="pendingReplies?`有${pendingReplies}条意向等待你回应`:undefined" :aria-current="screen === 'matches' ? 'page' : undefined" :disabled="busy" @click="showMatches()">撮合进度 <small v-if="pendingReplies" class="pending-count" aria-hidden="true">待回应 {{pendingReplies}}</small></button>
+        <button v-if="me?.operatorGranted" class="nav-item" :aria-current="screen === 'review' ? 'page' : undefined" :disabled="busy" @click="showReview">需求审核</button>
+      </nav>
       <div v-if="booting" class="loading" role="status">正在读取账号状态…</div>
       <template v-else>
-        <div v-if="error" class="message error" role="alert" tabindex="-1">{{ error }}<ul v-if="Object.keys(fieldErrors).length"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field">{{ message }}</a></li></ul></div>
-        <div v-if="notice" class="message success" role="status">{{ notice }}</div>
+        <FeedbackToast v-if="error" :key="'error-' + messageSequence" :message="error" kind="error" :field-errors="fieldErrors" />
+        <FeedbackToast v-else-if="notice" :key="'notice-' + messageSequence" :message="notice" kind="success" />
+        <p v-if="me?.operatorGranted && !me.email" class="privacy-note">运营账号未绑定邮箱，忘记密码请通过维护操作重置。</p>
+        <div v-if="returnTarget && ['profile','contacts','requests'].includes(screen)" class="continuation-banner"><span>处理完成后，可以继续查看刚才的对象。</span><button class="secondary" :disabled="busy" @click="continueBrowsing">返回刚才的页面</button></div>
 
-        <section v-if="['login', 'register', 'forgot', 'registered', 'verify', 'reset'].includes(screen)" class="auth-layout">
-          <div class="intro"><p class="eyebrow">LINK WITH YOUR NEIGHBORHOOD</p><h1>让每一份认真，<br>遇见合适的需要。</h1><p>在坪山，发现身边的老师与学习机会。先了解，再选择。</p><div class="intro-art" aria-hidden="true"><span class="art-circle"></span><span class="art-arch"></span><span class="art-dot"></span><span class="art-line"></span></div><small>账号邮箱仅用于验证与找回，不会随资料公开。</small></div>
+        <section v-if="screen==='home'" class="home-page">
+          <div class="home-intro"><p class="eyebrow">邻课 · 深圳坪山</p><h1>找合适的老师，<br>遇见合适的教学需求。</h1><p>从方向、时间和预算开始了解彼此。先表达意向，双方同意后交换联系方式，再沟通具体安排。</p><div class="home-actions"><button class="primary" @click="showTeachers">我想找老师</button><button class="secondary" @click="showPublic">我是老师，找需求</button></div><small>老师资料需以需求方身份登录查看；公开需求可以先浏览。</small></div>
+          <div class="home-paths"><article><span class="home-number">01</span><h2>找到合适的对象</h2><p>需求方查看老师的教学方向与报价，老师寻找时间、地点和目标合适的需求。</p></article><article><span class="home-number">02</span><h2>表达意向，等待回应</h2><p>需求方用已公开的需求邀请老师，老师也可以主动投递。对方接受后达成互选。</p></article><article><span class="home-number">03</span><h2>双方同意后联系</h2><p>各自选择要分享的手机号或微信，双方同意后查看，再到站外商量后续安排。</p></article></div>
+        </section>
+        <section v-else-if="['login', 'register', 'forgot', 'registered', 'verify', 'reset'].includes(screen)" class="auth-layout">
+          <div class="intro"><p class="eyebrow">LINK WITH YOUR NEIGHBORHOOD</p><h1>让每一份认真，<br>遇见合适的需要。</h1><p>在坪山，发现身边的老师与学习机会。先了解，再选择。</p><div class="intro-art" aria-hidden="true"><span class="art-circle"></span><span class="art-arch"></span><span class="art-dot"></span><span class="art-line"></span></div></div>
           <div class="form-card auth-card">
             <form v-if="screen === 'login'" @submit.prevent="login">
-              <p class="eyebrow">WELCOME BACK</p><h2>登录邻课</h2><p class="form-caption">使用已验证邮箱的账号继续。</p>
+              <p class="eyebrow">WELCOME BACK</p><h2>登录邻课</h2><p class="form-caption">输入账号和密码继续。</p>
               <label for="field-account">账号<input id="field-account" v-model="credentials.account" name="username" autocomplete="username" required :disabled="busy"></label>
               <label for="field-password">密码<input id="field-password" v-model="credentials.password" name="password" type="password" autocomplete="current-password" required :disabled="busy"></label>
               <button class="primary full" :disabled="busy">{{ busy ? '正在登录…' : '登录' }}</button>
@@ -277,9 +383,9 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
             </form>
             <form v-else-if="screen === 'register'" @submit.prevent="register">
               <h2>创建账号</h2><p class="form-caption">注册后验证邮箱，再确认一种业务身份。</p>
-              <label for="field-account">账号 <small>4—32位，字母开头</small><input id="field-account" v-model="credentials.account" autocomplete="username" pattern="[A-Za-z][A-Za-z0-9_]{3,31}" required :disabled="busy"></label>
+              <label for="field-account">账号 <small>4—16位，字母开头</small><input id="field-account" v-model="credentials.account" autocomplete="username" pattern="[A-Za-z][A-Za-z0-9_]{3,15}" minlength="4" maxlength="16" required :disabled="busy"></label>
               <label for="field-email">验证邮箱<input id="field-email" v-model="credentials.email" type="email" autocomplete="email" required :disabled="busy"></label>
-              <label for="field-password">密码 <small>15—128个字符，可包含空格</small><input id="field-password" v-model="credentials.password" type="password" autocomplete="new-password" required :disabled="busy"></label>
+              <label for="field-password">密码 <small>8—64个字符，可包含空格</small><input id="field-password" v-model="credentials.password" type="password" autocomplete="new-password" required :disabled="busy"></label>
               <label>确认密码<input v-model="credentials.confirmation" type="password" autocomplete="new-password" required :disabled="busy"></label>
               <label id="field-adultConfirmed" class="check-line"><input v-model="credentials.adultConfirmed" type="checkbox" required :disabled="busy"><span>我确认本人已年满18岁。</span></label>
               <button class="primary full" :disabled="busy || !credentials.adultConfirmed">{{ busy ? '正在注册…' : '注册并验证邮箱' }}</button><button type="button" class="text-button below" @click="go('login')">已有账号，返回登录</button>
@@ -298,7 +404,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
               <button class="primary full" :disabled="busy || !validLink">确认验证</button><button v-if="!validLink" type="button" class="secondary full" :disabled="busy" @click="run(inspectLink)">重新检查链接</button><button type="button" class="text-button below" @click="go('login')">返回登录</button>
             </form>
             <form v-else-if="screen === 'reset'" @submit.prevent="reset">
-              <h2>设置新密码</h2><p class="form-caption">确认后将退出全部旧会话，需要重新登录。</p><label for="field-password">新密码 <small>15—128个字符</small><input id="field-password" v-model="credentials.password" type="password" autocomplete="new-password" required :disabled="busy"></label><label>确认新密码<input v-model="credentials.confirmation" type="password" autocomplete="new-password" required :disabled="busy"></label>
+              <h2>设置新密码</h2><p class="form-caption">确认后将退出全部旧会话，需要重新登录。</p><label for="field-password">新密码 <small>8—64个字符</small><input id="field-password" v-model="credentials.password" type="password" autocomplete="new-password" required :disabled="busy"></label><label>确认新密码<input v-model="credentials.confirmation" type="password" autocomplete="new-password" required :disabled="busy"></label>
               <button class="primary full" :disabled="busy">确认重置密码</button><button type="button" class="text-button below" @click="go('login')">返回登录</button>
             </form>
           </div>
@@ -306,17 +412,19 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
 
         <section v-else-if="screen === 'identity'" class="identity-page">
           <p class="eyebrow">YOUR FIRST STEP</p><h1>你希望如何参与？</h1><p>一个账号选择一种业务身份。请按本人实际用途确认。</p>
-          <form @submit.prevent="chooseIdentity"><fieldset :disabled="busy"><legend class="sr-only">选择业务身份</legend><div class="identity-grid"><label :class="['identity-card', { selected: identity === 'REQUESTER' }]"><input v-model="identity" type="radio" value="REQUESTER"><strong>我是需求方</strong><span>为成年本人，或作为监护人为未成年人发布需求，寻找合适的老师。</span></label><label :class="['identity-card', { selected: identity === 'TUTOR' }]"><input v-model="identity" type="radio" value="TUTOR"><strong>我是老师</strong><span>介绍自己的服务，主动公开资料，向合适的需求表达意向。</span></label></div><label class="check-line"><input v-model="identityConfirmed" type="checkbox" required><span>我已理解上述职责，并确认首版暂不支持修改业务身份。</span></label><button class="primary" :disabled="!identity || !identityConfirmed">确认身份并继续</button></fieldset></form>
+          <form @submit.prevent="chooseIdentity"><fieldset :disabled="busy"><legend class="sr-only">选择业务身份</legend><div class="identity-grid"><label :class="['identity-card', { selected: identity === 'REQUESTER' }]"><input v-model="identity" type="radio" value="REQUESTER"><strong>我是需求方</strong><span>为成年本人，或作为监护人为未成年人发布需求，寻找合适的老师。</span></label><label :class="['identity-card', { selected: identity === 'TUTOR' }]"><input v-model="identity" type="radio" value="TUTOR"><strong>我是老师</strong><span>介绍自己的服务，主动公开资料，向合适的需求表达意向。</span></label></div><label class="check-line"><input v-model="identityConfirmed" type="checkbox" required><span>我已理解上述职责。</span></label><button class="primary" :disabled="!identity || !identityConfirmed">确认身份并继续</button></fieldset></form>
           <button v-if="conflict" class="secondary" :disabled="busy" @click="run(loadAccount)">读取已确认的账号身份</button>
         </section>
 
-        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" @expired="draftSessionExpired" @profile="showProfile" @matches="showMatches(undefined,$event)" />
-        <PublicRequests v-else-if="screen==='public'" :initial-id="publicRequestId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="showProfile" @login="showLogin" />
-        <TeacherDiscovery v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="showRequests" />
-        <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="(matchId||'list')+(matchRequestId||'')" :me="me" :initial-id="matchId" :request-id="matchRequestId" @expired="draftSessionExpired" @profile="showProfile" @requests="showRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
-        <PrivateContacts v-else-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
+        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" :key="routeRevision" @expired="draftSessionExpired" @profile="prepareProfile" @matches="showMatches(undefined,$event)" />
+        <PublicRequests v-else-if="screen==='public'" :key="routeRevision" :initial-id="publicRequestId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="prepareProfile" @login="showLogin" />
+        <TeacherDiscovery v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'" :key="routeRevision" :initial-id="teacherId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" />
+        <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
         <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
-        <section v-else-if="screen === 'profile'" class="profile-page">
+        <section v-else-if="['profile','contacts'].includes(screen)" class="profile-page">
+          <nav class="profile-tabs" aria-label="个人资料栏目"><button :aria-current="screen==='profile'?'page':undefined" :disabled="busy" @click="showProfile">基本资料</button><button :aria-current="screen==='contacts'?'page':undefined" :disabled="busy" @click="showContacts">私密联系方式</button></nav>
+          <PrivateContacts v-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
+          <template v-else>
           <div class="page-heading"><div><p class="eyebrow">MY PROFILE</p><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名即可为后续发布需求做准备。' }}</p></div><span v-if="isTutor" :class="['pill', { published: isPublic }]">{{ isPublic ? '资料已公开' : '仅本人可见' }}</span></div>
           <div v-if="!profile" class="form-card"><p>本人资料尚未成功读取。</p><button class="primary" :disabled="busy" @click="run(loadAccount)">重新读取</button></div>
           <template v-else>
@@ -327,7 +435,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
                 <fieldset id="field-categoryCodes" class="choice-group"><legend>服务类别 <span class="required">公开前必填 · 可多选</span></legend><p v-if="!options.categoryCodes.length" class="inline-warning">当前没有开放的服务类别，可先保存其他资料，暂不能公开。</p><label v-for="code in options.categoryCodes" :key="code" class="choice"><input v-model="form.categoryCodes" type="checkbox" :value="code">{{ categoryNames[code] ?? code }}</label></fieldset>
                 <fieldset id="field-serviceModes" class="choice-group"><legend>服务方式 <span class="required">公开前必填 · 可多选</span></legend><label v-for="code in options.serviceModes" :key="code" class="choice"><input v-model="form.serviceModes" type="checkbox" :value="code">{{ modeNames[code] ?? code }}</label></fieldset>
                 <fieldset id="field-areaCodes" class="choice-group"><legend>服务区域 <span class="required">提供线下服务时必填 · 可多选</span></legend><p class="field-help">深圳市坪山区，仅线上服务可不填；不收精确住址。</p><label v-for="code in options.areaCodes" :key="code" class="choice"><input v-model="form.areaCodes" type="checkbox" :value="code">{{ areaNames[code] ?? code }}街道</label></fieldset>
-                <label for="field-introduction">个人介绍 <span class="required">公开前必填</span><textarea id="field-introduction" v-model="form.introduction" rows="6" :required="isPublic" :aria-invalid="!!fieldErrors.introduction" placeholder="能教什么、适合谁，以及你的教育和经验自述。"></textarea><small>{{ codePointLength(form.introduction) }}/1000个字符；勿填手机号、微信、邮箱或精确住址。</small></label>
+                <label for="field-introduction">个人介绍 <span class="required">公开前必填</span><textarea id="field-introduction" v-model="form.introduction" rows="6" :required="isPublic" :aria-invalid="!!fieldErrors.introduction" placeholder="方向：小学三至六年级数学，或成人水彩入门。再介绍你的教学方式、教育和经验。"></textarea><small>{{ codePointLength(form.introduction) }}/1000个字符；建议先写明擅长技能、适教年级和科目，方便需求方选择。勿填手机号、微信、邮箱或精确住址。</small></label>
                 <fieldset class="price-fields"><legend>报价区间 <span class="optional">选填 · 元/小时</span></legend><div class="price-inputs"><label for="field-priceMin">下限<input id="field-priceMin" v-model="form.priceMin" type="text" inputmode="decimal" placeholder="例如 100"></label><span>至</span><label for="field-priceMax">上限<input id="field-priceMax" v-model="form.priceMax" type="text" inputmode="decimal" placeholder="例如 200"></label></div><p class="field-help">两端均不填显示“面议”；填写时须同时填写，最多两位小数。</p></fieldset>
                 <label for="field-availabilityText">可服务时间 <span class="optional">选填</span><textarea id="field-availabilityText" v-model="form.availabilityText" rows="3" placeholder="例如：周末白天可协商"></textarea><small>{{ codePointLength(form.availabilityText) }}/300个字符；不填显示“时间可协商”。</small></label>
                 <p class="privacy-note">手机号、微信和邮箱不会随资料公开。联系方式在互选后的独立授权流程中处理。</p>
@@ -335,6 +443,7 @@ onBeforeUnmount(() => { window.removeEventListener("beforeunload", beforeUnload)
               <div class="form-actions"><button class="primary" :disabled="conflict">{{ busy ? '正在处理…' : isPublic ? '保存并更新公开资料' : '保存资料' }}</button><button v-if="isTutor && !isPublic" type="button" class="secondary" :disabled="dirty || conflict" @click="preview = true">预览并公开</button><button v-if="isTutor && isPublic" type="button" class="text-button danger" @click="stopConfirm = true">停止公开</button><span class="save-state">{{ dirty ? '有尚未保存的修改' : '当前为已保存内容' }}</span></div>
               <p v-if="isPublic" class="field-help">保存成功即更新对外展示，历史意向资料不随之覆盖。</p>
             </fieldset></form>
+          </template>
           </template>
         </section>
       </template>

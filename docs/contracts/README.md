@@ -15,6 +15,7 @@
 - 基础路径 `/api/v1`，JSON字段使用下文名称。ID为不透明字符串；写入时的`expectedVersion`为对象读取时返回的整数版本。返回成功只表示对应动作已在服务端完成，不把网络超时当成未发生。
 - Web使用服务端会话及HttpOnly Cookie；业务写入检查CSRF。账号未验证邮箱或未选业务身份时，仅开放完成相应步骤及正常退出/找回所需动作。运营权限独立检查，不接受客户端传入运营身份。
 - 第一段会话Cookie为LK_SESSION，7天到期、可服务端撤销；数据库只存凭据摘要。注册上下文使用独立HttpOnly Cookie LK_REGISTRATION，registrationFlowId自身不足以重发或确认。邮件凭据通过URL片段进入前端并立即从浏览器地址移除，确认和重置均以POST明确提交。
+- 本地脚本可离线初始化无邮箱运营账号：仅服务端运营标记与保留的@operators.linke.invalid内部标识同时匹配时，Me返回空email和emailVerified=false，不向该标识发送重置邮件。数据库登录启用标记用于该人工初始化账号，不表示验证过真实邮箱；普通账号验证规则不变。运营权限与业务身份独立，未选择业务身份的运营账号登录直接进入审核。维护脚本重置运营密码并撤销旧会话，不提供公共免邮箱入口，不新增数据库迁移。
 - 本人路径写入须带X-Account-Id，值来自当前GET /me；服务端只用它与实际会话比较，不能用来指定代操作对象。不同返回SESSION_CHANGED/409，避免跨标签页更换账号后把旧表单写入新账号。资料和老师详情读取若带该头也须匹配。CSRF失效使用CSRF_INVALID/403，前端只对此类已被拦截的请求更新CSRF并重试一次，不自动重试其他业务失败。
 - 创建、提交、回应、审核、公开与授权动作携带`Idempotency-Key`；相同账号、动作、键和内容返回原动作结果，同键不同内容返回409。按具体业务对象解决重复与冲突，不建设通用操作恢复平台。结果未知时查询对应对象；新建结果未知时重试同键，不换键盲建。
 - 本人列表与业务列表使用`items`、`nextCursor`，默认20项，单次最多50项；不返回完整历史大包。各列表的服务端范围由当前登录者决定，客户端不能通过传他人`userId`越权。
@@ -127,7 +128,7 @@
 
 ## 第四段当前实现与迁移边界
 
-老师及撮合列表固定每页20项，cursor为上一页最后一个不透明UUID，按ID降序；老师筛选categoryCode/areaCode/serviceMode，撮合筛选state/requestId，后者始终与当前参与方范围取交集。Match另有submissionChanged、teacherProfileChanged，提醒查看时保留原快照；不返回对方邮箱、联系方式、私有声明、截止时刻及审核反馈。老师列表与关系根路径也检查X-Account-Id。
+老师列表固定每页10项，撮合列表固定每页20项，cursor为上一页最后一个不透明UUID，按ID降序；老师筛选categoryCode/areaCode/serviceMode，撮合筛选state/requestId，后者始终与当前参与方范围取交集。老师列表通过单次查询读取本页公开字段，卡片优先展示自述中明确标注的方向、技能、适教年级与科目，未标注时展示介绍摘要；翻页替换当前页，详情返回保留页码及已应用筛选。Match另有submissionChanged、teacherProfileChanged，提醒查看时保留原快照；不返回对方邮箱、联系方式、私有声明、截止时刻及审核反馈。老师列表与关系根路径也检查X-Account-Id。
 
 V4脚本为backend/src/main/resources/db/migration/V4__match_relationships.sql：新增match_relationships、match_rounds、match_action_receipts三表，及双方列表、同版拒绝历史三个显式索引。关系唯一约束为(request_id,tutor_id)，当前轮次使用延迟外键绑定到同一关系。每轮保存提交引用及需求/老师白名单快照；回应时间、回应方独立记录。拒绝限制查询同提交版本的历史拒绝轮次，后续撤回不会绕过原限制。新增与回应按相同顺序锁定双方账号/资料，再锁需求或关系，避免双方相遇产生两条关系或自动互选。重复动作返回原回执，客户端成功后再读当前关系。
 

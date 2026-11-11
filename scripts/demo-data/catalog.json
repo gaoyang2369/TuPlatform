@@ -1,0 +1,4597 @@
+{
+  "batch": "linke-demo-20261111-v1",
+  "generatedOn": "2026-11-11",
+  "notice": "全部为合成测试数据；预算为场景参数，不是市场报价。",
+  "accounts": [
+    {
+      "account": "lk_demo_r001",
+      "identity": "REQUESTER",
+      "displayName": "林女士"
+    },
+    {
+      "account": "lk_demo_r002",
+      "identity": "REQUESTER",
+      "displayName": "周先生"
+    },
+    {
+      "account": "lk_demo_r003",
+      "identity": "REQUESTER",
+      "displayName": "陈女士"
+    },
+    {
+      "account": "lk_demo_r004",
+      "identity": "REQUESTER",
+      "displayName": "许先生"
+    },
+    {
+      "account": "lk_demo_r005",
+      "identity": "REQUESTER",
+      "displayName": "郑女士"
+    },
+    {
+      "account": "lk_demo_r006",
+      "identity": "REQUESTER",
+      "displayName": "梁先生"
+    },
+    {
+      "account": "lk_demo_r007",
+      "identity": "REQUESTER",
+      "displayName": "何女士"
+    },
+    {
+      "account": "lk_demo_r008",
+      "identity": "REQUESTER",
+      "displayName": "苏先生"
+    },
+    {
+      "account": "lk_demo_r009",
+      "identity": "REQUESTER",
+      "displayName": "叶女士"
+    },
+    {
+      "account": "lk_demo_r010",
+      "identity": "REQUESTER",
+      "displayName": "吴先生"
+    },
+    {
+      "account": "lk_demo_r011",
+      "identity": "REQUESTER",
+      "displayName": "邓女士"
+    },
+    {
+      "account": "lk_demo_r012",
+      "identity": "REQUESTER",
+      "displayName": "唐先生"
+    },
+    {
+      "account": "lk_demo_r013",
+      "identity": "REQUESTER",
+      "displayName": "方女士"
+    },
+    {
+      "account": "lk_demo_r014",
+      "identity": "REQUESTER",
+      "displayName": "卢先生"
+    },
+    {
+      "account": "lk_demo_r015",
+      "identity": "REQUESTER",
+      "displayName": "蒋女士"
+    },
+    {
+      "account": "lk_demo_r016",
+      "identity": "REQUESTER",
+      "displayName": "袁先生"
+    },
+    {
+      "account": "lk_demo_r017",
+      "identity": "REQUESTER",
+      "displayName": "宋女士"
+    },
+    {
+      "account": "lk_demo_r018",
+      "identity": "REQUESTER",
+      "displayName": "蔡先生"
+    },
+    {
+      "account": "lk_demo_r019",
+      "identity": "REQUESTER",
+      "displayName": "马女士"
+    },
+    {
+      "account": "lk_demo_r020",
+      "identity": "REQUESTER",
+      "displayName": "顾先生"
+    },
+    {
+      "account": "lk_demo_r021",
+      "identity": "REQUESTER",
+      "displayName": "罗女士"
+    },
+    {
+      "account": "lk_demo_r022",
+      "identity": "REQUESTER",
+      "displayName": "陆先生"
+    },
+    {
+      "account": "lk_demo_r023",
+      "identity": "REQUESTER",
+      "displayName": "孟女士"
+    },
+    {
+      "account": "lk_demo_r024",
+      "identity": "REQUESTER",
+      "displayName": "秦先生"
+    },
+    {
+      "account": "lk_demo_r025",
+      "identity": "REQUESTER",
+      "displayName": "温女士"
+    },
+    {
+      "account": "lk_demo_r026",
+      "identity": "REQUESTER",
+      "displayName": "江先生"
+    },
+    {
+      "account": "lk_demo_r027",
+      "identity": "REQUESTER",
+      "displayName": "白女士"
+    },
+    {
+      "account": "lk_demo_r028",
+      "identity": "REQUESTER",
+      "displayName": "夏先生"
+    },
+    {
+      "account": "lk_demo_r029",
+      "identity": "REQUESTER",
+      "displayName": "余女士"
+    },
+    {
+      "account": "lk_demo_r030",
+      "identity": "REQUESTER",
+      "displayName": "俞先生"
+    },
+    {
+      "account": "lk_demo_r031",
+      "identity": "REQUESTER",
+      "displayName": "姚女士"
+    },
+    {
+      "account": "lk_demo_r032",
+      "identity": "REQUESTER",
+      "displayName": "钱先生"
+    },
+    {
+      "account": "lk_demo_r033",
+      "identity": "REQUESTER",
+      "displayName": "章女士"
+    },
+    {
+      "account": "lk_demo_r034",
+      "identity": "REQUESTER",
+      "displayName": "殷先生"
+    },
+    {
+      "account": "lk_demo_r035",
+      "identity": "REQUESTER",
+      "displayName": "沈女士"
+    },
+    {
+      "account": "lk_demo_r036",
+      "identity": "REQUESTER",
+      "displayName": "杜先生"
+    },
+    {
+      "account": "lk_demo_r037",
+      "identity": "REQUESTER",
+      "displayName": "韩女士"
+    },
+    {
+      "account": "lk_demo_r038",
+      "identity": "REQUESTER",
+      "displayName": "莫先生"
+    },
+    {
+      "account": "lk_demo_r039",
+      "identity": "REQUESTER",
+      "displayName": "尹女士"
+    },
+    {
+      "account": "lk_demo_r040",
+      "identity": "REQUESTER",
+      "displayName": "石先生"
+    },
+    {
+      "account": "lk_demo_r041",
+      "identity": "REQUESTER",
+      "displayName": "林女士"
+    },
+    {
+      "account": "lk_demo_r042",
+      "identity": "REQUESTER",
+      "displayName": "周先生"
+    },
+    {
+      "account": "lk_demo_r043",
+      "identity": "REQUESTER",
+      "displayName": "陈女士"
+    },
+    {
+      "account": "lk_demo_r044",
+      "identity": "REQUESTER",
+      "displayName": "许先生"
+    },
+    {
+      "account": "lk_demo_r045",
+      "identity": "REQUESTER",
+      "displayName": "郑女士"
+    },
+    {
+      "account": "lk_demo_r046",
+      "identity": "REQUESTER",
+      "displayName": "梁先生"
+    },
+    {
+      "account": "lk_demo_r047",
+      "identity": "REQUESTER",
+      "displayName": "何女士"
+    },
+    {
+      "account": "lk_demo_r048",
+      "identity": "REQUESTER",
+      "displayName": "苏同学"
+    },
+    {
+      "account": "lk_demo_r049",
+      "identity": "REQUESTER",
+      "displayName": "叶同学"
+    },
+    {
+      "account": "lk_demo_r050",
+      "identity": "REQUESTER",
+      "displayName": "吴同学"
+    },
+    {
+      "account": "lk_demo_r051",
+      "identity": "REQUESTER",
+      "displayName": "邓同学"
+    },
+    {
+      "account": "lk_demo_r052",
+      "identity": "REQUESTER",
+      "displayName": "唐同学"
+    },
+    {
+      "account": "lk_demo_r053",
+      "identity": "REQUESTER",
+      "displayName": "方女士"
+    },
+    {
+      "account": "lk_demo_r054",
+      "identity": "REQUESTER",
+      "displayName": "卢先生"
+    },
+    {
+      "account": "lk_demo_r055",
+      "identity": "REQUESTER",
+      "displayName": "蒋女士"
+    },
+    {
+      "account": "lk_demo_r056",
+      "identity": "REQUESTER",
+      "displayName": "袁先生"
+    },
+    {
+      "account": "lk_demo_r057",
+      "identity": "REQUESTER",
+      "displayName": "宋女士"
+    },
+    {
+      "account": "lk_demo_r058",
+      "identity": "REQUESTER",
+      "displayName": "蔡同学"
+    },
+    {
+      "account": "lk_demo_r059",
+      "identity": "REQUESTER",
+      "displayName": "马同学"
+    },
+    {
+      "account": "lk_demo_r060",
+      "identity": "REQUESTER",
+      "displayName": "顾先生"
+    },
+    {
+      "account": "lk_demo_r061",
+      "identity": "REQUESTER",
+      "displayName": "罗同学"
+    },
+    {
+      "account": "lk_demo_r062",
+      "identity": "REQUESTER",
+      "displayName": "陆先生"
+    },
+    {
+      "account": "lk_demo_r063",
+      "identity": "REQUESTER",
+      "displayName": "孟女士"
+    },
+    {
+      "account": "lk_demo_r064",
+      "identity": "REQUESTER",
+      "displayName": "秦先生"
+    },
+    {
+      "account": "lk_demo_r065",
+      "identity": "REQUESTER",
+      "displayName": "温女士"
+    },
+    {
+      "account": "lk_demo_r066",
+      "identity": "REQUESTER",
+      "displayName": "江先生"
+    },
+    {
+      "account": "lk_demo_r067",
+      "identity": "REQUESTER",
+      "displayName": "白同学"
+    },
+    {
+      "account": "lk_demo_r068",
+      "identity": "REQUESTER",
+      "displayName": "夏同学"
+    },
+    {
+      "account": "lk_demo_r069",
+      "identity": "REQUESTER",
+      "displayName": "余女士"
+    },
+    {
+      "account": "lk_demo_r070",
+      "identity": "REQUESTER",
+      "displayName": "俞先生"
+    },
+    {
+      "account": "lk_demo_r071",
+      "identity": "REQUESTER",
+      "displayName": "姚女士"
+    },
+    {
+      "account": "lk_demo_r072",
+      "identity": "REQUESTER",
+      "displayName": "钱先生"
+    },
+    {
+      "account": "lk_demo_r073",
+      "identity": "REQUESTER",
+      "displayName": "章女士"
+    },
+    {
+      "account": "lk_demo_r074",
+      "identity": "REQUESTER",
+      "displayName": "殷先生"
+    },
+    {
+      "account": "lk_demo_r075",
+      "identity": "REQUESTER",
+      "displayName": "沈女士"
+    },
+    {
+      "account": "lk_demo_r076",
+      "identity": "REQUESTER",
+      "displayName": "杜先生"
+    },
+    {
+      "account": "lk_demo_r077",
+      "identity": "REQUESTER",
+      "displayName": "韩同学"
+    },
+    {
+      "account": "lk_demo_r078",
+      "identity": "REQUESTER",
+      "displayName": "莫同学"
+    },
+    {
+      "account": "lk_demo_r079",
+      "identity": "REQUESTER",
+      "displayName": "尹女士"
+    },
+    {
+      "account": "lk_demo_r080",
+      "identity": "REQUESTER",
+      "displayName": "石同学"
+    },
+    {
+      "account": "lk_demo_t001",
+      "identity": "TUTOR",
+      "displayName": "林老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：小学低年级语文与阅读。\n背景：教育类本科背景，有两年低年级阅读陪练经验。\n教学方式：先听孩子复述，再用图片和关键词支架练完整表达；每次反馈一项可继续练习的习惯。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": null,
+        "priceMax": null,
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t002",
+      "identity": "TUTOR",
+      "displayName": "周老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：小学数学数感与应用题。\n背景：数学相关专业背景，有三年小学辅导经验。\n教学方式：用实物、线段图和口述步骤连接题意与算式，先理解数量关系再提高计算稳定性。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "110",
+        "priceMax": "160",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t003",
+      "identity": "TUTOR",
+      "displayName": "陈老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_LONGTIAN",
+          "PS_SHIJING"
+        ],
+        "introduction": "方向：小学英语拼读与绘本。\n背景：英语相关专业背景，有两年儿童英语活动经验。\n教学方式：围绕已有词汇做听读和情景对话，使用适合程度的短绘本，兼顾兴趣与持续练习。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "130",
+        "priceMax": "190",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t004",
+      "identity": "TUTOR",
+      "displayName": "许老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：小学中高年级语文习作。\n背景：中文相关专业背景，有四年阅读与写作指导经验。\n教学方式：引导观察、列提纲和自主修改，用具体细节支撑表达，不替学生完成学校作业。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "150",
+        "priceMax": "190",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t005",
+      "identity": "TUTOR",
+      "displayName": "郑老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：小学分数比例与几何。\n背景：理科本科背景，有两年小学高年级辅导经验。\n教学方式：重视单位一、比例关系和图形直观，错题按概念、计算和审题分别复盘。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "170",
+        "priceMax": "220",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t006",
+      "identity": "TUTOR",
+      "displayName": "梁老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：小学科学观察与实验。\n背景：科学教育相关背景，有三年儿童科学活动经验。\n教学方式：选择安全的观察主题，指导记录条件、过程与现象，材料清单在课前与监护人核对。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "190",
+        "priceMax": "250",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t007",
+      "identity": "TUTOR",
+      "displayName": "何老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_PINGSHAN",
+          "PS_KENGZI"
+        ],
+        "introduction": "方向：小学学习方法与两科复盘。\n背景：教育相关专业背景，有两年学习习惯指导经验。\n教学方式：先看学生现有安排，再建立小目标、限时完成和错因复盘，避免一次课堆过多内容。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "90",
+        "priceMax": "130",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t008",
+      "identity": "TUTOR",
+      "displayName": "苏老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：初一数学运算与方程。\n背景：数学本科背景，有三年初中数学辅导经验。\n教学方式：从运算依据和等量关系切入，要求学生解释步骤，用少量同类题检查是否理解。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "110",
+        "priceMax": "160",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t009",
+      "identity": "TUTOR",
+      "displayName": "叶老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：初二数学函数与几何。\n背景：理工科研究生背景，有两年初中辅导经验。\n教学方式：练习图表、解析式与文字互相转换，几何题先标条件再写推理链。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "130",
+        "priceMax": "190",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t010",
+      "identity": "TUTOR",
+      "displayName": "吴老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：初三数学二次函数复习。\n背景：数学相关本科背景，有五年毕业年级辅导经验。\n教学方式：把基础图像和常见模型拆清楚，再逐步训练综合题，复盘分类讨论遗漏。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "150",
+        "priceMax": "190",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t011",
+      "identity": "TUTOR",
+      "displayName": "邓老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_MALUAN",
+          "PS_BILING"
+        ],
+        "introduction": "方向：初中英语词汇与阅读。\n背景：英语专业背景，有四年初中英语辅导经验。\n教学方式：结合语音和语境记词，阅读先抓结构和线索，再解释选项与文本的差异。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "170",
+        "priceMax": "220",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t012",
+      "identity": "TUTOR",
+      "displayName": "唐老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：初中英语听力与写作。\n背景：外语相关本科背景，有三年听说读写指导经验。\n教学方式：听力练预测与记录，写作按提纲、初稿和修改分步完成，反馈常见语法与衔接问题。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": null,
+        "priceMax": null,
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t013",
+      "identity": "TUTOR",
+      "displayName": "方老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：初中语文文言文与阅读。\n背景：汉语言相关背景，有四年语文辅导经验。\n教学方式：从课内篇目梳理常见词句，阅读题坚持用文本证据回答，习作指导重结构与细节。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "90",
+        "priceMax": "130",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t014",
+      "identity": "TUTOR",
+      "displayName": "卢老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：初二物理入门与实验。\n背景：物理相关本科背景，有两年物理辅导经验。\n教学方式：通过生活情境理解物理量，先画图和写单位，再分析控制变量与实验误差。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "110",
+        "priceMax": "160",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t015",
+      "identity": "TUTOR",
+      "displayName": "蒋老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_LONGTIAN",
+          "PS_SHIJING"
+        ],
+        "introduction": "方向：初三电学与力学复盘。\n背景：理工科研究生背景，有三年初中物理辅导经验。\n教学方式：重画电路和受力图，明确研究对象与测量对象，用步骤检查减少公式误用。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "130",
+        "priceMax": "190",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t016",
+      "identity": "TUTOR",
+      "displayName": "袁老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：初三化学基础与方程式。\n背景：化学相关专业背景，有四年化学辅导经验。\n教学方式：把反应现象、化学表达与质量关系联系起来，循序规范配平和计算步骤。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "150",
+        "priceMax": "190",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t017",
+      "identity": "TUTOR",
+      "displayName": "宋老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：初中历史与道法材料题。\n背景：人文社科背景，有三年材料阅读指导经验。\n教学方式：先提取时间、主体和问题，再用观点与史实回应材料，避免只堆砌背诵内容。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "170",
+        "priceMax": "220",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t018",
+      "identity": "TUTOR",
+      "displayName": "蔡老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：初中地理与生物读图。\n背景：地理相关专业背景，有两年综合读图指导经验。\n教学方式：用简图和表格连接结构、过程与结论，指导按题目条件组织清晰答案。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "190",
+        "priceMax": "250",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t019",
+      "identity": "TUTOR",
+      "displayName": "马老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_PINGSHAN",
+          "PS_KENGZI"
+        ],
+        "introduction": "方向：高一数学概念与函数。\n背景：数学相关研究生背景，有三年高中辅导经验。\n教学方式：以定义、例子和反例帮助理解，配合图像分析和规范表达，建立每周复盘清单。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "90",
+        "priceMax": "130",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t020",
+      "identity": "TUTOR",
+      "displayName": "顾老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：高中数列与解析几何。\n背景：理科本科背景，有五年高中数学辅导经验。\n教学方式：从条件分析与变量选择切入，突出数形结合，计算步骤安排验算与范围检查。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "110",
+        "priceMax": "160",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t021",
+      "identity": "TUTOR",
+      "displayName": "罗老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：高中物理运动与电场。\n背景：物理相关研究生背景，有四年高中物理辅导经验。\n教学方式：先画过程和受力图，解释模型的适用条件，再用图像、方程和能量多角度验证。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "130",
+        "priceMax": "190",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t022",
+      "identity": "TUTOR",
+      "displayName": "陆老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：高中化学物质的量与反应。\n背景：化学相关本科背景，有三年高中辅导经验。\n教学方式：从物理量含义与反应条件梳理知识联系，练离子方程式、守恒和计算表达。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "150",
+        "priceMax": "190",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t023",
+      "identity": "TUTOR",
+      "displayName": "孟老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_MALUAN",
+          "PS_BILING"
+        ],
+        "introduction": "方向：高中英语长句与写作。\n背景：英语专业背景，有四年高中英语指导经验。\n教学方式：阅读先拆主干与段落结构，写作先搭论述框架，配合短时精听和词汇语境复习。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": null,
+        "priceMax": null,
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t024",
+      "identity": "TUTOR",
+      "displayName": "秦老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：高中语文论述阅读与作文。\n背景：中文相关本科背景，有三年高中语文指导经验。\n教学方式：区分论点与论据，引导比较材料与观点，作文练因果分析和已有素材的展开。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "190",
+        "priceMax": "250",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t025",
+      "identity": "TUTOR",
+      "displayName": "温老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：高中生物遗传与实验。\n背景：生命科学背景，有两年高中生物指导经验。\n教学方式：通过分支图检查遗传概率情况，指导写清变量、对照和预期实验结果。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "90",
+        "priceMax": "130",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t026",
+      "identity": "TUTOR",
+      "displayName": "江老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：大学高数与线性代数。\n背景：应用数学研究生背景，有三年大学基础课答疑经验。\n教学方式：从定义和小规模例子讲清推导，配合教材练习；作业和考试由学员独立完成。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "110",
+        "priceMax": "160",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t027",
+      "identity": "TUTOR",
+      "displayName": "白老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_LONGTIAN",
+          "PS_SHIJING"
+        ],
+        "introduction": "方向：大学英语与成人口语。\n背景：外语相关背景，有四年成人英语指导经验。\n教学方式：先了解学习目标和可投入时间，按真实情景练沟通，提供发音、句式和练习方法反馈。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "130",
+        "priceMax": "190",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t028",
+      "identity": "TUTOR",
+      "displayName": "夏老师",
+      "teacher": {
+        "categoryCodes": [
+          "EXTRACURRICULAR_STUDY"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：概率论与基础统计。\n背景：统计学研究生背景，有两年大学课程答疑经验。\n教学方式：用事件图和小数据讲条件概率、分布与估计，强调公式前提和结果解释。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "150",
+        "priceMax": "190",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t029",
+      "identity": "TUTOR",
+      "displayName": "余老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：儿童创意绘画与拼贴。\n背景：美术相关本科背景，有三年儿童创作活动经验。\n教学方式：以观察和主题创作引导线条、配色和画面表达，允许不同画法，材料使用提前说明。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "180",
+        "priceMax": "230",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t030",
+      "identity": "TUTOR",
+      "displayName": "俞老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：素描静物与人物速写。\n背景：美术相关背景，有五年基础绘画教学经验。\n教学方式：先找比例、结构和光源，再逐步刻画，反馈观察方法与练习重点。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "200",
+        "priceMax": "260",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t031",
+      "identity": "TUTOR",
+      "displayName": "姚老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_PINGSHAN",
+          "PS_KENGZI"
+        ],
+        "introduction": "方向：动漫人物与平板插画。\n背景：视觉设计背景，有四年插画创作与教学经验。\n教学方式：从动态线和结构入手，介绍图层、线稿与上色，指导完成原创角色小作品。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "100",
+        "priceMax": "140",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t032",
+      "identity": "TUTOR",
+      "displayName": "钱老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：成人水彩与城市写生。\n背景：设计相关本科背景，有三年成人水彩活动经验。\n教学方式：分解控水、留白与透视，以生活照片或现场观察练习，尊重个人节奏。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "120",
+        "priceMax": "170",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t033",
+      "identity": "TUTOR",
+      "displayName": "章老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：国画花鸟与基础笔墨。\n背景：传统绘画相关背景，有四年国画入门教学经验。\n教学方式：从用笔和墨色变化切入，通过小幅作品练习笔法，课程前说明材料选择。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "140",
+        "priceMax": "200",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t034",
+      "identity": "TUTOR",
+      "displayName": "殷老师",
+      "teacher": {
+        "categoryCodes": [
+          "DRAWING"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：彩铅与儿童观察绘画。\n背景：美术教育相关背景，有两年儿童绘画指导经验。\n教学方式：以实物观察练轮廓、排线和叠色，作品讲评侧重过程和表达，不追求统一范画。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": null,
+        "priceMax": null,
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t035",
+      "identity": "TUTOR",
+      "displayName": "沈老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_MALUAN",
+          "PS_BILING"
+        ],
+        "introduction": "方向：少儿中国舞基础。\n背景：舞蹈相关本科背景，有四年少儿舞蹈教学经验。\n教学方式：先评估动作能力，规范热身与基础组合，不做强压柔韧或超出身体条件的动作。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "180",
+        "priceMax": "230",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t036",
+      "identity": "TUTOR",
+      "displayName": "杜老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：儿童街舞与节奏律动。\n背景：舞蹈表演相关背景，有三年儿童街舞指导经验。\n教学方式：从律动、重心和节拍建立基础，分解动作后连接短组合，保留休息与放松。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "200",
+        "priceMax": "260",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t037",
+      "identity": "TUTOR",
+      "displayName": "韩老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：爵士基础与成人兴趣课。\n背景：舞蹈相关背景，有五年爵士兴趣教学经验。\n教学方式：把身体控制和协调练习融入短舞段，根据体能和经验调整强度。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "100",
+        "priceMax": "140",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t038",
+      "identity": "TUTOR",
+      "displayName": "莫老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：民族舞与校园节目。\n背景：舞蹈相关本科背景，有四年节目排练指导经验。\n教学方式：依据学员基础安排音乐理解、走位和动作衔接，不追求短期高难度技巧。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "120",
+        "priceMax": "170",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t039",
+      "identity": "TUTOR",
+      "displayName": "尹老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_LONGTIAN",
+          "PS_SHIJING"
+        ],
+        "introduction": "方向：成人拉丁基本步。\n背景：体育舞蹈相关背景，有三年成人基础课经验。\n教学方式：先学重心转换与脚下节拍，再加入身体协调和短组合，可安排单人学习。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "140",
+        "priceMax": "200",
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t040",
+      "identity": "TUTOR",
+      "displayName": "石老师",
+      "teacher": {
+        "categoryCodes": [
+          "DANCE"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：幼儿律动与现代舞基础。\n背景：舞蹈教育相关背景，有两年启蒙及基础教学经验。\n教学方式：用适龄音乐和模仿游戏培养节奏与空间感，未成年人课程与监护人确认安排。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "160",
+        "priceMax": "200",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t041",
+      "identity": "TUTOR",
+      "displayName": "潘老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：硬笔书写与习惯。\n背景：书写教育相关背景，有四年硬笔指导经验。\n教学方式：先观察握笔与坐姿，再练常用笔画和结构，安排适量书写与休息。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "180",
+        "priceMax": "230",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t042",
+      "identity": "TUTOR",
+      "displayName": "钟老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：Scratch与Python入门。\n背景：计算机本科背景，有三年青少年编程指导经验。\n教学方式：通过小项目学习事件、循环、条件与调试，鼓励解释程序，不代写作业或包竞赛结果。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "200",
+        "priceMax": "260",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    },
+    {
+      "account": "lk_demo_t043",
+      "identity": "TUTOR",
+      "displayName": "冯老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_PINGSHAN",
+          "PS_KENGZI"
+        ],
+        "introduction": "方向：少儿围棋规则与复盘。\n背景：围棋兴趣教学背景，有五年少儿对弈指导经验。\n教学方式：按规则、基础棋形和适量实战推进，复盘只抓一两个关键问题，培养对弈礼仪。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "100",
+        "priceMax": "140",
+        "availabilityText": "周二、周四19:00—21:00；周六上午可协商。"
+      }
+    },
+    {
+      "account": "lk_demo_t044",
+      "identity": "TUTOR",
+      "displayName": "雷老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_KENGZI",
+          "PS_LONGTIAN"
+        ],
+        "introduction": "方向：小学篮球与基础体能。\n背景：体育相关本科背景，有三年儿童运动指导经验。\n教学方式：按年龄练控球、脚步和传接球，注重场地检查、热身、补水与放松。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "120",
+        "priceMax": "170",
+        "availabilityText": "周六9:00—12:00、周日14:00—18:00，提前预约。"
+      }
+    },
+    {
+      "account": "lk_demo_t045",
+      "identity": "TUTOR",
+      "displayName": "贺老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE"
+        ],
+        "areaCodes": [],
+        "introduction": "方向：羽毛球基础与步法。\n背景：体育相关背景，有四年球类兴趣指导经验。\n教学方式：从握拍和移动衔接开始，控制练习量，场馆、球与其他费用课前沟通。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": null,
+        "priceMax": null,
+        "availabilityText": "工作日晚上及周末下午可协商，每周可安排1—2次。"
+      }
+    },
+    {
+      "account": "lk_demo_t046",
+      "identity": "TUTOR",
+      "displayName": "池老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_SHIJING",
+          "PS_MALUAN"
+        ],
+        "introduction": "方向：民谣吉他弹唱。\n背景：音乐相关背景，有四年成人吉他指导经验。\n教学方式：从持琴、按弦和节拍练起，把和弦转换融入简单歌曲，避免长时间连续练习。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "160",
+        "priceMax": "200",
+        "availabilityText": "周三晚上、周六下午相对固定，变更提前沟通。"
+      }
+    },
+    {
+      "account": "lk_demo_t047",
+      "identity": "TUTOR",
+      "displayName": "童老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_MALUAN",
+          "PS_BILING"
+        ],
+        "introduction": "方向：Excel与办公数据整理。\n背景：信息管理背景，有五年办公软件培训经验。\n教学方式：用脱敏练习表学习函数、数据验证和透视表，形成学员能独立复现的步骤。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "180",
+        "priceMax": "230",
+        "availabilityText": "目前周日9:00—12:00有空，支持先沟通学习目标。"
+      }
+    },
+    {
+      "account": "lk_demo_t048",
+      "identity": "TUTOR",
+      "displayName": "严老师",
+      "teacher": {
+        "categoryCodes": [
+          "OTHER_SKILL"
+        ],
+        "serviceModes": [
+          "ONLINE",
+          "OFFLINE"
+        ],
+        "areaCodes": [
+          "PS_BILING",
+          "PS_PINGSHAN"
+        ],
+        "introduction": "方向：口才表达与手机摄影。\n背景：传媒相关背景，有三年表达及视觉兴趣指导经验。\n教学方式：表达课练结构与自然交流，摄影课练观察、光线和构图；根据目标分别备课。\n服务说明：首次先沟通基础、目标与时间，报价按小时计算，具体内容与场地费用另行确认；不承诺提分、考级或比赛结果。",
+        "priceMin": "200",
+        "priceMax": "260",
+        "availabilityText": "时间可协商；希望确认后维持相对固定安排。"
+      }
+    }
+  ],
+  "requests": [
+    {
+      "key": "request-001",
+      "owner": "lk_demo_r001",
+      "publisherDisplayName": "林女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "一年级拼音与看图表达",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "一年级",
+        "subject": "语文",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：拼音声母韵母容易混淆，看图时能说出人物但句子不完整。\n期望内容：用卡片和生活图片练拼读，逐步说清时间、人物和事情，每次课留一项亲子口头练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "100",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-002",
+      "owner": "lk_demo_r002",
+      "publisherDisplayName": "周先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "一年级数感与口算习惯",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "一年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：十以内计算较熟练，进位加法常靠手指数，遇到文字题不知道先找什么。\n期望内容：借助积木和数轴理解凑十，练习圈出已知条件，重视口述过程而非单纯刷题。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "80",
+        "budgetMax": "130",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-003",
+      "owner": "lk_demo_r003",
+      "publisherDisplayName": "陈女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "二年级朗读与阅读理解",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "二年级",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：朗读经常漏字，阅读短文能找到原句，但归纳主要内容比较吃力。\n期望内容：先练停顿和复述，再用人物、事件、结果的框架整理短文，培养每天短时阅读习惯。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "160",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-004",
+      "owner": "lk_demo_r004",
+      "publisherDisplayName": "许先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "二年级乘除法应用",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "二年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：乘法口诀基本会背，平均分和倍数关系容易混淆。\n期望内容：通过分物品和画线段图区分数量关系，练习写单位和检查答案是否合理。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-005",
+      "owner": "lk_demo_r005",
+      "publisherDisplayName": "郑女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "三年级英语自然拼读入门",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "三年级",
+        "subject": "英语",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：能认读课堂常见单词，遇到新词就逐字母猜读，不太愿意开口。\n期望内容：结合已学词汇建立字母与发音联系，用图片对话练短句，课后提供可重复跟读的小任务。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-006",
+      "owner": "lk_demo_r006",
+      "publisherDisplayName": "梁先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "三年级时间与长度单位",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "三年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：会列式计算，但小时与分钟、米与厘米的换算经常混在一起。\n期望内容：用钟面和测量活动理解单位，整理常见换算，练习估算与验算。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "120",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-007",
+      "owner": "lk_demo_r007",
+      "publisherDisplayName": "何女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "三年级观察作文起步",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "三年级",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：作文经常只有两三句，能说出感受但缺少具体场景。\n期望内容：从观察一件物品和记录一次活动开始，练习按顺序写清细节，不代写学校作业。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "80",
+        "budgetMax": "150",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-008",
+      "owner": "lk_demo_r008",
+      "publisherDisplayName": "苏先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "四年级小数与计算检查",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "四年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：小数点对齐和运算顺序不稳定，做题速度快但检查没有方法。\n期望内容：用错题分类找出常见失误，练习估算范围、竖式对齐和分步检查。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "130",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-009",
+      "owner": "lk_demo_r009",
+      "publisherDisplayName": "叶女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "四年级英语阅读与口语",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "四年级",
+        "subject": "英语",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：课内单词记得住，但短文一长就逐词翻译，回答问题声音小。\n期望内容：从短绘本提取人物和事件，用完整句回应问题，设置贴近生活的角色对话。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "130",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-010",
+      "owner": "lk_demo_r010",
+      "publisherDisplayName": "吴先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "四年级段落概括与习作",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "四年级",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读题喜欢抄整段，习作有开头结尾但中间内容空泛。\n期望内容：练习给段落取小标题，围绕一个重点补充动作和对话，形成自主修改清单。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "160",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-011",
+      "owner": "lk_demo_r011",
+      "publisherDisplayName": "邓女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "五年级分数意义与应用",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "五年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：约分通分的步骤知道，但不理解题目中单位一指谁。\n期望内容：用图示明确整体与部分，区分数量和分率，讲清每一步算式的意义。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "140",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-012",
+      "owner": "lk_demo_r012",
+      "publisherDisplayName": "唐先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "五年级英语语法梳理",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "五年级",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：一般现在时第三人称形式容易漏，写句子时语序不稳。\n期望内容：结合日常作息话题练主谓搭配和问答，整理少量典型错误并反复迁移使用。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "80",
+        "budgetMax": "120",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-013",
+      "owner": "lk_demo_r013",
+      "publisherDisplayName": "方女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "五年级整本书阅读陪练",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "五年级",
+        "subject": "语文",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：愿意读故事，但介绍一本书时只复述情节，很少表达看法。\n期望内容：制定适量阅读计划，讨论人物选择与证据，练习用一段话表达自己的判断。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "120",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-014",
+      "owner": "lk_demo_r014",
+      "publisherDisplayName": "卢先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "六年级比例与几何复习",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "六年级",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：比例题和圆的面积公式容易混用，综合题缺少步骤。\n期望内容：按概念、典型题和错因整理知识图，练习画图、标单位和分步表达。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-015",
+      "owner": "lk_demo_r015",
+      "publisherDisplayName": "蒋女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "六年级英语听读衔接",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "六年级",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：单词基础尚可，听对话来不及记录，阅读常忽略时间词。\n期望内容：练习听前预测、关键词记录和快速定位，循序增加文本长度，避免超量背诵。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "180",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-016",
+      "owner": "lk_demo_r016",
+      "publisherDisplayName": "袁先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "六年级阅读答题表达",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "六年级",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读时理解大意，但回答原因和作用类问题常写得太笼统。\n期望内容：结合文本证据组织答案，练习区分观点与依据，并对习作进行结构和细节修改。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "110",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-017",
+      "owner": "lk_demo_r017",
+      "publisherDisplayName": "宋女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "二年级英语绘本兴趣陪伴",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "二年级",
+        "subject": "英语",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：对英语儿歌有兴趣，尚未形成固定阅读习惯，希望以兴趣为主。\n期望内容：选择短绘本做指读、听音和情景游戏，按孩子接受程度安排内容，不追求提前赶进度。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "80",
+        "budgetMax": "110",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-018",
+      "owner": "lk_demo_r018",
+      "publisherDisplayName": "蔡先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "五年级科学观察与实验记录",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "五年级",
+        "subject": "科学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：喜欢动手操作，但实验报告只写结论，没有记录条件变化。\n期望内容：围绕磁力、溶解等安全主题做观察，学习写问题、步骤和现象，由监护人配合准备材料。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "140",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-019",
+      "owner": "lk_demo_r019",
+      "publisherDisplayName": "马女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一有理数与方程基础",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "初一",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：负号运算和去括号错误较多，列方程时不会设未知数。\n期望内容：先整理运算规则，再从数量关系写等式，要求每次都能口述解题依据。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "200",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-020",
+      "owner": "lk_demo_r020",
+      "publisherDisplayName": "顾先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一英语音标与词汇记忆",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "初一",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：小学阶段主要靠背拼写，初中词汇量增加后容易忘记。\n期望内容：结合发音拆分和语境记忆建立词汇卡，练习短篇阅读与听写反馈。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "180",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-021",
+      "owner": "lk_demo_r021",
+      "publisherDisplayName": "罗女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一文言文与现代文阅读",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "初一",
+        "subject": "语文",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：文言实词记忆零散，现代文阅读题经常只写一句感想。\n期望内容：以课内篇目梳理常见实词和句意，阅读回答坚持回到文本找证据。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "130",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-022",
+      "owner": "lk_demo_r022",
+      "publisherDisplayName": "陆先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一历史时间线整理",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "初一",
+        "subject": "历史",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：历史事件名称记得住，但先后顺序和因果关系比较乱。\n期望内容：用时间轴整理单元内容，区分史实和评价，练习从材料中提取有效信息。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "160",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-023",
+      "owner": "lk_demo_r023",
+      "publisherDisplayName": "孟女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一地图阅读与方向辨认",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "初一",
+        "subject": "地理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：经纬度定位和等高线判读不熟，地理题常凭印象猜。\n期望内容：从地图符号和方向练起，通过简图理解位置关系，建立读图步骤。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "190",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-024",
+      "owner": "lk_demo_r024",
+      "publisherDisplayName": "秦先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二一次函数与几何证明",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "初二",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：能套函数解析式，但图像与实际情境联系不起来，几何证明缺少逻辑顺序。\n期望内容：练习从表格、图像和文字互相转换，证明题先画条件再整理推理链。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "170",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-025",
+      "owner": "lk_demo_r025",
+      "publisherDisplayName": "温女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二力学概念与实验分析",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "初二",
+        "subject": "物理",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：速度和密度公式会用，但单位换算、实验控制变量容易丢分。\n期望内容：用生活场景解释概念，先分析物理量再列式，学习规范记录实验结论。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "170",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-026",
+      "owner": "lk_demo_r026",
+      "publisherDisplayName": "江先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二英语阅读与语法查漏",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "初二",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：时态题经常凭语感，完形填空忽略上下文线索。\n期望内容：结合错题整理时间标志和句子结构，练习用前后文排除选项，课后短时复盘。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-027",
+      "owner": "lk_demo_r027",
+      "publisherDisplayName": "白女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二生物图表与实验复习",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "初二",
+        "subject": "生物",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：对细胞、人体系统等结构记忆混淆，实验题表达不准确。\n期望内容：围绕结构与功能画简图，对照题目条件解释现象，练习写完整的实验变量和结论。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "180",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-028",
+      "owner": "lk_demo_r028",
+      "publisherDisplayName": "夏先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二说明文阅读与写作",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "初二",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：说明方法能背名称，但结合文章分析作用时说不清。\n期望内容：用短文本辨认说明对象和特征，练习把方法、内容和表达效果连成完整答案。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-029",
+      "owner": "lk_demo_r029",
+      "publisherDisplayName": "余女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三二次函数专题梳理",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "初三",
+        "subject": "数学",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：基础题大多能做，二次函数与几何结合题容易卡在分类讨论。\n期望内容：从图像性质和常见模型入手，练习设参、找范围和验证，先把基础过程写完整。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-030",
+      "owner": "lk_demo_r030",
+      "publisherDisplayName": "俞先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三电学电路分析",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "初三",
+        "subject": "物理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：串并联判断不稳定，电表读数与电路变化题失误较多。\n期望内容：练习重画电路图、明确测量对象，再结合欧姆定律分析变化，保留必要推导步骤。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "190",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-031",
+      "owner": "lk_demo_r031",
+      "publisherDisplayName": "姚女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三化学方程式与计算",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "初三",
+        "subject": "化学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：化学式和方程式配平容易漏条件，质量关系题不知道从哪里下手。\n期望内容：整理常见反应现象与表达，结合质量守恒分析题意，按步骤完成计算与单位书写。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "170",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-032",
+      "owner": "lk_demo_r032",
+      "publisherDisplayName": "钱先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三英语写作与听力复习",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "初三",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：作文句型单一且有时态错误，听力长对话信息容易混淆。\n期望内容：围绕常见话题练提纲、连接词和修改，听力练关键词记录与复述，不承诺考试结果。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "150",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-033",
+      "owner": "lk_demo_r033",
+      "publisherDisplayName": "章女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三道法材料题答题训练",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "初三",
+        "subject": "道德与法治",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：基础概念能记住，材料题常堆砌知识点，没有结合具体情境。\n期望内容：练习先提取材料主体和问题，再选取相关观点说明理由，控制答案层次与长度。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "150",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-034",
+      "owner": "lk_demo_r034",
+      "publisherDisplayName": "殷先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初三历史材料阅读与复习",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "初三",
+        "subject": "历史",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：背诵较多但迁移不熟，史料题常忽略出处和时间背景。\n期望内容：按主题建立事件联系，训练抓材料关键词、比较观点和用史实支持结论。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "180",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-035",
+      "owner": "lk_demo_r035",
+      "publisherDisplayName": "沈女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初一两科作业方法与复盘",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "初一",
+        "subject": "数学与英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：刚升初中，作业安排较乱，数学计算和英语单词复习常拖到很晚。\n期望内容：先观察学习安排，再建立限时完成和错因复盘的方法，两科轮流安排，避免一节课内容过多。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "210",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-036",
+      "owner": "lk_demo_r036",
+      "publisherDisplayName": "杜先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初二中国地理读图专项",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "初二",
+        "subject": "地理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：区域位置记忆零散，气候、农业与地形之间的关系没有建立。\n期望内容：以中国地图为主线整理区域特征，结合图表说明自然条件与生产生活的联系。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-037",
+      "owner": "lk_demo_r037",
+      "publisherDisplayName": "韩女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高一集合与函数学习衔接",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "高一",
+        "subject": "数学",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：初中数学基础尚可，进入高中后对定义域和值域的理解较模糊。\n期望内容：围绕概念举例与反例，练习读函数图像和书写区间，形成课后复盘笔记。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "150",
+        "budgetMax": "180",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-038",
+      "owner": "lk_demo_r038",
+      "publisherDisplayName": "莫先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高一受力分析与运动图像",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "高一",
+        "subject": "物理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：公式记得住，但研究对象和正方向选取不清楚。\n期望内容：从受力图和运动过程图入手，讲清适用条件，再练习图像与方程相互验证。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "160",
+        "budgetMax": "210",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-039",
+      "owner": "lk_demo_r039",
+      "publisherDisplayName": "尹女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高一物质的量与离子反应",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "高一",
+        "subject": "化学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：摩尔相关换算不熟，离子方程式拆分和配平经常出错。\n期望内容：从量的含义和单位关系理解换算，整理反应条件和离子共存判断步骤。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "170",
+        "budgetMax": "240",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-040",
+      "owner": "lk_demo_r040",
+      "publisherDisplayName": "石先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高一英语长句与阅读适应",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "高一",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读速度偏慢，遇到长句就从头逐词翻译。\n期望内容：练习识别主干与修饰成分，按段落概括信息，逐步增加阅读篇幅并记录常见搭配。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "180",
+        "budgetMax": "220",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-041",
+      "owner": "lk_demo_r041",
+      "publisherDisplayName": "林女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高二数列与解析几何",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "高二",
+        "subject": "数学",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：数列递推关系处理不熟，圆锥曲线计算较容易失去方向。\n期望内容：整理题目条件到公式的转换，练习选择变量和验算范围，分层安排基础与综合题。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "170",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-042",
+      "owner": "lk_demo_r042",
+      "publisherDisplayName": "周先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高二电场与电路专题",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "高二",
+        "subject": "物理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：电势能和电势的关系容易混淆，综合题单位与方向经常遗漏。\n期望内容：通过图像和能量变化解释概念，先写分析过程，再练习规范方程与结果检查。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "150",
+        "budgetMax": "200",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-043",
+      "owner": "lk_demo_r043",
+      "publisherDisplayName": "陈女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高二遗传与实验设计",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "高二",
+        "subject": "生物",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：遗传概率题常漏情况，实验设计题缺少对照和重复意识。\n期望内容：用图表区分已知条件与假设，整理概率分支，练习写清变量、对照和预期结果。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "160",
+        "budgetMax": "230",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-044",
+      "owner": "lk_demo_r044",
+      "publisherDisplayName": "许先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高二区域地理综合题",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "高二",
+        "subject": "地理",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：图表信息较多时抓不住重点，原因分析常写成泛泛而谈。\n期望内容：先标注区域、尺度和问题限制，再从自然与人文条件建立答题逻辑。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "170",
+        "budgetMax": "210",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-045",
+      "owner": "lk_demo_r045",
+      "publisherDisplayName": "郑女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高三数学基础题查漏",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "高三",
+        "subject": "数学",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：综合题暂时不追求难度，希望把基础计算、审题和时间分配稳定下来。\n期望内容：根据近期错题建立清单，练习先易后难和分步得分表达，每周复盘一类高频错误。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "180",
+        "budgetMax": "210",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-046",
+      "owner": "lk_demo_r046",
+      "publisherDisplayName": "梁先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高三英语阅读与写作复盘",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "高三",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读题定位较慢，作文有想法但语言组织不够清楚。\n期望内容：分题型练习定位和推断，写作先搭提纲再修改语法与衔接，反馈具体可执行的练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "190",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-047",
+      "owner": "lk_demo_r047",
+      "publisherDisplayName": "何女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高三语文论述阅读与作文",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "高三",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：论述类文本容易把作者观点和材料内容混为一谈，作文论证例子单一。\n期望内容：练习标出论点和论据，比较选项与原文差异，用已有素材展开因果与比较论证。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "150",
+        "budgetMax": "220",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-048",
+      "owner": "lk_demo_r048",
+      "publisherDisplayName": "苏同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "大学高数极限与导数梳理",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "大学一年级",
+        "subject": "高等数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：大一学习极限和导数时跟不上推导，希望有人讲清关键步骤。\n期望内容：从定义、例题和常见误区建立联系，配合教材练习讲解，课程作业与考试独立完成。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-049",
+      "owner": "lk_demo_r049",
+      "publisherDisplayName": "叶同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "大学线代矩阵与方程组",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "大学二年级",
+        "subject": "线性代数",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：矩阵运算基本会做，但秩、线性相关和解的结构之间联系不清。\n期望内容：通过行变换与几何例子理解概念，整理判断条件，并用小规模题目检查理解。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-050",
+      "owner": "lk_demo_r050",
+      "publisherDisplayName": "吴同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "大学英语四级听读方法",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "大学阶段",
+        "subject": "大学英语四级",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：离开英语系统学习一段时间，听力抓不住主旨，阅读词汇需要恢复。\n期望内容：先做基础诊断，再安排精听、分级阅读和写作修改，按每周可投入时间制定计划。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "190",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-051",
+      "owner": "lk_demo_r051",
+      "publisherDisplayName": "邓同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "在职成人英语日常沟通",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "在职成人",
+        "subject": "英语口语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：工作偶尔需要用英语介绍产品，目前能看懂简单邮件但不敢开口。\n期望内容：围绕自我介绍、产品说明和会议问答练对话，老师课后给出发音与表达反馈。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "170",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-052",
+      "owner": "lk_demo_r052",
+      "publisherDisplayName": "唐同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "大学概率统计概念辅导",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "大学三年级",
+        "subject": "概率论与统计",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：条件概率、独立性与分布函数的关系理解不牢，计算题常选错公式。\n期望内容：通过小样本事件和图示梳理概念，再做教材配套练习，强调公式成立的前提。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "150",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-053",
+      "owner": "lk_demo_r053",
+      "publisherDisplayName": "方女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学低年级创意绘画",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "小学阶段",
+        "subject": "儿童创意画",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：孩子喜欢画动物，但总说自己画不像，希望从兴趣和表达开始。\n期望内容：以观察、线条和色块游戏完成小作品，鼓励自己讲述画面，不照着范画机械临摹。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "120",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-054",
+      "owner": "lk_demo_r054",
+      "publisherDisplayName": "卢先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学彩铅与观察练习",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "小学阶段",
+        "subject": "彩铅",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：会涂色，物体明暗和颜色叠加还没有方法。\n期望内容：从水果和生活小物练观察、轻重排线与叠色，课后给出材料保养建议。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-055",
+      "owner": "lk_demo_r055",
+      "publisherDisplayName": "蒋女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中素描基础入门",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "初中阶段",
+        "subject": "素描",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：零基础，希望周末系统学习构图、透视和明暗。\n期望内容：从简单几何形体开始，理解比例与光影，逐步过渡到静物组合。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "210",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-056",
+      "owner": "lk_demo_r056",
+      "publisherDisplayName": "袁先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中动漫人物结构练习",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "初中阶段",
+        "subject": "动漫人物",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：平时喜欢临摹漫画，人物动作和身体比例容易失衡。\n期望内容：先练头身比例、关节和动态线，再尝试原创小角色，重视结构而非直接描图。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-057",
+      "owner": "lk_demo_r057",
+      "publisherDisplayName": "宋女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高中人物速写兴趣课",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "高中阶段",
+        "subject": "速写",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：有少量素描基础，想提升人物观察与动态表达。\n期望内容：从短时姿态和衣褶概括练起，整理观察顺序，不以突击考证为目标。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "150",
+        "budgetMax": "180",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-058",
+      "owner": "lk_demo_r058",
+      "publisherDisplayName": "蔡同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人水彩城市小景",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "成人",
+        "subject": "水彩",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：工作后想培养爱好，希望能画旅行中的建筑和街景。\n期望内容：学习控水、铺色、留白和简单透视，用照片做练习，接受慢节奏教学。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "170",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-059",
+      "owner": "lk_demo_r059",
+      "publisherDisplayName": "马同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人国画花鸟入门",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "成人",
+        "subject": "国画",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：之前只接触过硬笔，想从基础笔墨和简单花鸟学起。\n期望内容：示范握笔、用墨和基础笔法，循序完成小幅作品，材料预算提前沟通。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "200",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-060",
+      "owner": "lk_demo_r060",
+      "publisherDisplayName": "顾先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学绘画与拼贴创作",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "小学阶段",
+        "subject": "综合材料",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：孩子喜欢剪贴和画画，希望在安全材料下学习组合创作。\n期望内容：围绕四季和生活主题，练习配色、构图和表达，使用适龄工具并由监护人陪同。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "150",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-061",
+      "owner": "lk_demo_r061",
+      "publisherDisplayName": "罗同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人平板插画入门",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "成人",
+        "subject": "数字绘画",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：已有平板和触控笔，软件图层和笔刷使用不熟。\n期望内容：从图层、线稿、平涂到简单光影完成一张原创插画，优先使用现有设备。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "130",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-062",
+      "owner": "lk_demo_r062",
+      "publisherDisplayName": "陆先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "学龄前绘画兴趣体验",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "OTHER",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "学龄前",
+        "subject": "绘画启蒙",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：由监护人发布，孩子对颜色有兴趣但坐不住太久。\n期望内容：以短环节的涂鸦和形状游戏引导，允许休息和自由表达，不追求写实效果。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "120",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-063",
+      "owner": "lk_demo_r063",
+      "publisherDisplayName": "孟女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "少儿中国舞基础与节奏",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "小学阶段",
+        "subject": "中国舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：孩子学过一学期，动作记忆尚可，节奏和站姿需要巩固。\n期望内容：先评估身体条件，练习节拍与基础组合，避免强压柔韧和高风险动作。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "90",
+        "budgetMax": "160",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-064",
+      "owner": "lk_demo_r064",
+      "publisherDisplayName": "秦先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学街舞兴趣入门",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "小学阶段",
+        "subject": "街舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：喜欢跟音乐做动作，没有系统舞蹈基础。\n期望内容：从律动、协调性和简单步伐开始，完整安排热身与放松，选择适龄音乐。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-065",
+      "owner": "lk_demo_r065",
+      "publisherDisplayName": "温女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中爵士舞基础组合",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "初中阶段",
+        "subject": "爵士舞",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：有学校社团经历，希望规范发力和身体控制。\n期望内容：分解重心、节奏和手脚配合，用短组合练表现力，训练强度循序增加。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "170",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-066",
+      "owner": "lk_demo_r066",
+      "publisherDisplayName": "江先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中民族舞舞台练习",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "初中阶段",
+        "subject": "民族舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：准备参加校园艺术活动，希望动作更整齐、表情更自然。\n期望内容：按已有节目练节奏、走位与衔接，控制训练量，服装和场地另行沟通。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-067",
+      "owner": "lk_demo_r067",
+      "publisherDisplayName": "白同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人零基础爵士兴趣课",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "成人",
+        "subject": "爵士舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：久坐办公，想通过舞蹈活动身体，不追求高难度技巧。\n期望内容：以基础律动和短舞段练习为主，重视热身和关节保护，可根据体能调整节奏。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "180",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-068",
+      "owner": "lk_demo_r068",
+      "publisherDisplayName": "夏同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人拉丁舞基础步伐",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "成人",
+        "subject": "拉丁舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：之前参加过体验课，想把恰恰基本步和节奏学扎实。\n期望内容：从重心转移、脚下节拍与身体协调练起，优先单人基础练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-069",
+      "owner": "lk_demo_r069",
+      "publisherDisplayName": "余女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "高中现代舞校园展示",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区中粮一品澜山",
+        "grade": "高中阶段",
+        "subject": "现代舞",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：已有一点舞蹈基础，计划为学校活动准备一段个人展示。\n期望内容：结合音乐设计适合本人程度的动作，练习呼吸、空间和舞段衔接。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "170",
+        "budgetMax": "200",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-070",
+      "owner": "lk_demo_r070",
+      "publisherDisplayName": "俞先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "学龄前音乐律动体验",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "OTHER",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "学龄前",
+        "subject": "律动启蒙",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：监护人希望孩子在音乐游戏中练协调和节奏。\n期望内容：以模仿、行走和节奏游戏为主，每个环节短而明确，监护人可全程陪同。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-071",
+      "owner": "lk_demo_r071",
+      "publisherDisplayName": "姚女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学硬笔坐姿与字形练习",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区心海城",
+        "grade": "小学阶段",
+        "subject": "硬笔书写",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：写字用力过大，偏旁比例和行距不稳定。\n期望内容：先调整握笔和坐姿，练常用笔画、结构与排版，每次练习时间适量。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "budgetMax": "140",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-14",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-072",
+      "owner": "lk_demo_r072",
+      "publisherDisplayName": "钱先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学Scratch动画与逻辑",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区汤亨花园",
+        "grade": "小学阶段",
+        "subject": "Scratch编程",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：喜欢电脑游戏，希望用图形编程做自己的互动故事。\n期望内容：从事件、循环和条件开始，完成一个小动画与小游戏，讲清逻辑并养成调试习惯。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "80",
+        "budgetMax": "120",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-15",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-073",
+      "owner": "lk_demo_r073",
+      "publisherDisplayName": "章女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中Python基础与小项目",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "初中阶段",
+        "subject": "Python编程",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：接触过图形编程，准备学习文本编程和基础数据处理。\n期望内容：从变量、分支、循环到列表，完成一个生活小工具，不做作业代写或竞赛包奖。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "150",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-16",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-074",
+      "owner": "lk_demo_r074",
+      "publisherDisplayName": "殷先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学围棋规则与对弈习惯",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区金田风华苑",
+        "grade": "小学阶段",
+        "subject": "围棋",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：知道吃子规则，落子较随意，输棋时容易着急。\n期望内容：练气、连接、做眼和简单复盘，通过适量对弈学习思考和礼貌表达。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "150",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-17",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-075",
+      "owner": "lk_demo_r075",
+      "publisherDisplayName": "沈女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学篮球基础与身体协调",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_LONGTIAN",
+        "locationText": "深圳市坪山区聚龙花园",
+        "grade": "小学阶段",
+        "subject": "篮球",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：喜欢打球，运球时总低头，传球和脚步不规范。\n期望内容：在合适场地练控球、移动与传接球，按年龄安排强度，自备水和运动鞋。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "180",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-18",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availableSlots": [
+          {
+            "weekday": 2,
+            "startMinute": 1140,
+            "endMinute": 1260
+          },
+          {
+            "weekday": 4,
+            "startMinute": 1140,
+            "endMinute": 1260
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-076",
+      "owner": "lk_demo_r076",
+      "publisherDisplayName": "杜先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "初中羽毛球步法与发球",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "初中阶段",
+        "subject": "羽毛球",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：可以简单对打，握拍和后场步法需要纠正。\n期望内容：从握拍、发球和移动衔接练起，安排热身与放松，场地费用提前说明。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-077",
+      "owner": "lk_demo_r077",
+      "publisherDisplayName": "韩同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人民谣吉他弹唱起步",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_MALUAN",
+        "locationText": "深圳市坪山区京基御景印象",
+        "grade": "成人",
+        "subject": "吉他",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：有一把民谣吉他，和弦转换慢，希望能完整弹唱一首简单歌曲。\n期望内容：先调整持琴与按弦，循序练和弦转换、节拍和扫弦，避免长时间连续练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            2,
+            4
+          ],
+          "periods": [
+            "EVENING"
+          ]
+        }
+      }
+    },
+    {
+      "key": "request-078",
+      "owner": "lk_demo_r078",
+      "publisherDisplayName": "莫同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人Excel表格与报表整理",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_BILING",
+        "locationText": "深圳市坪山区倚湖居花园",
+        "grade": "成人",
+        "subject": "Excel办公",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：工作需要汇总销售数据，公式和透视表不熟。\n期望内容：用脱敏练习数据学习常用函数、数据验证与透视表，形成可重复操作步骤。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "170",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 3
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availableSlots": [
+          {
+            "weekday": 6,
+            "startMinute": 540,
+            "endMinute": 660
+          },
+          {
+            "weekday": 7,
+            "startMinute": 840,
+            "endMinute": 960
+          }
+        ]
+      }
+    },
+    {
+      "key": "request-079",
+      "owner": "lk_demo_r079",
+      "publisherDisplayName": "尹女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "OPEN",
+      "fields": {
+        "title": "小学故事表达与上台练习",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "小学阶段",
+        "subject": "口才表达",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：在家说话活跃，上台时容易忘词和声音过小。\n期望内容：从短故事复述、呼吸和目光交流开始，练习自然表达，不要求机械背台词。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "170",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 1
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "request-080",
+      "owner": "lk_demo_r080",
+      "publisherDisplayName": "石同学",
+      "declaration": "SELF_ADULT",
+      "status": "OPEN",
+      "fields": {
+        "title": "成人手机摄影构图与修图",
+        "categoryCode": "OTHER_SKILL",
+        "audienceStageCode": "ADULT",
+        "areaCode": "PS_KENGZI",
+        "locationText": "深圳市坪山区深业御园",
+        "grade": "成人",
+        "subject": "手机摄影",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：希望用现有手机拍好日常生活和旅行照片。\n期望内容：从光线、构图和拍摄距离入手，练基础后期和照片整理，不强制购买器材。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "180",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "PER_WEEK",
+          "count": 2
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-23",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "PREFERRED",
+          "weekdays": [
+            6,
+            7
+          ],
+          "periods": [
+            "AFTERNOON"
+          ]
+        }
+      }
+    },
+    {
+      "key": "workflow-001",
+      "owner": "lk_demo_r001",
+      "publisherDisplayName": "林女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "DRAFT",
+      "fields": {
+        "title": "一年级拼音与看图表达与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "一年级",
+        "subject": "语文",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：拼音声母韵母容易混淆，看图时能说出人物但句子不完整。\n期望内容：用卡片和生活图片练拼读，逐步说清时间、人物和事情，每次课留一项亲子口头练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "70",
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-002",
+      "owner": "lk_demo_r010",
+      "publisherDisplayName": "吴先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "DRAFT",
+      "fields": {
+        "title": "四年级段落概括与习作与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "四年级",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读题喜欢抄整段，习作有开头结尾但中间内容空泛。\n期望内容：练习给段落取小标题，围绕一个重点补充动作和对话，形成自主修改清单。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "110",
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-003",
+      "owner": "lk_demo_r019",
+      "publisherDisplayName": "马女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "PENDING_REVIEW",
+      "fields": {
+        "title": "初一有理数与方程基础与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "初一",
+        "subject": "数学",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：负号运算和去括号错误较多，列方程时不会设未知数。\n期望内容：先整理运算规则，再从数量关系写等式，要求每次都能口述解题依据。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "130",
+        "budgetMax": "200",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-11-22",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-004",
+      "owner": "lk_demo_r028",
+      "publisherDisplayName": "夏先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "PENDING_REVIEW",
+      "fields": {
+        "title": "初二说明文阅读与写作与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "初二",
+        "subject": "语文",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：说明方法能背名称，但结合文章分析作用时说不清。\n期望内容：用短文本辨认说明对象和特征，练习把方法、内容和表达效果连成完整答案。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "120",
+        "budgetMax": "160",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-11-21",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-005",
+      "owner": "lk_demo_r037",
+      "publisherDisplayName": "韩女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "REJECTED",
+      "fields": {
+        "title": "高一集合与函数学习衔接与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区招商花园城",
+        "grade": "高一",
+        "subject": "数学",
+        "serviceMode": "ONLINE",
+        "goal": "目前情况：初中数学基础尚可，进入高中后对定义域和值域的理解较模糊。\n期望内容：围绕概念举例与反例，练习读函数图像和书写区间，形成课后复盘笔记。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "150",
+        "budgetMax": "180",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "时间可提前协商，变更尽量提前一天说明。",
+        "expectedStartDate": "2026-11-20",
+        "tutorExpectations": "有耐心，能解释思路，尊重学习节奏，课前说明安排与费用。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-006",
+      "owner": "lk_demo_r046",
+      "publisherDisplayName": "梁先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "REJECTED",
+      "fields": {
+        "title": "高三英语阅读与写作复盘与学习计划",
+        "categoryCode": "EXTRACURRICULAR_STUDY",
+        "audienceStageCode": "SENIOR",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区天健和悦府",
+        "grade": "高三",
+        "subject": "英语",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：阅读题定位较慢，作文有想法但语言组织不够清楚。\n期望内容：分题型练习定位和推断，写作先搭提纲再修改语法与衔接，反馈具体可执行的练习。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "190",
+        "durationHours": "1.5",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "先安排一次基础了解，再商量固定时间。",
+        "expectedStartDate": "2026-11-19",
+        "tutorExpectations": "希望有对应学段或课程指导经验，能根据基础调整内容，不夸大效果。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-007",
+      "owner": "lk_demo_r055",
+      "publisherDisplayName": "蒋女士",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "EXPIRED",
+      "fields": {
+        "title": "初中素描基础入门与学习计划",
+        "categoryCode": "DRAWING",
+        "audienceStageCode": "JUNIOR",
+        "areaCode": "PS_PINGSHAN",
+        "locationText": "深圳市坪山区万科金域缇香",
+        "grade": "初中阶段",
+        "subject": "素描",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：零基础，希望周末系统学习构图、透视和明暗。\n期望内容：从简单几何形体开始，理解比例与光影，逐步过渡到静物组合。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "140",
+        "budgetMax": "210",
+        "durationHours": "2",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "希望老师能保持相对稳定的时间，避免临时频繁调整。",
+        "expectedStartDate": "2026-10-26",
+        "tutorExpectations": "善于沟通，反馈具体练习方法，使用适龄材料，课程安排提前确认。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    },
+    {
+      "key": "workflow-008",
+      "owner": "lk_demo_r064",
+      "publisherDisplayName": "秦先生",
+      "declaration": "GUARDIAN_OF_MINOR",
+      "status": "EXPIRED",
+      "fields": {
+        "title": "小学街舞兴趣入门与学习计划",
+        "categoryCode": "DANCE",
+        "audienceStageCode": "PRIMARY",
+        "areaCode": "PS_SHIJING",
+        "locationText": "深圳市坪山区燕澜和鸣花园",
+        "grade": "小学阶段",
+        "subject": "街舞",
+        "serviceMode": "OFFLINE",
+        "goal": "目前情况：喜欢跟音乐做动作，没有系统舞蹈基础。\n期望内容：从律动、协调性和简单步伐开始，完整安排热身与放松，选择适龄音乐。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。",
+        "budgetMin": "100",
+        "budgetMax": "140",
+        "durationHours": "1",
+        "frequency": {
+          "mode": "NEGOTIABLE"
+        },
+        "availabilityNote": "每次课后简短反馈本次内容和下一步练习。",
+        "expectedStartDate": "2026-10-26",
+        "tutorExpectations": "先了解问题再备课，鼓励独立完成，按实际情况讨论课程频率。",
+        "availabilityPreference": {
+          "mode": "NEGOTIABLE",
+          "weekdays": [],
+          "periods": []
+        }
+      }
+    }
+  ]
+}

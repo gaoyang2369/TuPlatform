@@ -10,8 +10,11 @@ class RulesTest {
     @Test void passwordCountsCodePointsAndPreservesSpaces() {
         assertDoesNotThrow(() -> Rules.password("🙂".repeat(15)));
         assertDoesNotThrow(() -> Rules.password(" ".repeat(15)));
-        assertDoesNotThrow(() -> Rules.password("密".repeat(128)));
-        assertThrows(ApiError.class, () -> Rules.password("密".repeat(129)));
+        assertDoesNotThrow(() -> Rules.password("密".repeat(64)));
+        assertDoesNotThrow(() -> Rules.password("🙂".repeat(8)));
+        assertDoesNotThrow(() -> Rules.password("1234 678"));
+        assertThrows(ApiError.class, () -> Rules.password("密".repeat(65)));
+        assertThrows(ApiError.class, () -> Rules.password("1234567"));
         assertThrows(ApiError.class, () -> Rules.password("short"));
         assertThrows(ApiError.class, () -> Rules.text("displayName", "\u3000", 30, true));
         assertThrows(ApiError.class, () -> Rules.password("\uD800".repeat(15)));
@@ -20,6 +23,10 @@ class RulesTest {
         assertEquals("teacher_1", Rules.account("Teacher_1"));
         assertEquals("a.b+class@example.com", Rules.email("A.B+Class@Example.COM"));
         assertThrows(ApiError.class, () -> Rules.account("1teacher"));
+        assertDoesNotThrow(() -> Rules.account("a".repeat(4)));
+        assertDoesNotThrow(() -> Rules.account("a".repeat(16)));
+        assertThrows(ApiError.class, () -> Rules.account("a".repeat(3)));
+        assertThrows(ApiError.class, () -> Rules.account("a".repeat(17)));
         assertThrows(ApiError.class, () -> Rules.email("a\r\n@example.com"));
     }
     @Test void decimalCapacityAndRangeAreExact() {

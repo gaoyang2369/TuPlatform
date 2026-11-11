@@ -6,6 +6,8 @@
 
 业务规则从[首版规格](docs/mvp-spec.md)进入；当前进度看[交付计划](docs/tasks/mvp-delivery-plan-2026-11-07.md)，验收看[核心清单](docs/acceptance/mvp-cases.md)。
 
+本地验收可直接双击根目录`local.cmd`，构建后打开http://127.0.0.1:8180；`local.cmd Stop`停止本次应用，`local.cmd Status`查看状态。使用既有私密配置和数据库隧道，不修改服务器；首次初始化无邮箱运营账号，凭据仅保存在本地忽略目录。详细说明见[本地启动与验收](docs/local-run.md)。
+
 ## 前端
 
 要求Node.js ≥24.11.0。依赖已锁定；首次使用在frontend中运行npm.cmd ci，然后：

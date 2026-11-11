@@ -49,4 +49,24 @@ class SubmissionRulesTest {
         assertThrows(ApiError.class,()->SubmissionRules.validate(f,Set.of("DRAWING"),"需求方",body,now));
         assertThrows(ApiError.class,()->SubmissionRules.validate(complete(),Set.of(),"需求方",body,now));
     }
+    @Test void communityLocationAndNegotiableTimesCanSubmitWhileStudyNeedsGradeAndSubject() throws Exception {
+        var body=new SubmitRequest(1L,"SELF_ADULT","publisher-v1");
+        ObjectNode fields=complete();fields.remove("areaCode");fields.remove("availableSlots");
+        fields.put("locationText","坪山区 · 测试花园");
+        var preference=fields.putObject("availabilityPreference");preference.put("mode","NEGOTIABLE");preference.putArray("weekdays");preference.putArray("periods");
+        assertDoesNotThrow(()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
+        fields.remove("locationText");
+        assertThrows(ApiError.class,()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
+        fields.put("serviceMode","ONLINE");
+        assertDoesNotThrow(()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
+        preference.put("mode","PREFERRED");
+        assertThrows(ApiError.class,()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
+        preference.withArray("weekdays").add(6).add(7);preference.withArray("periods").add("AFTERNOON");
+        fields.put("categoryCode","EXTRACURRICULAR_STUDY");
+        assertThrows(ApiError.class,()->SubmissionRules.validate(fields,Set.of("EXTRACURRICULAR_STUDY"),"需求方",body,now));
+        fields.put("grade","成人学习");
+        assertThrows(ApiError.class,()->SubmissionRules.validate(fields,Set.of("EXTRACURRICULAR_STUDY"),"需求方",body,now));
+        fields.put("subject","英语");
+        assertDoesNotThrow(()->SubmissionRules.validate(fields,Set.of("EXTRACURRICULAR_STUDY"),"需求方",body,now));
+    }
 }

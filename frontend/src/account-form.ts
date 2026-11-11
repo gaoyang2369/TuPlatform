@@ -1,7 +1,7 @@
 export function codePointLength(value: string): number { return [...value].length; }
 export function passwordError(password: string): string {
   const length = codePointLength(password);
-  return length < 15 || length > 128 ? "密码须为15—128个字符，允许空格和粘贴，不自动删减。" : "";
+  return length < 8 || length > 64 ? "密码须为8—64个字符，可包含空格。" : "";
 }
 export function moneyError(min: string, max: string): string {
   if (!min && !max) return "";

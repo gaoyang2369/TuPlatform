@@ -41,12 +41,14 @@ async function send(){await run(async()=>{
 </script>
 <template>
   <div class="composer">
-    <button v-if="!opened" class="primary" @click="open">{{ me.businessIdentity==='TUTOR'?'准备投递':'选择需求邀请' }}</button>
-    <template v-else><h3>核对本次意向</h3><p>若双方已有进行中的意向，将进入已有进度；反向发起不会自动互选。</p>
+    <p class="contact-explanation">先表达意向，对方接受后，双方可自愿交换手机号或微信，再到站外沟通。</p>
+    <button v-if="!opened" class="primary" @click="open">{{ me.businessIdentity==='TUTOR'?'我对这个需求感兴趣':'邀请这位老师' }}</button>
+    <template v-else><h3>核对本次意向</h3><p>请核对需求与老师资料。已有联系记录时，会带你查看已有进度，不会重复发送。</p>
       <div v-if="error" class="message error" role="alert">{{ error }}</div>
       <button v-if="needsProfile" class="secondary" @click="emit('profile')">完善并公开本人资料</button>
-      <template v-if="me.businessIdentity==='REQUESTER'&&!requestId"><label>选择本人招募中的需求<select v-model="selected" :disabled="busy||unknown" @change="choose"><option value="" disabled>请选择需求</option><option v-for="item in choices" :key="item.id" :value="item.id">{{ item.fields.title||'未命名需求' }}</option></select></label><button v-if="cursor" class="text-button" :disabled="busy||unknown" @click="run(()=>loadChoices(true))">继续查找本人需求</button><p v-if="!choices.length">暂无可选需求。可以先发布并等待审核通过。</p><button class="text-button" :disabled="busy||unknown" @click="emit('requests')">查看我的需求</button></template>
-      <div v-if="ready&&teacher&&request" class="snapshot"><RequestSummary :fields="request" :display-name="request.publisherDisplayName"/><TeacherSummary :teacher="teacher"/><p class="privacy-note">本次固定保存以上需求与老师资料；以后修改不会替换这次内容。</p></div>
+      <p v-if="busy" role="status">正在读取可用资料…</p>
+      <template v-if="me.businessIdentity==='REQUESTER'&&!requestId"><label>选择本人招募中的需求<select v-model="selected" :disabled="busy||unknown" @change="choose"><option value="" disabled>请选择需求</option><option v-for="item in choices" :key="item.id" :value="item.id">{{ item.fields.title||'未命名需求' }}</option></select></label><button v-if="cursor" class="text-button" :disabled="busy||unknown" @click="run(()=>loadChoices(true))">继续查找本人需求</button><p v-if="!busy&&!error&&ready&&!choices.length">{{cursor?'本页没有招募中的需求，请继续查找。':'还没有可邀请老师的公开需求。先发布并通过审核，让老师了解你的目标与安排。'}}</p><button class="text-button" :disabled="busy||unknown" @click="emit('requests')">查看或发布我的需求</button></template>
+      <div v-if="ready&&teacher&&request" class="snapshot"><RequestSummary :fields="request" :display-name="request.publisherDisplayName"/><TeacherSummary :teacher="teacher"/><p class="privacy-note">这次联系会保留你们确认时的资料，后续修改不会替换本次记录。</p></div>
       <p v-if="unknown" role="status">上次结果尚未确认。请用同一次操作重试，或到撮合进度查看。</p>
       <div class="form-actions"><button class="primary" :disabled="busy||(!unknown&&(!ready||!request||!teacher))" @click="send">{{ unknown?'重试同一次意向':me.businessIdentity==='TUTOR'?'确认投递':'确认邀请' }}</button><button class="secondary" :disabled="busy||unknown" @click="run(load)">重新读取并核对</button><button class="text-button" :disabled="busy||unknown" @click="opened=false">取消</button></div>
     </template>

@@ -12,13 +12,13 @@ type User={id:string;account:string;password:string};
 const actors:User[]=[];
 function fixture(action:string,value:string){return JSON.parse(execFileSync("java",["--class-path",driver,path.join(root,"backend/src/test/tools/BrowserFixture.java"),action,value],{encoding:"utf8",env:process.env}));}
 function user(role:string):User{const actor=fixture("create",role);actors.push(actor);return actor;}
-async function login(page:Page,actor:User){await page.goto("/");await page.getByLabel("账号",{exact:true}).fill(actor.account);await page.getByLabel("密码",{exact:true}).fill(actor.password);await page.getByRole("button",{name:"登录",exact:true}).click();await expect(page.getByRole("button",{name:"本人资料",exact:true})).toBeVisible();}
+async function login(page:Page,actor:User){await page.goto("/?view=profile");await page.getByLabel("账号",{exact:true}).fill(actor.account);await page.getByLabel("密码",{exact:true}).fill(actor.password);await page.getByRole("button",{name:"登录",exact:true}).click();await expect(page.getByRole("button",{name:"本人资料",exact:true})).toBeVisible();}
 async function prepared(page:Page){
   const owner=user("REQUESTER");await login(page,owner);
-  await page.locator("#field-displayName").fill("合成需求方展示名");await page.getByRole("button",{name:"保存资料",exact:true}).click();await expect(page.getByRole("status")).toContainText("资料已保存");
+  await page.locator("#field-displayName").fill("合成需求方展示名");await page.getByRole("button",{name:"保存资料",exact:true}).click();await expect(page.locator(".feedback-toast").getByRole("status")).toContainText("资料已保存");
   await page.getByRole("button",{name:"我的需求",exact:true}).click();await page.getByRole("button",{name:"新建需求草稿"}).click();
-  await page.getByLabel("需求标题",{exact:false}).fill("合成绘画公开需求");await page.getByLabel("服务类别",{exact:false}).selectOption("DRAWING");await page.getByLabel("服务对象阶段").selectOption("ADULT");await page.getByLabel("坪山区街道",{exact:false}).selectOption("PS_PINGSHAN");await page.getByLabel("目标与现状",{exact:false}).fill("希望从绘画基础开始，纯合成资料。");
-  await page.getByRole("button",{name:"保存并下一步"}).click();await page.getByLabel("预算下限").fill("1000.01");await page.getByLabel("预算上限").fill("1800.99");await page.getByLabel("单次时长").selectOption("1.5");await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("NEGOTIABLE");await page.getByRole("button",{name:"添加时段"}).click();await page.getByRole("button",{name:"保存并预览"}).click();
+  await page.getByLabel("需求标题",{exact:false}).fill("合成绘画公开需求");await page.getByLabel("服务类别",{exact:false}).selectOption("DRAWING");await page.getByLabel("服务对象阶段").selectOption("ADULT");await page.getByLabel("小区或附近地标",{exact:false}).fill("坪山区 · 合成花园");await page.getByLabel("目标与现状",{exact:false}).fill("希望从绘画基础开始，纯合成资料。");
+  await page.getByRole("button",{name:"保存并下一步"}).click();await page.getByLabel("预算下限").fill("1000.01");await page.getByLabel("预算上限").fill("1800.99");await page.getByLabel("单次时长（小时）",{exact:true}).fill("1.5");await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("NEGOTIABLE");await page.getByRole("radio",{name:"填写精确时间",exact:true}).check();await page.getByRole("button",{name:"添加时段"}).click();await page.getByRole("button",{name:"保存并预览"}).click();
   await expect(page.getByRole("button",{name:"确认提交审核",exact:true})).toBeDisabled();
   return owner;
 }
@@ -33,7 +33,7 @@ test("提交、驳回修改重提、审核公开、匿名浏览及到期不可�
   await prepared(page);await submit(page);const original=await latestRequest(page);
   const anonymous=await browser.newContext(),operations=await browser.newContext();
   try {
-    const visitor=await anonymous.newPage();await visitor.goto("/");await visitor.getByRole("button",{name:"浏览需求",exact:true}).click();await expect(visitor.getByText("暂无符合条件的公开需求，可以稍后再来查看。")).toBeVisible();
+    const visitor=await anonymous.newPage();await visitor.goto("/");await visitor.getByRole("button",{name:"浏览需求",exact:true}).click();await expect(visitor.getByText("暂无符合条件的公开需求，可以调整筛选条件。")).toBeVisible();
     const reviewer=await operatorPage(operations,user("OPERATOR"));
     await reviewer.getByRole("radio",{name:"驳回并说明原因",exact:true}).check();await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await expect(reviewer.getByRole("alert")).toContainText("驳回前请填写理由");
     await reviewer.getByLabel("驳回理由",{exact:true}).fill("请补充学习目标，再次提交。");await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await reviewer.getByRole("button",{name:"确认驳回",exact:true}).click();await expect(reviewer.getByText("已驳回",{exact:true})).toBeVisible();
@@ -118,7 +118,7 @@ test("首次账号检查结束后再开放导航，匿名浏览不被跳回登�
   let release!:()=>void;const pending=new Promise<void>(resolve=>{release=resolve;});
   await page.route("**/api/v1/me",async route=>{await pending;await route.continue();},{times:1});
   try{
-    await page.goto("/");await expect(page.getByRole("button",{name:"浏览需求",exact:true})).toBeDisabled();
+    await page.goto("/");await expect(page.getByRole("button",{name:"浏览需求",exact:true})).toHaveCount(0);
     release();await expect(page.getByRole("button",{name:"浏览需求",exact:true})).toBeEnabled();
     await page.getByRole("button",{name:"浏览需求",exact:true}).click();
     await expect(page.getByRole("heading",{name:"浏览需求",exact:true})).toBeVisible();

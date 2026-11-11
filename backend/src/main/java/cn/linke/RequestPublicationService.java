@@ -103,9 +103,12 @@ class RequestPublicationService {
         } catch (RuntimeException e) { throw ApiError.invalid("cursor","列表位置已失效，请重新读取"); }
     }
     private <T> Map<String,Object> page(List<T> rows,java.util.function.Function<T,Cursor> position) {
-        List<T> items=rows.stream().limit(20).toList();
+        return page(rows,position,20);
+    }
+    private <T> Map<String,Object> page(List<T> rows,java.util.function.Function<T,Cursor> position,int size) {
+        List<T> items=rows.stream().limit(size).toList();
         Map<String,Object> result=new LinkedHashMap<>();result.put("items",items);result.put("nextCursor",null);
-        if (rows.size()>20) {
+        if (rows.size()>size) {
             Cursor last=position.apply(items.getLast());
             result.put("nextCursor",Base64.getUrlEncoder().withoutPadding().encodeToString((last.time()+"|"+last.id()).getBytes(StandardCharsets.UTF_8)));
         }
@@ -147,13 +150,14 @@ class RequestPublicationService {
         db.update("UPDATE service_requests SET status=?,version=version+1 WHERE id=?",status,initial.requestId());
         return remember(actor.id(),"REVIEW",key,id,body,new RequestAction(initial.requestId(),id,status,((Number)rows.getFirst().get("version")).longValue()+1));
     }
-    private static final List<String> PUBLIC_FIELDS=List.of("title","categoryCode","audienceStageCode","areaCode","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityNote","expectedStartDate","tutorExpectations");
+    private static final List<String> PUBLIC_FIELDS=List.of("title","categoryCode","audienceStageCode","areaCode","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
     private record PublicRow(Map<String,Object> value,OffsetDateTime time,UUID id) {}
     private PublicRow publicMap(java.sql.ResultSet r,int row) throws java.sql.SQLException {
         ObjectNode saved=fields(r.getString("fields"));
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("id",r.getObject("request_id",UUID.class));result.put("submissionId",r.getObject("id",UUID.class));result.put("publisherDisplayName",r.getString("publisher_display_name"));
         for (String name:PUBLIC_FIELDS) if (saved.hasNonNull(name)) result.put(name,json.convertValue(saved.get(name),Object.class));
+        result.put("districtCode",saved.path("districtCode").asText("SZ_PINGSHAN"));
         return new PublicRow(result,r.getObject("submitted_at",OffsetDateTime.class),r.getObject("id",UUID.class));
     }
     private String publicCondition(List<Object> args) {
@@ -169,6 +173,12 @@ class RequestPublicationService {
         return rows.getFirst().value();
     }
     public Map<String,Object> publicList(String value,String category,String area,String mode) {
+        return publicList(value,category,area,mode,null);
+    }
+    public Map<String,Object> publicList(String value,String category,String area,String mode,String location) {
+        return publicList(value,category,area,mode,location,null,null,null);
+    }
+    public Map<String,Object> publicList(String value,String category,String area,String mode,String location,String district,String grade,String subject) {
         Cursor after=cursor(value); List<Object> args=new ArrayList<>(List.of(after.time(),after.id()));
         String condition=publicCondition(args);
         String[][] filters={{"categoryCode",category},{"areaCode",area},{"serviceMode",mode}};
@@ -177,9 +187,21 @@ class RequestPublicationService {
             if (!allowed.contains(filter[1])) throw ApiError.invalid(filter[0],"请选择有效的筛选条件");
             condition+=" AND s.fields->>'"+filter[0]+"'=?";args.add(filter[1]);
         }
-        var rows=db.query("SELECT s.* FROM request_submissions s JOIN service_requests r ON r.id=s.request_id WHERE (s.submitted_at,s.id)<(?,?) AND "+condition+" ORDER BY s.submitted_at DESC,s.id DESC LIMIT 21",this::publicMap,args.toArray());
-        Map<String,Object> result=page(rows,r->new Cursor(r.time(),r.id()));
-        result.put("items",rows.stream().limit(20).map(PublicRow::value).toList());
+        if (location!=null && !location.isBlank()) {
+            Rules.text("location",location,80,false);
+            condition+=" AND position(lower(?) in lower(coalesce(s.fields->>'locationText','') || ' ' || CASE s.fields->>'areaCode' WHEN 'PS_PINGSHAN' THEN '坪山街道' WHEN 'PS_KENGZI' THEN '坑梓街道' WHEN 'PS_LONGTIAN' THEN '龙田街道' WHEN 'PS_SHIJING' THEN '石井街道' WHEN 'PS_MALUAN' THEN '马峦街道' WHEN 'PS_BILING' THEN '碧岭街道' ELSE '' END))>0";
+            args.add(location.strip());
+        }
+        if(district!=null && !district.isBlank()) {
+            if(!Rules.DISTRICTS.contains(district))throw ApiError.invalid("districtCode","请选择已开放的区域");
+            condition+=" AND coalesce(s.fields->>'districtCode','SZ_PINGSHAN')=?";args.add(district);
+        }
+        if((grade!=null&&!grade.isBlank())||(subject!=null&&!subject.isBlank()))condition+=" AND s.fields->>'categoryCode'='EXTRACURRICULAR_STUDY'";
+        if(grade!=null&&!grade.isBlank()) { Rules.text("grade",grade,20,false);condition+=" AND s.fields->>'grade'=?";args.add(grade.strip()); }
+        if(subject!=null&&!subject.isBlank()) { Rules.text("subject",subject,40,false);condition+=" AND position(lower(?) in lower(coalesce(s.fields->>'subject','')))>0";args.add(subject.strip()); }
+        var rows=db.query("SELECT s.* FROM request_submissions s JOIN service_requests r ON r.id=s.request_id WHERE (s.submitted_at,s.id)<(?,?) AND "+condition+" ORDER BY s.submitted_at DESC,s.id DESC LIMIT 11",this::publicMap,args.toArray());
+        Map<String,Object> result=page(rows,r->new Cursor(r.time(),r.id()),10);
+        result.put("items",rows.stream().limit(10).map(PublicRow::value).toList());
         return result;
     }
 }

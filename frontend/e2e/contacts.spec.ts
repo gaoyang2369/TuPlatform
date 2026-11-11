@@ -12,12 +12,13 @@ const driver=path.join(driverRoot,version,`postgresql-${version}.jar`);
 type User={id:string;account:string;password:string};const actors:User[]=[];
 function fixture(action:string,value:string){return JSON.parse(execFileSync('java',['--class-path',driver,path.join(root,'backend/src/test/tools/BrowserFixture.java'),action,value],{encoding:'utf8',env:process.env}));}
 function user(role:string):User{const u=fixture('create',role);actors.push(u);return u;}
-async function login(page:Page,u:User){await page.goto('/');await page.getByLabel('账号',{exact:true}).fill(u.account);await page.getByLabel('密码',{exact:true}).fill(u.password);await page.getByRole('button',{name:'登录',exact:true}).click();await expect(page.getByRole('heading',{name:/本人基本资料|让合适的人认识你/})).toBeVisible();}
+async function login(page:Page,u:User){await page.goto('/?view=profile');await page.getByLabel('账号',{exact:true}).fill(u.account);await page.getByLabel('密码',{exact:true}).fill(u.password);await page.getByRole('button',{name:'登录',exact:true}).click();await expect(page.getByRole('heading',{name:/本人基本资料|让合适的人认识你/})).toBeVisible();}
 async function write(page:Page,u:User,url:string,body:unknown,method='PUT',key=crypto.randomUUID()){
   const csrf=await(await page.request.get('/api/v1/auth/csrf')).json();
   return page.request.fetch('/api/v1'+url,{method,headers:{[csrf.headerName]:csrf.token,'X-Account-Id':u.id,'Idempotency-Key':key},data:body});
 }
 async function saveContacts(page:Page,phone:string,wechat:string){
+  await page.getByRole('banner').getByRole('button',{name:'本人资料',exact:true}).click();
   await page.getByRole('button',{name:'私密联系方式',exact:true}).click();await expect(page.getByRole('heading',{name:'本人私密联系方式'})).toBeVisible();
   await page.getByLabel('手机号（选填，+86）').fill(phone);await page.getByLabel('微信号（选填）').fill(wechat);
   await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('status')).toContainText('私密联系方式已保存');
@@ -25,14 +26,14 @@ async function saveContacts(page:Page,phone:string,wechat:string){
 async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false){
   const owner=user('REQUESTER'),tutor=user('TUTOR'),operator=user('OPERATOR');
   await login(ownerPage,owner);await login(tutorPage,tutor);await login(operatorPage,operator);
-  await ownerPage.locator('#field-displayName').fill('合成需求方');await ownerPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(ownerPage.getByRole('status')).toContainText('资料已保存');
+  await ownerPage.locator('#field-displayName').fill('合成需求方');await ownerPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(ownerPage.locator('.feedback-toast').getByRole('status')).toContainText('资料已保存');
   await tutorPage.locator('#field-displayName').fill('合成绘画老师');await tutorPage.getByRole('checkbox',{name:'绘画',exact:true}).check();await tutorPage.getByRole('checkbox',{name:'线上',exact:true}).check();await tutorPage.locator('#field-introduction').fill('合成老师自述');
-  await tutorPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(tutorPage.getByRole('status')).toContainText('资料已保存');await tutorPage.getByRole('button',{name:'预览并公开'}).click();await tutorPage.getByRole('button',{name:'确认公开资料'}).click();await expect(tutorPage.getByText('资料已公开',{exact:true})).toBeVisible();
+  await tutorPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(tutorPage.locator('.feedback-toast').getByRole('status')).toContainText('资料已保存');await tutorPage.getByRole('banner').getByRole('button',{name:'本人资料',exact:true}).click();await tutorPage.getByRole('button',{name:'预览并公开'}).click();await tutorPage.getByRole('button',{name:'确认公开资料'}).click();await expect(tutorPage.getByText('资料已公开',{exact:true})).toBeVisible();
   let request:string;
   if(ui){
     await ownerPage.getByRole('button',{name:'我的需求',exact:true}).click();await ownerPage.getByRole('button',{name:'新建需求草稿'}).click();
-    await ownerPage.getByLabel('需求标题',{exact:false}).fill('合成联系方式闭环');await ownerPage.getByLabel('服务类别',{exact:false}).selectOption('DRAWING');await ownerPage.getByLabel('服务对象阶段').selectOption('ADULT');await ownerPage.getByLabel('坪山区街道',{exact:false}).selectOption('PS_PINGSHAN');await ownerPage.getByLabel('目标与现状',{exact:false}).fill('合成绘画目标');
-    await ownerPage.getByRole('button',{name:'保存并下一步'}).click();await ownerPage.getByLabel('预算下限').fill('100');await ownerPage.getByLabel('预算上限').fill('200');await ownerPage.getByLabel('单次时长').selectOption('1.5');await ownerPage.getByRole('combobox',{name:'频率',exact:true}).selectOption('NEGOTIABLE');await ownerPage.getByRole('button',{name:'添加时段'}).click();await ownerPage.getByRole('button',{name:'保存并预览'}).click();
+    await ownerPage.getByLabel('需求标题',{exact:false}).fill('合成联系方式闭环');await ownerPage.getByLabel('服务类别',{exact:false}).selectOption('DRAWING');await ownerPage.getByLabel('服务对象阶段').selectOption('ADULT');await ownerPage.getByLabel('小区或附近地标',{exact:false}).fill('坪山区 · 合成花园');await ownerPage.getByLabel('目标与现状',{exact:false}).fill('合成绘画目标');
+    await ownerPage.getByRole('button',{name:'保存并下一步'}).click();await ownerPage.getByLabel('预算下限').fill('100');await ownerPage.getByLabel('预算上限').fill('200');await ownerPage.getByLabel('单次时长（小时）',{exact:true}).fill('1.5');await ownerPage.getByRole('combobox',{name:'频率',exact:true}).selectOption('NEGOTIABLE');await ownerPage.getByRole('radio',{name:'填写精确时间',exact:true}).check();await ownerPage.getByRole('button',{name:'添加时段'}).click();await ownerPage.getByRole('button',{name:'保存并预览'}).click();
     await expect(ownerPage.getByRole('button',{name:'确认提交审核',exact:true})).toBeDisabled();await ownerPage.getByRole('radio',{name:'我为已满18岁的本人发布本条需求。',exact:true}).check();await ownerPage.getByRole('button',{name:'确认提交审核',exact:true}).click();await expect(ownerPage.getByText('待审核',{exact:true})).toBeVisible();
     request=(await(await ownerPage.request.get('/api/v1/me/requests')).json()).items[0].id;
     await operatorPage.getByRole('button',{name:'需求审核',exact:true}).click();await operatorPage.getByRole('button',{name:'核对提交',exact:true}).click();await operatorPage.getByRole('radio',{name:'通过审核并公开',exact:true}).check();await operatorPage.getByRole('button',{name:'核对并确认审核'}).click();await operatorPage.getByRole('button',{name:'确认通过并公开',exact:true}).click();await expect(operatorPage.getByText('已通过',{exact:true})).toBeVisible();
@@ -47,13 +48,13 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
 }
 async function progress(page:Page){await page.getByRole('button',{name:'撮合进度',exact:true}).click();await page.getByRole('button',{name:'查看撮合进度',exact:true}).click();}
 async function mutual(ownerPage:Page,tutorPage:Page,invite=false,request?:string){
-  if(invite){await ownerPage.getByRole('button',{name:'发现老师',exact:true}).click();await ownerPage.getByRole('button',{name:'查看老师',exact:true}).click();await ownerPage.getByRole('button',{name:'选择需求邀请',exact:true}).click();await ownerPage.getByLabel('选择本人招募中的需求').selectOption(request!);await ownerPage.getByRole('button',{name:'确认邀请',exact:true}).click();await expect(ownerPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(tutorPage);await tutorPage.getByRole('button',{name:'接受意向',exact:true}).click();}
-  else{await tutorPage.getByRole('button',{name:'浏览需求',exact:true}).click();await tutorPage.getByRole('button',{name:'查看需求',exact:true}).click();await tutorPage.getByRole('button',{name:'准备投递',exact:true}).click();await tutorPage.getByRole('button',{name:'确认投递',exact:true}).click();await expect(tutorPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(ownerPage);await ownerPage.getByRole('button',{name:'接受意向',exact:true}).click();}
+  if(invite){await ownerPage.getByRole('button',{name:'发现老师',exact:true}).click();await ownerPage.getByRole('button',{name:'查看老师',exact:true}).click();await ownerPage.getByRole('button',{name:'邀请这位老师',exact:true}).click();await ownerPage.getByLabel('选择本人招募中的需求').selectOption(request!);await ownerPage.getByRole('button',{name:'确认邀请',exact:true}).click();await expect(ownerPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(tutorPage);await tutorPage.getByRole('button',{name:'接受意向',exact:true}).click();}
+  else{await tutorPage.getByRole('button',{name:'浏览需求',exact:true}).click();await tutorPage.getByRole('button',{name:'查看需求',exact:true}).click();await tutorPage.getByRole('button',{name:'我对这个需求感兴趣',exact:true}).click();await tutorPage.getByRole('button',{name:'确认投递',exact:true}).click();await expect(tutorPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(ownerPage);await ownerPage.getByRole('button',{name:'接受意向',exact:true}).click();}
   await expect((invite?tutorPage:ownerPage).getByRole('heading',{name:'已互选',exact:true})).toBeVisible();await (invite?ownerPage:tutorPage).getByRole('button',{name:'读取最新进度',exact:true}).click();
   const m=(await(await ownerPage.request.get('/api/v1/me/matches')).json()).items[0];return m;
 }
 async function authorize(page:Page,field:'手机号'|'微信',expectSaved=true){
-  await page.getByRole('checkbox',{name:`分享本人${field}`,exact:false}).check();await page.getByRole('button',{name:'预览本人分享内容'}).click();await expect(page.getByRole('button',{name:'确认本轮授权',exact:true})).toBeDisabled();await page.getByRole('checkbox',{name:'我已核对，明确同意',exact:false}).check();await page.getByRole('button',{name:'确认本轮授权',exact:true}).click();
+  await page.getByRole('checkbox',{name:`分享本人${field}`,exact:false}).check();await page.getByRole('button',{name:'预览本人分享内容'}).click();await expect(page.getByRole('button',{name:'同意分享所选联系方式',exact:true})).toBeDisabled();await page.getByRole('checkbox',{name:'我已核对，明确同意',exact:false}).check();await page.getByRole('button',{name:'同意分享所选联系方式',exact:true}).click();
   if(expectSaved)await expect(page.getByRole('status')).toContainText('本次授权操作已完成');
 }
 function hidden(g:Record<string,unknown>){expect(g.canViewContacts).toBe(false);expect(g).not.toHaveProperty('mySharedContacts');expect(g).not.toHaveProperty('otherSharedContacts');}
@@ -72,7 +73,7 @@ test('完整投递闭环：资料、发布审核、互选、逐项授权、取�
     acceptDialog=false;await page.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();
     acceptDialog=true;await page.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(page.getByRole('status')).toContainText('本次授权操作已完成');await expect(page.getByTestId('shared-contacts')).toHaveCount(0);hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
     await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);await expect(tp.getByText('我的授权：已同意 · 对方授权：未有效同意')).toBeVisible();
-    await page.getByRole('button',{name:'退出登录',exact:true}).click();await expect(page.getByRole('heading',{name:'登录邻课'})).toBeVisible();expect(await page.locator('body').innerText()).not.toContain('tutor_contact');
+    await page.getByRole('button',{name:'退出登录',exact:true}).click();await expect(page.getByRole('button',{name:'我想找老师',exact:true})).toBeVisible();expect(await page.locator('body').innerText()).not.toContain('tutor_contact');
   }finally{await tc.close();await oc.close();}
 });
 
@@ -118,7 +119,7 @@ test('私密表单失败留输入、旧版核对与越权和换账号清理',asy
   await page.getByRole('button',{name:'读取最新联系方式',exact:true}).click();await page.getByRole('button',{name:'已核对，保留输入',exact:true}).click();await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('status')).toContainText('私密联系方式已保存');
   await page.getByLabel('微信号（选填）').fill('invalid value');await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('alert')).toContainText('不含空格');await expect(page.getByLabel('微信号（选填）')).toHaveValue('invalid value');
   const ac=await browser.newContext({viewport:info.project.use.viewport});try{const visitor=await ac.newPage();await visitor.goto('/');expect((await visitor.request.get('/api/v1/me/contacts')).status()).toBe(401);}finally{await ac.close();}
-  const second=await context.newPage();try{await second.goto('/');await second.getByRole('button',{name:'退出登录',exact:true}).click();await expect(second.getByRole('heading',{name:'登录邻课'})).toBeVisible();await login(second,outsider);
+  const second=await context.newPage();try{await second.goto('/');await second.getByRole('button',{name:'退出登录',exact:true}).click();await expect(second.getByRole('button',{name:'我想找老师',exact:true})).toBeVisible();await login(second,outsider);
     await page.getByRole('button',{name:'读取最新联系方式',exact:true}).click();await expect(page.getByRole('heading',{name:'登录邻课'})).toBeVisible();expect(await page.locator('body').innerText()).not.toContain('preserved_input');
     expect((await write(second,owner,'/me/contacts',{expectedVersion:0,phone:'13800000009',wechat:null})).status()).toBe(409);
     expect((await(await second.request.get('/api/v1/me/contacts')).json()).phone).toBeNull();

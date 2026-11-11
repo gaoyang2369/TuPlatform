@@ -9,6 +9,7 @@ final class Rules {
     static final Set<String> CATEGORIES = Set.of("DRAWING", "DANCE", "OTHER_SKILL", "EXTRACURRICULAR_STUDY");
     static final Set<String> MODES = Set.of("ONLINE", "OFFLINE");
     static final Set<String> AREAS = Set.of("PS_PINGSHAN", "PS_KENGZI", "PS_LONGTIAN", "PS_SHIJING", "PS_MALUAN", "PS_BILING");
+    static final Set<String> DISTRICTS = Set.of("SZ_PINGSHAN");
     static String text(String field, String value, int max, boolean required) {
         if (value == null) value = "";
         if (value.codePointCount(0, value.length()) > max || value.indexOf('\0') >= 0 ||
@@ -19,8 +20,8 @@ final class Rules {
         return value;
     }
     static String account(String value) {
-        if (value == null || !value.matches("[A-Za-z][A-Za-z0-9_]{3,31}"))
-            throw ApiError.invalid("account", "账号须为4—32位字母、数字或下划线，且以字母开头");
+        if (value == null || !value.matches("[A-Za-z][A-Za-z0-9_]{3,15}"))
+            throw ApiError.invalid("account", "账号须为4—16位字母、数字或下划线，且以字母开头");
         return value.toLowerCase(Locale.ROOT);
     }
     static String email(String value) {
@@ -29,9 +30,9 @@ final class Rules {
         return value.toLowerCase(Locale.ROOT);
     }
     static void password(String value) {
-        if (value == null || value.codePointCount(0, value.length()) < 15 || value.codePointCount(0, value.length()) > 128 ||
+        if (value == null || value.codePointCount(0, value.length()) < 8 || value.codePointCount(0, value.length()) > 64 ||
             value.codePoints().anyMatch(cp -> cp >= 0xD800 && cp <= 0xDFFF))
-            throw ApiError.invalid("password", "密码须为15—128个字符，允许空格，不自动删减");
+            throw ApiError.invalid("password", "密码须为8—64个字符，可包含空格");
     }
     static List<String> choices(String field, List<String> values, Set<String> allowed, boolean required) {
         if (values == null) values = List.of();

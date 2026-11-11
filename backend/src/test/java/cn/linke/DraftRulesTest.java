@@ -28,4 +28,20 @@ class DraftRulesTest {
         assertThrows(ApiError.class,()->DraftRules.validate(value("{\"publisherDeclaration\":\"SELF_ADULT\"}"),Set.of()));
         assertThrows(ApiError.class,()->DraftRules.validate(value("{\"categoryCode\":\"DRAWING\"}"),Set.of()));
     }
+    @Test void broadPreferencesAndStudyDetailsAreValidatedWithoutInventingExactTimes() throws Exception {
+        assertDoesNotThrow(()->DraftRules.validate(value("""
+            {"locationText":"坪山区 · 某某花园","grade":"高二","subject":"数学",
+             "availabilityPreference":{"mode":"PREFERRED","weekdays":[6,7],"periods":["AFTERNOON","EVENING"]},"availableSlots":[]}
+            """),Set.of()));
+        assertDoesNotThrow(()->DraftRules.validate(value("{\"availabilityPreference\":{\"mode\":\"NEGOTIABLE\",\"weekdays\":[],\"periods\":[]}}"),Set.of()));
+        for(String invalid:java.util.List.of(
+            "{\"availabilityPreference\":{\"mode\":\"PREFERRED\",\"weekdays\":[6,6],\"periods\":[]}}",
+            "{\"availabilityPreference\":{\"mode\":\"PREFERRED\",\"weekdays\":[8],\"periods\":[]}}",
+            "{\"availabilityPreference\":{\"mode\":\"PREFERRED\",\"weekdays\":[6],\"periods\":[\"MIDNIGHT\"]}}",
+            "{\"availabilityPreference\":{\"mode\":\"NEGOTIABLE\",\"weekdays\":[6],\"periods\":[]}}",
+            "{\"availabilityPreference\":{\"mode\":\"NEGOTIABLE\",\"weekdays\":[],\"periods\":[]},\"availableSlots\":[{\"weekday\":6,\"startMinute\":600,\"endMinute\":660}]}"))
+            assertThrows(ApiError.class,()->DraftRules.validate(value(invalid),Set.of()));
+        assertThrows(ApiError.class,()->DraftRules.validate(json.createObjectNode().put("locationText","地".repeat(81)),Set.of()));
+        assertThrows(ApiError.class,()->DraftRules.validate(json.createObjectNode().put("grade","级".repeat(21)),Set.of()));
+    }
 }

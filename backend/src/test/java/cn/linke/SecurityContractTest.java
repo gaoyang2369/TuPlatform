@@ -14,7 +14,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class, ContactController.class}, properties = {"app.secure-cookies=false"},
+@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class, ContactController.class, RequestDraftController.class}, properties = {"app.secure-cookies=false"},
     excludeAutoConfiguration = org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class)
 @Import({SecurityConfig.class, AccountContextConfig.class})
 class SecurityContractTest {
@@ -24,6 +24,7 @@ class SecurityContractTest {
     @MockitoBean MatchService matches;
     @MockitoBean ContactService contacts;
     @MockitoBean RateLimits limits;
+    @MockitoBean RequestDraftService drafts;
     // Spring Security's csrf() test helper replaces the cached filter's repository.
     // Bootstrap must inspect the real cookie repository, regardless of test order.
     @org.springframework.test.annotation.DirtiesContext(methodMode=org.springframework.test.annotation.DirtiesContext.MethodMode.BEFORE_METHOD)
@@ -95,5 +96,18 @@ class SecurityContractTest {
         mvc.perform(put("/api/v1/me/contacts").with(csrf()).contentType("application/json").content("{}"))
             .andExpect(status().isConflict());
         verifyNoInteractions(contacts);
+    }
+    @Test void draftDeletionRequiresCsrfAndCurrentAccountBeforeCallingService() throws Exception {
+        UUID actor=UUID.randomUUID(),draft=UUID.randomUUID();
+        doReturn(new Account(actor,"demo","private@example.com","hash",true,"REQUESTER",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
+        String endpoint="/api/v1/requests/"+draft;
+        mvc.perform(delete(endpoint).contentType("application/json").content("{\"expectedVersion\":3}"))
+            .andExpect(status().isForbidden());
+        mvc.perform(delete(endpoint).with(csrf()).header("X-Account-Id",UUID.randomUUID().toString()).contentType("application/json").content("{\"expectedVersion\":3}"))
+            .andExpect(status().isConflict());
+        verifyNoInteractions(drafts);
+        mvc.perform(delete(endpoint).with(csrf()).header("X-Account-Id",actor.toString()).contentType("application/json").content("{\"expectedVersion\":3}"))
+            .andExpect(status().isNoContent());
+        verify(drafts).delete(isNull(),eq(draft),eq(new VersionBody(3L)));
     }
 }

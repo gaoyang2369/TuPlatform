@@ -130,9 +130,12 @@ class ProfileService {
             if(!allowed.contains(filter[1]))throw ApiError.invalid("filter","请选择有效的筛选条件");
             condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
         }
-        var ids=db.queryForList("SELECT a.id FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE "+condition+" ORDER BY a.id DESC LIMIT 21",UUID.class,args.toArray());
-        var result=new LinkedHashMap<String,Object>();result.put("items",ids.stream().limit(20).map(this::teacherProjection).toList());
-        result.put("nextCursor",ids.size()>20?ids.get(19).toString():null);return result;
+        var rows=db.queryForList("""
+            SELECT a.id,p.version,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
+            FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE
+            """+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
+        var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(10).map(this::teacherProjection).toList());
+        result.put("nextCursor",rows.size()>10?rows.get(9).get("id").toString():null);return result;
     }
     Map<String,Object> matchTeacher(UUID id,long expectedVersion) {
         var teacher=teacherProjectionForMatch(id);
@@ -154,7 +157,10 @@ class ProfileService {
             WHERE a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public
             """, id);
         if (rows.isEmpty()) throw new ApiError(404, "NOT_FOUND", "老师资料当前不可查看");
-        var r = rows.getFirst(); var result = new LinkedHashMap<String, Object>();
+        return teacherProjection(rows.getFirst());
+    }
+    private Map<String,Object> teacherProjection(Map<String,Object> r) {
+        var result = new LinkedHashMap<String, Object>();
         result.put("id", r.get("id")); result.put("profileVersion", r.get("version")); result.put("displayName", r.get("display_name"));
         result.put("categoryCodes", values(r.get("category_codes"))); result.put("serviceModes", values(r.get("service_modes"))); result.put("areaCodes", values(r.get("area_codes")));
         result.put("introduction", r.get("introduction")); result.put("priceMin", amount(r.get("price_min"))); result.put("priceMax", amount(r.get("price_max"))); result.put("availabilityText", r.get("availability_text"));

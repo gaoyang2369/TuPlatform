@@ -7,15 +7,17 @@ import java.time.LocalDate;
 import java.util.*;
 
 final class DraftRules {
-    private static final Set<String> FIELDS = Set.of("title","categoryCode","audienceStageCode","areaCode","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityNote","expectedStartDate","tutorExpectations");
+    private static final Set<String> FIELDS = Set.of("title","categoryCode","audienceStageCode","areaCode","districtCode","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
     static void checkNames(ObjectNode values) {
         for (var names = values.fieldNames(); names.hasNext();) { String name = names.next(); if (!FIELDS.contains(name)) fail(name,"不支持的草稿字段"); }
     }
     static void validate(ObjectNode values, Set<String> categories) {
         checkNames(values);
         text(values,"title",60); text(values,"goal",2000); text(values,"availabilityNote",300); text(values,"tutorExpectations",500);
+        text(values,"locationText",80); text(values,"grade",20); text(values,"subject",40);
         choice(values,"categoryCode",categories); choice(values,"audienceStageCode",Set.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"));
         choice(values,"areaCode",Rules.AREAS); choice(values,"serviceMode",Rules.MODES);
+        choice(values,"districtCode",Rules.DISTRICTS);
         BigDecimal min = money(values,"budgetMin"), max = money(values,"budgetMax");
         if (min != null && max != null && max.compareTo(min)<0) fail("budgetMax","预算上限不能低于下限");
         if (values.has("durationHours")) {
@@ -41,6 +43,20 @@ final class DraftRules {
             if (mode.equals("NEGOTIABLE") && count!=null && !count.isNull()) fail("frequency","可协商时不填写每周次数");
             if (mode.equals("PER_WEEK") && count!=null && !count.isNull() && (!count.isIntegralNumber() || !count.canConvertToInt() || count.intValue()<1 || count.intValue()>14))
                 fail("frequency","每周次数须为1—14次");
+        }
+        if (values.has("availabilityPreference")) {
+            JsonNode preference = values.get("availabilityPreference");
+            if (!preference.isObject()) fail("availabilityPreference","请选择有效的时间偏好");
+            for (var it=preference.fieldNames();it.hasNext();) if (!Set.of("mode","weekdays","periods").contains(it.next())) fail("availabilityPreference","不支持的时间偏好字段");
+            String mode=preference.path("mode").asText("");
+            if (!Set.of("NEGOTIABLE","PREFERRED").contains(mode)) fail("availabilityPreference","请选择可协商或偏好时段");
+            JsonNode days=preference.path("weekdays"), periods=preference.path("periods");
+            if (!days.isArray() || days.size()>7 || !periods.isArray() || periods.size()>3) fail("availabilityPreference","请选择有效的日期和时段");
+            var seenDays=new HashSet<Integer>(); var seenPeriods=new HashSet<String>();
+            for (JsonNode day:days) if (!day.isIntegralNumber() || !day.canConvertToInt() || day.intValue()<1 || day.intValue()>7 || !seenDays.add(day.intValue())) fail("availabilityPreference","日期不能重复且须在周一至周日之间");
+            for (JsonNode period:periods) if (!period.isTextual() || !Set.of("MORNING","AFTERNOON","EVENING").contains(period.asText()) || !seenPeriods.add(period.asText())) fail("availabilityPreference","请选择不重复的上午、下午或晚上");
+            if (mode.equals("NEGOTIABLE") && (!days.isEmpty() || !periods.isEmpty())) fail("availabilityPreference","可协商时无需指定日期或时段");
+            if (values.path("availableSlots").isArray() && !values.path("availableSlots").isEmpty()) fail("availabilityPreference","偏好时段和精确时间请选择一种填写方式");
         }
         if (values.has("availableSlots")) {
             JsonNode slots = values.get("availableSlots");

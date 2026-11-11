@@ -6,6 +6,7 @@
 
 ## 设计与预览
 
+- [当前产品体验评审与改进建议](product-experience-review.md)：2026-11-11运行页面检查，包含改动前问题及截图；第9节记录已实施改进、验证结果与后续范围，不替代已确认规则。
 - [原Figma及索引](https://www.figma.com/design/mIWvLoDcD6W0MlDny0ZwqB?node-id=9-309)：沿用同一文件和样式，不另建。
 - [本地只读样例](interaction-preview.html)：默认评审首版核心路径，延期样例折叠为历史；表单只读/禁用，不执行保存、认证、邮件或跨账号动作。
 - [节点索引](figma-state.json)：供后续定位原节点，不是开发清单。

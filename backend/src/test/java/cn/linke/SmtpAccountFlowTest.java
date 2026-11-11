@@ -45,7 +45,7 @@ class SmtpAccountFlowTest {
     private final AtomicReference<String> verification = new AtomicReference<>(), reset = new AtomicReference<>();
     private final AtomicReference<Boolean> resetAccepted = new AtomicReference<>();
     private UUID created;
-    private final String account = "test_mail_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+    private final String account = "mail_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
     private final String password = "Synthetic mail test password 2026";
     @BeforeEach void captureInMemoryWithoutLoggingTokens() {
         doAnswer(invocation -> {

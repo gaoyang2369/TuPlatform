@@ -12,7 +12,7 @@ type User={id:string;account:string;password:string};
 const actors:User[]=[];
 function fixture(action:string,value:string){return JSON.parse(execFileSync("java",["--class-path",driver,path.join(root,"backend/src/test/tools/BrowserFixture.java"),action,value],{encoding:"utf8",env:process.env}));}
 function user(role:string):User{const result=fixture("create",role);actors.push(result);return result;}
-async function login(page:Page,u:User){await page.goto("/");await page.getByLabel("账号",{exact:true}).fill(u.account);await page.getByLabel("密码",{exact:true}).fill(u.password);await page.getByRole("button",{name:"登录",exact:true}).click();await expect(page.getByRole("heading",{name:/本人基本资料|让合适的人认识你/})).toBeVisible();}
+async function login(page:Page,u:User){await page.goto("/?view=profile");await page.getByLabel("账号",{exact:true}).fill(u.account);await page.getByLabel("密码",{exact:true}).fill(u.password);await page.getByRole("button",{name:"登录",exact:true}).click();await expect(page.getByRole("heading",{name:/本人基本资料|让合适的人认识你/})).toBeVisible();}
 async function write(page:Page,u:User,url:string,body:unknown,method="POST",key=crypto.randomUUID()){
   const csrf=await(await page.request.get("/api/v1/auth/csrf")).json();
   const result=await page.request.fetch("/api/v1"+url,{method,headers:{[csrf.headerName]:csrf.token,"X-Account-Id":u.id,"Idempotency-Key":key},data:body});
@@ -31,8 +31,8 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page){
   return {owner,tutor,request:draft.id};
 }
 async function progress(page:Page){await page.getByRole("button",{name:"撮合进度",exact:true}).click();await page.getByRole("button",{name:"查看撮合进度",exact:true}).click();}
-async function apply(page:Page){await page.getByRole("button",{name:"浏览需求",exact:true}).click();await page.getByRole("button",{name:"查看需求",exact:true}).click();await page.getByRole("button",{name:"准备投递",exact:true}).click();await expect(page.getByText("只用于联调的老师自述")).toBeVisible();await page.getByRole("button",{name:"确认投递",exact:true}).click();}
-async function invite(page:Page,requestId:string){await page.getByRole("button",{name:"发现老师",exact:true}).click();await page.getByRole("button",{name:"查看老师",exact:true}).click();await expect(page.getByText("面议",{exact:false})).toBeVisible();await page.getByRole("button",{name:"选择需求邀请",exact:true}).click();await page.getByLabel("选择本人招募中的需求").selectOption(requestId);await expect(page.getByRole("button",{name:"确认邀请",exact:true})).toBeEnabled();await page.getByRole("button",{name:"确认邀请",exact:true}).click();await expect(page.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();}
+async function apply(page:Page){await page.getByRole("button",{name:"浏览需求",exact:true}).click();await page.getByRole("button",{name:"查看需求",exact:true}).click();await page.getByRole("button",{name:"我对这个需求感兴趣",exact:true}).click();await expect(page.getByText("只用于联调的老师自述")).toBeVisible();await page.getByRole("button",{name:"确认投递",exact:true}).click();}
+async function invite(page:Page,requestId:string){await page.getByRole("button",{name:"发现老师",exact:true}).click();await page.getByRole("button",{name:"查看老师",exact:true}).click();await expect(page.getByText("面议",{exact:false})).toBeVisible();await page.getByRole("button",{name:"邀请这位老师",exact:true}).click();await page.getByLabel("选择本人招募中的需求").selectOption(requestId);await expect(page.getByRole("button",{name:"确认邀请",exact:true})).toBeEnabled();await page.getByRole("button",{name:"确认邀请",exact:true}).click();await expect(page.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();}
 test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\?.*)?$/))throw new Error("Dedicated _test database required");mkdirSync(path.join(root,".tools/stage4-browser"),{recursive:true});});
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture("cleanup",actor.id);});
 
@@ -54,8 +54,8 @@ test("需求方邀请、老师拒绝后主动重发与撤回，不继承旧回�
     const ownerMatches=await(await page.request.get('/api/v1/me/matches')).json();
     expect(tutorMatches.items.map((m:{id:string})=>m.id)).toContain(ownerMatches.items[0].id);
     await progress(tp);await tp.getByRole("button",{name:"拒绝意向",exact:true}).click();await expect(tp.getByRole("heading",{name:"已拒绝",exact:true})).toBeVisible();
-    await page.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(page.getByRole("button",{name:"选择需求邀请",exact:true})).toHaveCount(0);
-    await tp.getByRole("button",{name:"准备投递",exact:true}).click();await tp.getByRole("button",{name:"确认投递",exact:true}).click();await expect(tp.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();await tp.getByRole("button",{name:"撤回本人意向",exact:true}).click();await expect(tp.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();
+    await page.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(page.getByRole("button",{name:"邀请这位老师",exact:true})).toHaveCount(0);
+    await tp.getByRole("button",{name:"我对这个需求感兴趣",exact:true}).click();await tp.getByRole("button",{name:"确认投递",exact:true}).click();await expect(tp.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();await tp.getByRole("button",{name:"撤回本人意向",exact:true}).click();await expect(tp.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();
     await page.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(page.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"接受意向",exact:true})).toHaveCount(0);
   }finally{await tc.close();await oc.close();}
 });

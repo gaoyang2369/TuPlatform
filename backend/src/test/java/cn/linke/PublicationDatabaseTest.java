@@ -18,7 +18,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @EnabledIfEnvironmentVariable(named="RUN_DATABASE_TESTS",matches="true")
-@SpringBootTest(properties={"app.request-categories=DRAWING"})
+@SpringBootTest(properties={"app.request-categories=DRAWING,EXTRACURRICULAR_STUDY"})
 class PublicationDatabaseTest {
     @DynamicPropertySource static void database(DynamicPropertyRegistry p) {
         String url=System.getenv("TEST_DB_URL");
@@ -32,7 +32,7 @@ class PublicationDatabaseTest {
     @BeforeEach void setup(){when(mail.send(anyString(),anyString(),eq(false))).thenAnswer(call->{token=call.getArgument(1);return true;});}
     @AfterEach void cleanup(){for(UUID id:accounts)db.update("DELETE FROM service_requests WHERE owner_id=?",id);for(UUID id:accounts)db.update("DELETE FROM accounts WHERE id=?",id);}
     private User user(String identity,boolean operator){
-        String name="test_pub_"+UUID.randomUUID().toString().replace("-","").substring(0,18),password="Synthetic publication password";
+        String name="pub_"+UUID.randomUUID().toString().replace("-","").substring(0,12),password="Synthetic publication password";
         Registration r=auth.register(new RegisterBody(name,password,name+"@example.invalid",true));auth.verify(new VerifyBody(token,null),r.context());
         var login=auth.login(new LoginBody(name,password));accounts.add(login.me().id());auth.identity(login.session(),new IdentityBody(identity));
         db.update("UPDATE accounts SET operator_granted=? WHERE id=?",operator,login.me().id());
@@ -111,6 +111,7 @@ class PublicationDatabaseTest {
         for(String forbidden:List.of("email","phone","wechat","ownerId","publisherDeclaration","declarationVersion","expiresAt","submittedAt","reviewFeedback","version","status","fields"))assertFalse(publicValue.containsKey(forbidden),forbidden);
         assertEquals("1000.01",publicValue.get("budgetMin"));
         assertEquals(1,((List<?>)publishing.publicList(null,"DRAWING","PS_PINGSHAN",null).get("items")).size());
+        assertEquals(1,((List<?>)publishing.publicList(null,null,null,null,"坪山街道").get("items")).size());
         db.update("UPDATE request_submissions SET submitted_at=clock_timestamp()-interval '16 days',expires_at=clock_timestamp() WHERE id=?",submitted.submissionId());
         assertEquals("EXPIRED",drafts.get(owner.session(),submitted.id()).status());
         assertEquals(404,assertThrows(ApiError.class,()->publishing.publicDetail(submitted.id())).status);
@@ -127,5 +128,43 @@ class PublicationDatabaseTest {
         var closedDrafts=new RequestDraftService(db,auth,json,"");var closed=new RequestPublicationService(db,auth,closedDrafts,json,new Secrets());
         assertEquals(404,assertThrows(ApiError.class,()->closed.publicDetail(another.id())).status);
         assertTrue(((List<?>)closed.publicList(null,null,null,null).get("items")).isEmpty());
+    }
+    @Test void communityStudyAndBroadTimeSurviveSaveSubmissionReviewAndPublicSearch() throws Exception {
+        User owner=user("REQUESTER",false),operator=user("TUTOR",true);SavedDraft original=ready(owner);
+        String location="坪山区 · 合成花园"+UUID.randomUUID().toString().substring(0,8);
+        ObjectNode changes=json.createObjectNode().put("categoryCode","EXTRACURRICULAR_STUDY").put("grade","成人学习").put("subject","英语").put("locationText",location).putNull("areaCode");
+        changes.putArray("availableSlots");
+        ObjectNode preference=changes.putObject("availabilityPreference").put("mode","PREFERRED");
+        preference.putArray("weekdays").add(6).add(7);preference.putArray("periods").add("AFTERNOON");
+        SavedDraft saved=drafts.save(owner.session(),original.id(),new DraftPatch(original.version(),changes));
+        assertEquals(location,drafts.get(owner.session(),saved.id()).fields().path("locationText").asText());
+        var submitted=submit(owner,saved);
+        assertEquals("英语",publishing.reviewDetail(operator.session(),submitted.submissionId()).fields().path("subject").asText());
+        approve(operator,submitted);
+        var visible=publishing.publicDetail(saved.id());
+        assertEquals(location,visible.get("locationText"));assertEquals("成人学习",visible.get("grade"));assertEquals("英语",visible.get("subject"));
+        assertEquals("PREFERRED",((Map<?,?>)visible.get("availabilityPreference")).get("mode"));
+        assertTrue(((List<?>)visible.get("availableSlots")).isEmpty());
+        assertEquals(1,((List<?>)publishing.publicList(null,null,null,null,location).get("items")).size());
+        assertTrue(((List<?>)publishing.publicList(null,null,null,null,"不存在"+location).get("items")).isEmpty());
+    }
+    @Test void publicPagesHaveTenDistinctItemsAndSupportDistrictGradeAndMultipleSubjects() {
+        User owner=user("REQUESTER",false);
+        for(int i=0;i<12;i++) {
+            UUID request=UUID.randomUUID(),submission=UUID.randomUUID();
+            ObjectNode fields=json.createObjectNode().put("title","分页合成需求"+i).put("categoryCode","EXTRACURRICULAR_STUDY").put("grade",i<6?"高一":"高二").put("subject",i<6?"数学、物理":"英语").put("serviceMode","OFFLINE");
+            if(i%2==0)fields.put("districtCode","SZ_PINGSHAN"); // Legacy records use the existing Pingshan service scope.
+            db.update("INSERT INTO service_requests(id,owner_id,status,fields) VALUES (?,?,'OPEN',CAST(? AS jsonb))",request,owner.id(),fields.toString());
+            db.update("INSERT INTO request_submissions(id,request_id,fields,publisher_display_name,publisher_declaration,declaration_version,submitted_at,expires_at,status) VALUES (?,?,CAST(? AS jsonb),'合成需求方','GUARDIAN_OF_MINOR','publisher-v1',now(),now()+interval '15 days','APPROVED')",submission,request,fields.toString());
+            db.update("UPDATE service_requests SET latest_submission_id=? WHERE id=?",submission,request);
+        }
+        var first=publishing.publicList(null,null,null,null,null,"SZ_PINGSHAN",null,null);
+        List<?> one=(List<?>)first.get("items");assertEquals(10,one.size());assertNotNull(first.get("nextCursor"));
+        var second=publishing.publicList((String)first.get("nextCursor"),null,null,null,null,"SZ_PINGSHAN",null,null);
+        List<?> two=(List<?>)second.get("items");assertEquals(2,two.size());assertNull(second.get("nextCursor"));
+        Set<Object> ids=new HashSet<>();for(Object item:one)assertTrue(ids.add(((Map<?,?>)item).get("id")));for(Object item:two)assertTrue(ids.add(((Map<?,?>)item).get("id")));
+        assertEquals(6,((List<?>)publishing.publicList(null,null,null,"OFFLINE",null,"SZ_PINGSHAN","高一","物理").get("items")).size());
+        assertTrue(((List<?>)publishing.publicList(null,null,null,null,null,"SZ_PINGSHAN","高一","英语").get("items")).isEmpty());
+        assertEquals(422,assertThrows(ApiError.class,()->publishing.publicList(null,null,null,null,null,"NOT_OPEN",null,null)).status);
     }
 }

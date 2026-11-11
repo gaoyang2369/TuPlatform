@@ -75,6 +75,34 @@ class MatchDatabaseTest {
         assertTrue(((List<?>)profiles.publicTeachers(s.owner().session(),null,null,null,null).get("items")).isEmpty());
         assertEquals(404,assertThrows(ApiError.class,()->profiles.publicTeacher(s.owner().session(),s.tutor().id())).status);
     }
+    @SuppressWarnings("unchecked")
+    @Test void teacherDiscoveryPagesTenProfilesWithoutDuplicatesOrPrivateFields() {
+        var owner=user("REQUESTER");var expected=new HashSet<UUID>();
+        for(int i=0;i<23;i++){
+            var tutor=user("TUTOR");expected.add(tutor.id());
+            db.update("UPDATE profiles SET display_name=?,category_codes='[\"DRAWING\"]'::jsonb,service_modes='[\"ONLINE\"]'::jsonb,introduction=?,is_public=true,price_min=100,price_max=150 WHERE account_id=?",
+                "分页合成老师"+i,"方向：成人水彩入门。\n擅长：色彩与构图。",tutor.id());
+        }
+        var hidden=user("TUTOR");
+        var unverified=user("TUTOR");
+        db.update("UPDATE profiles SET display_name='未验证合成老师',category_codes='[\"DRAWING\"]'::jsonb,service_modes='[\"ONLINE\"]'::jsonb,introduction='合成介绍',is_public=true WHERE account_id=?",unverified.id());
+        db.update("UPDATE accounts SET email_verified=false WHERE id=?",unverified.id());
+        var found=new HashSet<UUID>();String cursor=null;
+        for(int size:List.of(10,10,3)){
+            var page=profiles.publicTeachers(owner.session(),cursor,"DRAWING",null,"ONLINE");
+            var teachers=(List<Map<String,Object>>)page.get("items");assertEquals(size,teachers.size());
+            for(var teacher:teachers){
+                UUID id=(UUID)teacher.get("id");assertTrue(found.add(id));assertTrue(expected.contains(id));
+                assertEquals(profiles.publicTeacher(owner.session(),id),teacher);
+                assertEquals("方向：成人水彩入门。\n擅长：色彩与构图。",teacher.get("introduction"));
+                for(String field:List.of("email","phone","wechat","account","password_hash","is_public"))assertFalse(teacher.containsKey(field));
+            }
+            cursor=(String)page.get("nextCursor");if(size==10)assertEquals(teachers.getLast().get("id").toString(),cursor);else assertNull(cursor);
+        }
+        assertEquals(expected,found);assertFalse(found.contains(hidden.id()));assertFalse(found.contains(unverified.id()));
+        assertTrue(((List<?>)profiles.publicTeachers(owner.session(),null,"DRAWING",null,"OFFLINE").get("items")).isEmpty());
+        assertEquals(422,assertThrows(ApiError.class,()->profiles.publicTeachers(owner.session(),"invalid-cursor",null,null,null)).status);
+    }
     @Test void duplicateReverseAndIdempotentStartsNeverImplicitlyAccept() throws Exception {
         var s=setup();String key=key();var initial=matches.start(s.tutor().session(),body(s,false),key);
         assertEquals(initial,matches.start(s.tutor().session(),body(s,false),key));

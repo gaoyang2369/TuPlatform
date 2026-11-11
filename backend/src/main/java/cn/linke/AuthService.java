@@ -29,7 +29,8 @@ class AuthService {
     }
     private static final String ACCOUNT = "SELECT a.*, p.version FROM accounts a JOIN profiles p ON p.account_id=a.id ";
     private Account one(List<Account> rows) { return rows.isEmpty() ? null : rows.getFirst(); }
-    public Me me(Account a) { return new Me(a.id(), a.account(), a.email(), a.verified(), a.identity(), a.operator(), a.profileVersion()); }
+    private boolean managedOperator(Account a) { return a.operator() && a.email().endsWith("@operators.linke.invalid"); }
+    public Me me(Account a) { return new Me(a.id(), a.account(), managedOperator(a) ? "" : a.email(), !managedOperator(a) && a.verified(), a.identity(), a.operator(), a.profileVersion()); }
     public Account current(String session, boolean lock) {
         if (session == null || session.length() != 43) throw new ApiError(401, "LOGIN_REQUIRED", "请先登录");
         Account a = one(db.query(ACCOUNT + "WHERE a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));
@@ -125,7 +126,7 @@ class AuthService {
         // Disabled transport is reported uniformly for all addresses; no account enumeration.
         if (!mail.enabled()) throw new ApiError(503, "MAIL_UNAVAILABLE", "邮件服务尚不可用，请稍后重试");
         Account a = one(db.query(ACCOUNT + "WHERE email_key=? AND email_verified FOR UPDATE OF a", this::map, key));
-        if (a == null) return;
+        if (a == null || managedOperator(a)) return;
         String token = secrets.token();
         db.update("INSERT INTO email_tokens(token_hash,account_id,purpose,expires_at) VALUES (?,?,'RESET',now()+interval '30 minutes')", secrets.digest(token), a.id());
         // Always return the same accepted response, including transport failures for known addresses.

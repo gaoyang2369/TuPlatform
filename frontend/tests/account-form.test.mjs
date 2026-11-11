@@ -6,8 +6,11 @@ test("密码按Unicode码点计长，保留空格和长密码", () => {
   assert.equal(codePointLength("🙂".repeat(15)), 15);
   assert.equal(passwordError("🙂".repeat(15)), "");
   assert.equal(passwordError(" ".repeat(15)), "");
-  assert.equal(passwordError("密".repeat(128)), "");
-  assert.ok(passwordError("密".repeat(129)));
+  assert.equal(passwordError("密".repeat(64)), "");
+  assert.equal(passwordError("🙂".repeat(8)), "");
+  assert.equal(passwordError("1234 678"), "");
+  assert.ok(passwordError("密".repeat(65)));
+  assert.ok(passwordError("1234567"));
   assert.ok(passwordError("short"));
 });
 test("报价双端及精确金额，不沿用999元上限或自动舍入", () => {
