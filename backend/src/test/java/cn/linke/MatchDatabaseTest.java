@@ -25,6 +25,7 @@ class MatchDatabaseTest {
     }
     @Autowired MatchService matches; @Autowired ProfileService profiles; @Autowired RequestDraftService drafts;
     @Autowired RequestPublicationService publication; @Autowired JdbcTemplate db; @Autowired ObjectMapper json; @Autowired Secrets secrets;
+    @Autowired ContactService contacts;
     @MockitoBean MailGateway mail;
     private final List<UUID> accounts=new ArrayList<>();
     private record User(UUID id,String session) {}
@@ -59,6 +60,69 @@ class MatchDatabaseTest {
     private RespondMatch response(MatchView m){return new RespondMatch(m.roundId(),m.version());}
     private MatchView act(User user,MatchView m,String action){return matches.respond(user.session(),m.id(),response(m),key(),action);}
     private void expire(Setup s){db.update("UPDATE request_submissions SET submitted_at=clock_timestamp()-interval '16 days',expires_at=clock_timestamp() WHERE id=?",s.submission());}
+    private StartMatch direct(User tutor,long version,String message){return new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,message);}
+    @Test void directInvitationNeedsNoRequestAndCapturesOnlyNameAndOptionalMessage() throws Exception {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);String receipt=key();var body=direct(tutor,version,"  想了解周末课程  ");
+        var result=matches.start(owner.session(),body,receipt);var m=result.match();
+        assertNull(m.requestId());assertEquals("WAITING",m.state());assertFalse(m.requestExpired());assertFalse(m.submissionChanged());
+        assertEquals(Map.of("title","直接邀请","publisherDisplayName","合成展示名","introduction","想了解周末课程"),m.submissionSnapshot());
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM service_requests WHERE owner_id=?",Integer.class,owner.id()));
+        assertEquals(result,matches.start(owner.session(),body,receipt));
+        drafts.create(owner.session(),key()); // Even a private/unapproved draft must not affect direct contact.
+        assertEquals("EXISTING",matches.start(owner.session(),direct(tutor,version,""),key()).outcome());
+        assertTrue(matches.detail(tutor.session(),m.id()).waitingForMe());
+        assertEquals(1,((List<?>)matches.list(tutor.session(),null,"WAITING",null).get("items")).size());
+        var outsider=user("REQUESTER");assertEquals(404,assertThrows(ApiError.class,()->matches.detail(outsider.session(),m.id())).status);
+        assertEquals(403,assertThrows(ApiError.class,()->act(owner,m,"ACCEPT")).status);
+        assertEquals("MUTUAL",act(tutor,m,"ACCEPT").state());
+        assertEquals("EXISTING",matches.start(owner.session(),body,key()).outcome());
+        assertFalse(json.writeValueAsString(m).contains("@example.invalid"));
+    }
+    @Test void directInvitationValidatesRoleTeacherVersionVisibilityAndMessage() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);
+        assertEquals(403,assertThrows(ApiError.class,()->matches.start(tutor.session(),direct(tutor,version,""),key())).status);
+        assertEquals("TEACHER_PROFILE_CHANGED",assertThrows(ApiError.class,()->matches.start(owner.session(),direct(tutor,version-1,""),key())).code);
+        assertEquals(422,assertThrows(ApiError.class,()->matches.start(owner.session(),direct(tutor,version,"字".repeat(501)),key())).status);
+        assertEquals(422,assertThrows(ApiError.class,()->matches.start(owner.session(),new StartMatch(UUID.randomUUID(),null,"DIRECT_INVITATION",tutor.id(),version),key())).status);
+        db.update("UPDATE profiles SET display_name='' WHERE account_id=?",owner.id());
+        assertEquals("PROFILE_REQUIRED",assertThrows(ApiError.class,()->matches.start(owner.session(),direct(tutor,version,""),key())).code);
+        profiles.visibility(tutor.session(),new VersionBody(version),false,key());
+        assertEquals("PROFILE_NOT_PUBLIC",assertThrows(ApiError.class,()->matches.start(owner.session(),direct(tutor,version,""),key())).code);
+    }
+    @Test void directWithdrawalCreatesFreshRoundWhileRejectionBlocksRepeatInvites() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);var body=direct(tutor,version,null);
+        var first=matches.start(owner.session(),body,key()).match();act(owner,first,"WITHDRAW");
+        assertTrue(matches.detail(owner.session(),first.id()).canInitiateAgain());assertFalse(matches.detail(tutor.session(),first.id()).canInitiateAgain());
+        var second=matches.start(owner.session(),body,key()).match();assertEquals(first.id(),second.id());assertNotEquals(first.roundId(),second.roundId());
+        assertEquals(409,assertThrows(ApiError.class,()->act(tutor,first,"ACCEPT")).status);
+        act(tutor,second,"REJECT");assertFalse(matches.detail(owner.session(),second.id()).canInitiateAgain());
+        assertEquals("REAPPLY_BLOCKED",assertThrows(ApiError.class,()->matches.start(owner.session(),body,key())).code);
+    }
+    @Test void concurrentDirectInvitesAndExistingRequestIntentionDoNotDuplicateActiveContact() throws Exception {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);var body=direct(tutor,version,"");
+        var results=race(()->matches.start(owner.session(),body,key()),()->matches.start(owner.session(),body,key()));
+        assertEquals(Set.of("CREATED","EXISTING"),new HashSet<>(results.stream().map(MatchStartResult::outcome).toList()));
+        assertEquals(results.getFirst().match().id(),results.getLast().match().id());
+        var s=setup();var application=start(s,false);
+        var found=matches.start(s.owner().session(),direct(s.tutor(),s.teacherVersion(),""),key());
+        assertEquals("EXISTING",found.outcome());assertEquals(application.id(),found.match().id());assertTrue(found.match().waitingForMe());
+        var reverse=setup();var invitation=matches.start(reverse.owner().session(),direct(reverse.tutor(),reverse.teacherVersion(),""),key()).match();
+        assertEquals(invitation.id(),start(reverse,false).id());assertEquals("WAITING",matches.detail(reverse.tutor().session(),invitation.id()).state());
+    }
+    @Test void directInvitationKeepsBilateralContactConsentWithdrawalAndReconfirmation() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);
+        var m=matches.start(owner.session(),direct(tutor,version,""),key()).match();
+        contacts.save(owner.session(),new SaveContacts(0L,null,"synthetic_owner"));contacts.save(tutor.session(),new SaveContacts(0L,null,"synthetic_teacher"));
+        var ownerBody=new AgreeContacts(m.roundId(),0L,List.of("WECHAT"),contacts.get(owner.session()).fieldVersions(),true);
+        assertEquals("NOT_MUTUAL",assertThrows(ApiError.class,()->contacts.agree(owner.session(),m.id(),ownerBody,key())).code);
+        profiles.visibility(tutor.session(),new VersionBody(version),false,key()); // Existing invitation can still be accepted.
+        act(tutor,m,"ACCEPT");var one=contacts.agree(owner.session(),m.id(),ownerBody,key());assertEquals(false,one.get("canViewContacts"));
+        var both=contacts.agree(tutor.session(),m.id(),new AgreeContacts(m.roundId(),1L,List.of("WECHAT"),contacts.get(tutor.session()).fieldVersions(),true),key());
+        assertEquals(true,both.get("canViewContacts"));
+        contacts.save(owner.session(),new SaveContacts(1L,null,"synthetic_changed"));
+        var hidden=contacts.grant(tutor.session(),m.id());assertEquals(false,hidden.get("canViewContacts"));assertEquals(true,hidden.get("requiresReconfirmation"));assertFalse(hidden.containsKey("otherSharedContacts"));
+        var withdrawn=contacts.withdraw(tutor.session(),m.id(),new WithdrawContacts(m.roundId(),((Number)hidden.get("version")).longValue()),key());assertEquals(false,withdrawn.get("canViewContacts"));
+    }
     @AfterEach void cleanup(){
         for(UUID id:accounts)db.update("DELETE FROM match_relationships WHERE requester_id=? OR tutor_id=?",id,id);
         for(UUID id:accounts)db.update("DELETE FROM service_requests WHERE owner_id=?",id);

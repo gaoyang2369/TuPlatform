@@ -32,7 +32,7 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page){
 }
 async function progress(page:Page){await page.getByRole("button",{name:"撮合进度",exact:true}).click();await page.getByRole("button",{name:"查看撮合进度",exact:true}).click();}
 async function apply(page:Page){await page.getByRole("button",{name:"浏览需求",exact:true}).click();await page.getByRole("button",{name:"查看需求",exact:true}).click();await page.getByRole("button",{name:"我对这个需求感兴趣",exact:true}).click();await expect(page.getByText("只用于联调的老师自述")).toBeVisible();await page.getByRole("button",{name:"确认投递",exact:true}).click();}
-async function invite(page:Page,requestId:string){await page.getByRole("button",{name:"发现老师",exact:true}).click();await page.getByRole("button",{name:"查看老师",exact:true}).click();await expect(page.getByText("面议",{exact:false})).toBeVisible();await page.getByRole("button",{name:"邀请这位老师",exact:true}).click();await page.getByLabel("选择本人招募中的需求").selectOption(requestId);await expect(page.getByRole("button",{name:"确认邀请",exact:true})).toBeEnabled();await page.getByRole("button",{name:"确认邀请",exact:true}).click();await expect(page.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();}
+async function invite(page:Page,requestId:string){await page.getByRole("button",{name:"发现老师",exact:true}).click();await page.getByRole("button",{name:"查看老师",exact:true}).click();await expect(page.getByText("面议",{exact:false})).toBeVisible();await page.getByRole("button",{name:"邀请这位老师",exact:true}).click();await expect(page.getByRole("button",{name:"发送邀请",exact:true})).toBeEnabled();await page.getByRole("button",{name:"发送邀请",exact:true}).click();await expect(page.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();}
 test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\?.*)?$/))throw new Error("Dedicated _test database required");mkdirSync(path.join(root,".tools/stage4-browser"),{recursive:true});});
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture("cleanup",actor.id);});
 
@@ -42,21 +42,22 @@ test("老师发现与投递、双方快照、明确接受后互选且不分享�
     await prepare(page,teacherPage,operatorPage);await apply(teacherPage);await expect(teacherPage.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();
     await progress(page);await expect(page.getByRole("heading",{name:"等待我回应",exact:true})).toBeVisible();
     await page.screenshot({path:path.join(root,`.tools/stage4-browser/waiting-${info.project.name}.png`),fullPage:true});
-    await page.getByRole("button",{name:"接受意向",exact:true}).click();await expect(page.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(page.getByText("双方已明确互选，联系方式须经下方本轮授权后分享。")).toBeVisible();
+    await page.getByRole("button",{name:"接受意向",exact:true}).click();await expect(page.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(page.getByText("下一步：双方同意交换联系方式后，就可以联系沟通。")).toBeVisible();
     await teacherPage.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(teacherPage.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();await expect(teacherPage.getByRole("button",{name:"撤回本人意向"})).toHaveCount(0);
     await page.screenshot({path:path.join(root,`.tools/stage4-browser/mutual-${info.project.name}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
   }finally{await teacherContext.close();await operatorContext.close();}
 });
-test("需求方邀请、老师拒绝后主动重发与撤回，不继承旧回应",async({page,browser})=>{
+test("直接邀请撤回后重发，老师拒绝后不能重复邀请",async({page,browser})=>{
   const tc=await browser.newContext(),oc=await browser.newContext();try{const tp=await tc.newPage(),op=await oc.newPage();page.on("dialog",d=>d.accept());tp.on("dialog",d=>d.accept());const data=await prepare(page,tp,op);
     await invite(page,data.request);
     const tutorMatches=await(await tp.request.get('/api/v1/me/matches')).json();
     const ownerMatches=await(await page.request.get('/api/v1/me/matches')).json();
     expect(tutorMatches.items.map((m:{id:string})=>m.id)).toContain(ownerMatches.items[0].id);
+    await page.getByRole("button",{name:"撤回本人意向",exact:true}).click();await expect(page.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();
+    await page.getByRole("button",{name:"邀请这位老师",exact:true}).click();await page.getByRole("button",{name:"发送邀请",exact:true}).click();await expect(page.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();
     await progress(tp);await tp.getByRole("button",{name:"拒绝意向",exact:true}).click();await expect(tp.getByRole("heading",{name:"已拒绝",exact:true})).toBeVisible();
     await page.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(page.getByRole("button",{name:"邀请这位老师",exact:true})).toHaveCount(0);
-    await tp.getByRole("button",{name:"我对这个需求感兴趣",exact:true}).click();await tp.getByRole("button",{name:"确认投递",exact:true}).click();await expect(tp.getByRole("heading",{name:"等待对方回应",exact:true})).toBeVisible();await tp.getByRole("button",{name:"撤回本人意向",exact:true}).click();await expect(tp.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();
-    await page.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(page.getByRole("heading",{name:"已撤回",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"接受意向",exact:true})).toHaveCount(0);
+    await expect(tp.getByRole("button",{name:"我对这个需求感兴趣",exact:true})).toHaveCount(0);
   }finally{await tc.close();await oc.close();}
 });
 test("投递响应丢失同键重试、到期停止公开后已有意向可回应",async({page,browser})=>{
@@ -77,7 +78,7 @@ test("接受响应丢失可同键恢复，旧页面撤回冲突须读取已互�
     await tp.getByRole("button",{name:"撤回本人意向",exact:true}).click();await expect(tp.getByRole("alert")).toContainText("意向已变化");
     await tp.getByRole("button",{name:"读取最新进度",exact:true}).click();await expect(tp.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();
     let readLost=false;await page.route('**/api/v1/matches/*',async route=>{if(route.request().method()==='GET'&&!readLost){readLost=true;await route.abort('failed');}else await route.continue();});
-    await page.getByRole("button",{name:"重试同一次回应",exact:true}).click();await expect(page.getByText('本次回应已成功，但最新进度未能刷新，可同键重试或重新读取。')).toBeVisible();
+    await page.getByRole("button",{name:"重试同一次回应",exact:true}).click();await expect(page.getByText('本次回应已成功，但最新进度未能刷新，可以重试或重新读取。')).toBeVisible();
     await page.getByRole("button",{name:"重试同一次回应",exact:true}).click();await expect(page.getByRole("heading",{name:"已互选",exact:true})).toBeVisible();
     expect(keys).toHaveLength(3);expect(new Set(keys).size).toBe(1);
   }finally{await tc.close();await oc.close();}

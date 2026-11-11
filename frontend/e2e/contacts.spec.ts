@@ -21,7 +21,7 @@ async function saveContacts(page:Page,phone:string,wechat:string){
   await page.getByRole('banner').getByRole('button',{name:'本人资料',exact:true}).click();
   await page.getByRole('button',{name:'私密联系方式',exact:true}).click();await expect(page.getByRole('heading',{name:'本人私密联系方式'})).toBeVisible();
   await page.getByLabel('手机号（选填，+86）').fill(phone);await page.getByLabel('微信号（选填）').fill(wechat);
-  await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('status')).toContainText('私密联系方式已保存');
+  await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await page.getByRole('button',{name:'确认保存',exact:true}).click();await expect(page.locator('.message.success')).toContainText('私密联系方式已保存');
 }
 async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false){
   const owner=user('REQUESTER'),tutor=user('TUTOR'),operator=user('OPERATOR');
@@ -48,18 +48,37 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
 }
 async function progress(page:Page){await page.getByRole('button',{name:'撮合进度',exact:true}).click();await page.getByRole('button',{name:'查看撮合进度',exact:true}).click();}
 async function mutual(ownerPage:Page,tutorPage:Page,invite=false,request?:string){
-  if(invite){await ownerPage.getByRole('button',{name:'发现老师',exact:true}).click();await ownerPage.getByRole('button',{name:'查看老师',exact:true}).click();await ownerPage.getByRole('button',{name:'邀请这位老师',exact:true}).click();await ownerPage.getByLabel('选择本人招募中的需求').selectOption(request!);await ownerPage.getByRole('button',{name:'确认邀请',exact:true}).click();await expect(ownerPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(tutorPage);await tutorPage.getByRole('button',{name:'接受意向',exact:true}).click();}
+  if(invite){await ownerPage.getByRole('button',{name:'发现老师',exact:true}).click();await ownerPage.getByRole('button',{name:'查看老师',exact:true}).click();await ownerPage.getByRole('button',{name:'邀请这位老师',exact:true}).click();await ownerPage.getByRole('button',{name:'发送邀请',exact:true}).click();await expect(ownerPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(tutorPage);await tutorPage.getByRole('button',{name:'接受意向',exact:true}).click();}
   else{await tutorPage.getByRole('button',{name:'浏览需求',exact:true}).click();await tutorPage.getByRole('button',{name:'查看需求',exact:true}).click();await tutorPage.getByRole('button',{name:'我对这个需求感兴趣',exact:true}).click();await tutorPage.getByRole('button',{name:'确认投递',exact:true}).click();await expect(tutorPage.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await progress(ownerPage);await ownerPage.getByRole('button',{name:'接受意向',exact:true}).click();}
   await expect((invite?tutorPage:ownerPage).getByRole('heading',{name:'已互选',exact:true})).toBeVisible();await (invite?ownerPage:tutorPage).getByRole('button',{name:'读取最新进度',exact:true}).click();
   const m=(await(await ownerPage.request.get('/api/v1/me/matches')).json()).items[0];return m;
 }
 async function authorize(page:Page,field:'手机号'|'微信',expectSaved=true){
   await page.getByRole('checkbox',{name:`分享本人${field}`,exact:false}).check();await page.getByRole('button',{name:'预览本人分享内容'}).click();await expect(page.getByRole('button',{name:'同意分享所选联系方式',exact:true})).toBeDisabled();await page.getByRole('checkbox',{name:'我已核对，明确同意',exact:false}).check();await page.getByRole('button',{name:'同意分享所选联系方式',exact:true}).click();
-  if(expectSaved)await expect(page.getByRole('status')).toContainText('本次授权操作已完成');
+  if(expectSaved)await expect(page.locator('.consent .message.success')).toContainText('本次授权操作已完成');
 }
 function hidden(g:Record<string,unknown>){expect(g.canViewContacts).toBe(false);expect(g).not.toHaveProperty('mySharedContacts');expect(g).not.toHaveProperty('otherSharedContacts');}
 test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\?.*)?$/))throw new Error('Dedicated _test database required');mkdirSync(path.join(root,'.tools/stage5-browser'),{recursive:true});});
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture('cleanup',actor.id);});
+
+test('没有发布任何需求：直接邀请、老师接受并双方授权联系方式',async({page,browser},info)=>{
+  const tc=await browser.newContext({viewport:info.project.use.viewport,isMobile:info.project.use.isMobile,hasTouch:info.project.use.hasTouch});
+  try{
+    const tp=await tc.newPage(),owner=user('REQUESTER'),tutor=user('TUTOR');tp.on('dialog',d=>d.accept());
+    await login(page,owner);await login(tp,tutor);
+    expect((await write(page,owner,'/me/profile',{expectedVersion:0,displayName:'合成直接邀请人'},'PATCH')).ok()).toBe(true);
+    const saved=await write(tp,tutor,'/me/teacher-profile',{expectedVersion:0,displayName:'合成直接邀请老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'水彩入门教学',priceMin:null,priceMax:null,availabilityText:'周末下午'});
+    expect(saved.ok()).toBe(true);const profile=await saved.json();expect((await write(tp,tutor,'/me/teacher-profile/publish',{expectedVersion:profile.version},'POST')).ok()).toBe(true);
+    await page.goto('/?view=teachers&teacher='+tutor.id);await page.getByRole('button',{name:'邀请这位老师'}).click();await page.locator('#invitation-introduction').fill('想了解周末水彩课');await page.getByRole('button',{name:'发送邀请',exact:true}).click();
+    await expect(page.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();expect((await(await page.request.get('/api/v1/me/requests')).json()).items).toHaveLength(0);
+    await progress(tp);await expect(tp.locator('.invitation-summary')).toContainText('合成直接邀请人');await expect(tp.locator('.invitation-summary')).toContainText('想了解周末水彩课');await tp.getByRole('button',{name:'接受意向',exact:true}).click();await expect(tp.getByRole('heading',{name:'已互选',exact:true})).toBeVisible();
+    const m=(await(await page.request.get('/api/v1/me/matches')).json()).items[0];expect(m.requestId).toBeNull();
+    await saveContacts(page,'','direct_owner');await saveContacts(tp,'','direct_teacher');
+    await page.goto('/?view=matches&match='+m.id);await tp.goto('/?view=matches&match='+m.id);
+    await authorize(page,'微信');await expect(page.getByTestId('shared-contacts')).toHaveCount(0);await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await authorize(tp,'微信');await page.getByRole('button',{name:'读取最新授权',exact:true}).click();
+    await expect(page.getByTestId('shared-contacts')).toContainText('direct_teacher');await expect(tp.getByTestId('shared-contacts')).toContainText('direct_owner');
+  }finally{await tc.close();}
+});
 
 test('完整投递闭环：资料、发布审核、互选、逐项授权、取消与确认撤回',async({page,browser},info)=>{
   const tc=await browser.newContext({viewport:info.project.use.viewport,isMobile:info.project.use.isMobile,hasTouch:info.project.use.hasTouch}),oc=await browser.newContext({viewport:info.project.use.viewport});
@@ -71,8 +90,8 @@ test('完整投递闭环：资料、发布审核、互选、逐项授权、取�
     await page.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');
     for(const [p,role] of [[page,'requester'],[tp,'tutor']] as const){expect(p.viewportSize()).toEqual(info.project.use.viewport);expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();await p.screenshot({path:path.join(root,`.tools/stage5-browser/shared-${role}-${info.project.name}.png`),fullPage:true});}
     acceptDialog=false;await page.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();
-    acceptDialog=true;await page.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(page.getByRole('status')).toContainText('本次授权操作已完成');await expect(page.getByTestId('shared-contacts')).toHaveCount(0);hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
-    await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);await expect(tp.getByText('我的授权：已同意 · 对方授权：未有效同意')).toBeVisible();
+    acceptDialog=true;await page.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(page.locator('.consent .message.success')).toContainText('本次授权操作已完成');await expect(page.getByTestId('shared-contacts')).toHaveCount(0);hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
+    await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);await expect(tp.getByText('我的授权：已同意 · 对方授权：待同意')).toBeVisible();
     await page.getByRole('button',{name:'退出登录',exact:true}).click();await expect(page.getByRole('button',{name:'我想找老师',exact:true})).toBeVisible();expect(await page.locator('body').innerText()).not.toContain('tutor_contact');
   }finally{await tc.close();await oc.close();}
 });
@@ -89,7 +108,7 @@ test('邀请闭环及到期停止公开后授权，字段变更要求双方重�
     await authorize(tp,'微信');hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
     await progress(page);await authorize(page,'手机号');await expect(page.getByTestId('shared-contacts')).toContainText('13800000003');
     await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(tp.getByTestId('shared-contacts')).toContainText('13800000003');
-    await tp.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(tp.getByRole('status')).toContainText('本次授权操作已完成');hidden(await(await page.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
+    await tp.getByRole('button',{name:'撤回本人联系方式授权',exact:true}).click();await expect(tp.locator('.consent .message.success')).toContainText('本次授权操作已完成');hidden(await(await page.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
     await page.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);
     await authorize(tp,'微信');await expect(tp.getByTestId('shared-contacts')).toContainText('13800000003');
     await saveContacts(page,'','unshared_change');hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await tp.getByRole('button',{name:'读取最新授权',exact:true}).click();await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);
@@ -106,7 +125,7 @@ test('授权响应损坏、成功后读取失败可同键恢复，撤回后旧�
     const g=await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json();expect(g.canViewContacts).toBe(true);
     expect((await write(tp,data.tutor,`/matches/${m.id}/contact-consent`,{roundId:m.roundId,expectedGrantVersion:g.version},'DELETE')).ok()).toBeTruthy();
     let readLost=false;await page.route('**/api/v1/matches/*/contact-consent',async route=>{if(route.request().method()==='GET'&&!readLost){readLost=true;await route.abort('failed');}else await route.fallback();});
-    await page.getByRole('button',{name:'重试同一次授权操作',exact:true}).click();await expect(page.getByText('本次操作已成功，但最新授权未能刷新。可同键重试，或读取最新授权核对。')).toBeVisible();
+    await page.getByRole('button',{name:'重试同一次授权操作',exact:true}).click();await expect(page.getByText('本次操作已成功，但最新授权未能刷新。可以重试，或读取最新授权核对。')).toBeVisible();
     await page.getByRole('button',{name:'重试同一次授权操作',exact:true}).click();await expect(page.getByRole('button',{name:'重试同一次授权操作',exact:true})).toHaveCount(0);await expect(page.getByTestId('shared-contacts')).toHaveCount(0);expect(keys).toHaveLength(3);expect(new Set(keys).size).toBe(1);
     hidden(await(await page.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
   }finally{await tc.close();await oc.close();}
@@ -115,9 +134,9 @@ test('授权响应损坏、成功后读取失败可同键恢复，撤回后旧�
 test('私密表单失败留输入、旧版核对与越权和换账号清理',async({page,browser,context},info)=>{
   const owner=user('REQUESTER'),outsider=user('REQUESTER');page.on('dialog',d=>d.accept());await login(page,owner);await saveContacts(page,'13800000001','owner_contact');
   const c=await(await page.request.get('/api/v1/me/contacts')).json();expect((await write(page,owner,'/me/contacts',{expectedVersion:c.version,phone:c.phone,wechat:'other_tab'})).ok()).toBeTruthy();
-  await page.getByLabel('微信号（选填）').fill('preserved_input');await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('alert')).toContainText('已变化');await expect(page.getByLabel('微信号（选填）')).toHaveValue('preserved_input');
-  await page.getByRole('button',{name:'读取最新联系方式',exact:true}).click();await page.getByRole('button',{name:'已核对，保留输入',exact:true}).click();await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('status')).toContainText('私密联系方式已保存');
-  await page.getByLabel('微信号（选填）').fill('invalid value');await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await expect(page.getByRole('alert')).toContainText('不含空格');await expect(page.getByLabel('微信号（选填）')).toHaveValue('invalid value');
+  await page.getByLabel('微信号（选填）').fill('preserved_input');await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await page.getByRole('button',{name:'确认保存',exact:true}).click();await expect(page.getByRole('alert')).toContainText('已变化');await expect(page.getByLabel('微信号（选填）')).toHaveValue('preserved_input');
+  await page.getByRole('button',{name:'读取最新联系方式',exact:true}).click();await page.getByRole('button',{name:'已核对，保留输入',exact:true}).click();await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await page.getByRole('button',{name:'确认保存',exact:true}).click();await expect(page.locator('.message.success')).toContainText('私密联系方式已保存');
+  await page.getByLabel('微信号（选填）').fill('invalid value');await page.getByRole('button',{name:'保存私密联系方式',exact:true}).click();await page.getByRole('button',{name:'确认保存',exact:true}).click();await expect(page.getByRole('alert')).toContainText('不含空格');await expect(page.getByLabel('微信号（选填）')).toHaveValue('invalid value');
   const ac=await browser.newContext({viewport:info.project.use.viewport});try{const visitor=await ac.newPage();await visitor.goto('/');expect((await visitor.request.get('/api/v1/me/contacts')).status()).toBe(401);}finally{await ac.close();}
   const second=await context.newPage();try{await second.goto('/');await second.getByRole('button',{name:'退出登录',exact:true}).click();await expect(second.getByRole('button',{name:'我想找老师',exact:true})).toBeVisible();await login(second,outsider);
     await page.getByRole('button',{name:'读取最新联系方式',exact:true}).click();await expect(page.getByRole('heading',{name:'登录邻课'})).toBeVisible();expect(await page.locator('body').innerText()).not.toContain('preserved_input');
