@@ -15,6 +15,7 @@ async function fixture(page:Page,options:{identity?:'REQUESTER'|'TUTOR';loggedIn
     if(path==='/auth/login'){loggedIn=true;return route.fulfill({json:me});}
     if(path==='/auth/logout'){loggedIn=false;return route.fulfill({status:204});}
     if(path==='/me')return route.fulfill(loggedIn?{json:me}:{status:401,json:{code:'LOGIN_REQUIRED',message:'请先登录'}});
+    if(path==='/me/contacts')return route.fulfill({json:{version:0,phone:null,wechat:null,fieldVersions:{phone:0,wechat:0}}});
     if(path==='/me/profile')return route.fulfill({json:profile});
     if(path==='/me/teacher-profile'){profile={...profile,displayName:req.postDataJSON().displayName,version:2};return route.fulfill({json:profile});}
     if(path==='/profile-options')return route.fulfill({json:{categoryCodes:['DRAWING'],serviceModes:['ONLINE','OFFLINE'],areaCodes:[]}});

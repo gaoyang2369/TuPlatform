@@ -61,11 +61,11 @@ test('没有需求也能直接邀请，留言选填，不调用需求接口且�
   const state=await fixture(page);let nativeDialogs=0;page.on('dialog',async d=>{nativeDialogs++;await d.dismiss();});
   await page.goto('/?view=teachers&teacher=teacher');await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.getByRole('button',{name:'发送邀请',exact:true})).toBeEnabled();await expect(page.getByRole('combobox')).toHaveCount(0);
   await page.locator('#invitation-introduction').fill('周末想学习水彩');await page.screenshot({path:path.resolve(import.meta.dirname,'../../.tools/direct-invitations/invite-'+info.project.name+'.png'),fullPage:true});
-  await page.getByRole('button',{name:'发送邀请',exact:true}).click();await expect(page.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();await expect(page.locator('.invitation-summary')).toContainText('周末想学习水彩');await expect(page.getByRole('heading',{name:'发起时的需求'})).toHaveCount(0);
-  expect(state.invites).toHaveLength(1);expect(state.invites[0].body).toEqual({kind:'DIRECT_INVITATION',tutorUserId:'teacher',expectedTeacherProfileVersion:2,introduction:'周末想学习水彩'});expect(state.requestReads).toBe(0);expect(nativeDialogs).toBe(0);
+  await page.getByRole('button',{name:'发送邀请',exact:true}).click();await expect(page.locator('.match-detail .status-pill')).toBeVisible();await expect(page.locator('.invitation-summary')).toContainText('周末想学习水彩');await expect(page.getByRole('heading',{name:'发起时的需求'})).toHaveCount(0);
+  expect(state.invites).toHaveLength(1);expect(state.invites[0].body).toEqual({kind:'DIRECT_INVITATION',tutorUserId:'teacher',expectedTeacherProfileVersion:2,introduction:'周末想学习水彩',contactExchange:{agree:true,expectedVersion:0}});expect(state.requestReads).toBe(0);expect(nativeDialogs).toBe(0);
 });
 
 test('邀请响应不确定时锁定留言，重试复用相同凭据与内容',async({page})=>{
   const state=await fixture(page);state.failInvite=true;await page.goto('/?view=teachers&teacher=teacher');await page.getByRole('button',{name:'邀请这位老师'}).click();await page.getByRole('button',{name:'发送邀请',exact:true}).click();await expect(page.getByText('上次结果尚未确认。请用同一次操作重试，或到撮合进度查看。')).toBeVisible();await expect(page.locator('#invitation-introduction')).toBeDisabled();
-  state.failInvite=false;await page.getByRole('button',{name:'重试同一次意向'}).click();await expect(page.getByRole('heading',{name:'等待对方回应',exact:true})).toBeVisible();expect(state.invites).toHaveLength(2);expect(state.invites[0]).toEqual(state.invites[1]);expect(state.invites[0].body.introduction).toBe('');
+  state.failInvite=false;await page.getByRole('button',{name:'重试同一次意向'}).click();await expect(page.locator('.match-detail .status-pill')).toBeVisible();expect(state.invites).toHaveLength(2);expect(state.invites[0]).toEqual(state.invites[1]);expect(state.invites[0].body.introduction).toBe('');
 });

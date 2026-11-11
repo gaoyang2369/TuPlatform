@@ -13,7 +13,7 @@ watch(()=>props.open,async open=>{
 onBeforeUnmount(()=>{dialog.value?.close();previousFocus?.focus();});
 </script>
 <template><Teleport to="body"><dialog ref="dialog" class="native-dialog confirm-dialog" :aria-labelledby="titleId" :aria-describedby="descriptionId" :aria-busy="busy" @cancel.prevent="!busy&&emit('cancel')">
-  <div class="dialog-card"><p class="eyebrow">请确认</p><h2 :id="titleId">{{title}}</h2><div :id="descriptionId" class="confirm-description"><slot/></div><div class="form-actions"><button ref="cancelButton" class="secondary" :disabled="busy" @click="emit('cancel')">取消</button><button class="primary" :disabled="busy" @click="emit('confirm')">{{busy?'正在保存…':confirmText}}</button></div></div>
+  <div class="dialog-card"><p class="eyebrow">请确认</p><h2 :id="titleId">{{title}}</h2><div :id="descriptionId" class="confirm-description"><slot/></div><div class="form-actions"><button ref="cancelButton" class="secondary" :disabled="busy" @click="emit('cancel')">取消</button><button class="primary" :disabled="busy" @click="emit('confirm')">{{busy?'正在处理…':confirmText}}</button></div></div>
 </dialog></Teleport></template>
 <style scoped>
 .confirm-dialog{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);color:var(--ink,#253e34)}

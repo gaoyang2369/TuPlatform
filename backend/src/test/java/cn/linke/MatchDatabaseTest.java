@@ -123,6 +123,59 @@ class MatchDatabaseTest {
         var hidden=contacts.grant(tutor.session(),m.id());assertEquals(false,hidden.get("canViewContacts"));assertEquals(true,hidden.get("requiresReconfirmation"));assertFalse(hidden.containsKey("otherSharedContacts"));
         var withdrawn=contacts.withdraw(tutor.session(),m.id(),new WithdrawContacts(m.roundId(),((Number)hidden.get("version")).longValue()),key());assertEquals(false,withdrawn.get("canViewContacts"));
     }
+    @Test void sendAndAcceptRecordConsentAtomicallyWithoutExtraSharingRound() throws Exception {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);
+        contacts.save(owner.session(),new SaveContacts(0L,"13800000000","synthetic_owner"));
+        contacts.save(tutor.session(),new SaveContacts(0L,null,"synthetic_tutor"));
+        var body=new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,1L));String startKey=key();
+        var m=matches.start(owner.session(),body,startKey).match();var waiting=contacts.grant(owner.session(),m.id());
+        assertEquals(true,waiting.get("myConsent"));assertEquals(false,waiting.get("canViewContacts"));assertFalse(waiting.containsKey("otherSharedContacts"));
+        var accept=new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L));String acceptKey=key();
+        matches.respond(tutor.session(),m.id(),accept,acceptKey,"ACCEPT");var mutual=contacts.grant(owner.session(),m.id());
+        assertEquals(true,mutual.get("canViewContacts"));assertEquals(Map.of("wechat","synthetic_tutor"),mutual.get("otherSharedContacts"));
+        assertEquals(Map.of("phone","13800000000","wechat","synthetic_owner"),contacts.grant(tutor.session(),m.id()).get("otherSharedContacts"));
+        contacts.withdraw(tutor.session(),m.id(),new WithdrawContacts(m.roundId(),((Number)mutual.get("version")).longValue()),key());
+        matches.respond(tutor.session(),m.id(),accept,acceptKey,"ACCEPT");matches.start(owner.session(),body,startKey);
+        assertEquals(false,contacts.grant(owner.session(),m.id()).get("canViewContacts")); // Receipt replay cannot restore sharing.
+        String receipts=db.queryForObject("SELECT string_agg(result::text,',') FROM match_action_receipts WHERE match_id=?",String.class,m.id());
+        assertFalse(receipts.contains("synthetic_owner"));assertFalse(receipts.contains("13800000000"));
+    }
+    @Test void changedContactsRollBackSendAndAcceptAndDoNotLeakIntoNewConsent() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);
+        contacts.save(owner.session(),new SaveContacts(0L,null,"original_owner"));
+        var stale=new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,0L));
+        assertEquals("CONTACT_FIELD_CHANGED",assertThrows(ApiError.class,()->matches.start(owner.session(),stale,key())).code);
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM match_relationships WHERE requester_id=?",Integer.class,owner.id()));
+        var m=matches.start(owner.session(),new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,1L)),key()).match();
+        contacts.save(tutor.session(),new SaveContacts(0L,null,"new_tutor"));
+        assertEquals("CONTACT_FIELD_CHANGED",assertThrows(ApiError.class,()->matches.respond(tutor.session(),m.id(),new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,0L)),key(),"ACCEPT")).code);
+        assertEquals("WAITING",matches.detail(owner.session(),m.id()).state());assertEquals(false,contacts.grant(owner.session(),m.id()).get("otherConsent"));
+        contacts.save(owner.session(),new SaveContacts(1L,null,"changed_owner"));
+        matches.respond(tutor.session(),m.id(),new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L)),key(),"ACCEPT");
+        assertEquals(false,contacts.grant(tutor.session(),m.id()).get("canViewContacts"));
+    }
+    @Test void emptyContactsAndLegacyIntentionsNeverAuthorizeFutureValues() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);
+        var m=matches.start(owner.session(),new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,0L)),key()).match();
+        contacts.save(owner.session(),new SaveContacts(0L,null,"later_owner"));contacts.save(tutor.session(),new SaveContacts(0L,null,"new_tutor"));
+        matches.respond(tutor.session(),m.id(),new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L)),key(),"ACCEPT");
+        assertEquals(false,contacts.grant(tutor.session(),m.id()).get("canViewContacts"));
+        var legacyOwner=user("REQUESTER");contacts.save(legacyOwner.session(),new SaveContacts(0L,null,"legacy_owner"));
+        var legacy=matches.start(legacyOwner.session(),direct(tutor,version,""),key()).match();
+        matches.respond(tutor.session(),legacy.id(),new RespondMatch(legacy.roundId(),legacy.version(),new ContactExchange(true,1L)),key(),"ACCEPT");
+        assertEquals(false,contacts.grant(tutor.session(),legacy.id()).get("otherConsent"));
+        matches.start(legacyOwner.session(),new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,1L)),key());
+        assertEquals(false,contacts.grant(tutor.session(),legacy.id()).get("otherConsent")); // EXISTING is navigation only.
+    }
+    @Test void applicationAndRequestInvitationAlsoIntegrateContactConsent() throws Exception {
+        for(boolean invite:List.of(false,true)){
+            var s=setup();contacts.save(s.owner().session(),new SaveContacts(0L,null,"owner_contact"));contacts.save(s.tutor().session(),new SaveContacts(0L,null,"tutor_contact"));
+            var base=body(s,invite);var body=new StartMatch(base.requestId(),base.expectedSubmissionId(),base.kind(),base.tutorUserId(),base.expectedTeacherProfileVersion(),null,new ContactExchange(true,1L));
+            var m=matches.start(invite?s.owner().session():s.tutor().session(),body,key()).match();
+            matches.respond(invite?s.tutor().session():s.owner().session(),m.id(),new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L)),key(),"ACCEPT");
+            assertEquals(true,contacts.grant(s.owner().session(),m.id()).get("canViewContacts"));
+        }
+    }
     @AfterEach void cleanup(){
         for(UUID id:accounts)db.update("DELETE FROM match_relationships WHERE requester_id=? OR tutor_id=?",id,id);
         for(UUID id:accounts)db.update("DELETE FROM service_requests WHERE owner_id=?",id);

@@ -24,7 +24,7 @@ defineExpose({requestLeave});
 onMounted(()=>{window.addEventListener('beforeunload',beforeUnload);void read();});
 onBeforeUnmount(()=>{alive=false;window.removeEventListener('beforeunload',beforeUnload);form.phone='';form.wechat='';saved.value=null;latest.value=null;});
 </script>
-<template><section class="private-contacts"><p class="eyebrow">PRIVATE CONTACTS</p><h1>本人私密联系方式</h1><p>手机号、微信均选填，不影响发布或投递；只在互选后按本轮逐项授权分享。邮箱不分享。</p>
+<template><section class="private-contacts"><p class="eyebrow">PRIVATE CONTACTS</p><h1>本人私密联系方式</h1><p>手机号、微信均选填，不影响发布或投递；发送或接受意向时同意交换，互选后仅向对方展示。邮箱不分享。</p>
   <p v-if="error" class="message error" role="alert">{{error}}</p><p v-if="notice" class="message success" role="status">{{notice}}</p>
   <button class="secondary" :disabled="busy" @click="read">读取最新联系方式</button>
   <div v-if="latest" class="message warning"><h2>最新保存内容</h2><p>手机号：{{latest.phone?'+86 '+latest.phone:'未填写'}}；微信：{{latest.wechat||'未填写'}}</p><button class="secondary" @click="useLatest()">载入最新内容，放弃输入</button><button class="secondary" @click="useLatest(true)">已核对，保留输入</button></div>

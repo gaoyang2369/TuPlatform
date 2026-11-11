@@ -9,6 +9,7 @@ class MatchRulesTest {
         var request=java.util.UUID.randomUUID();var submission=java.util.UUID.randomUUID();
         var legacy="{\"requestId\":\""+request+"\",\"expectedSubmissionId\":\""+submission+"\",\"kind\":\"APPLICATION\",\"tutorUserId\":null,\"expectedTeacherProfileVersion\":2}";
         assertEquals(legacy,json.writeValueAsString(new StartMatch(request,submission,"APPLICATION",null,2L)));
+        assertEquals("{\"roundId\":\""+submission+"\",\"expectedVersion\":2}",json.writeValueAsString(new RespondMatch(submission,2L)));
     }
     @Test void onlyRecipientMayAcceptOrRejectAndOnlyInitiatorMayWithdraw() {
         for(String action:java.util.List.of("ACCEPT","REJECT")) {
