@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('Start','Stop','Status','ResetOperator')][string]$Action = 'Start',
     [ValidateRange(1024,65535)][int]$Port = 8180,
     [ValidateSet('tuplatform','tuplatform_test')][string]$DatabaseName = 'tuplatform',
@@ -25,6 +25,33 @@ function Read-OwnedProcess {
 function Port-Open([int]$CheckPort) {
     $client=New-Object Net.Sockets.TcpClient
     try {$pending=$client.BeginConnect('127.0.0.1',$CheckPort,$null,$null);if(!$pending.AsyncWaitHandle.WaitOne(600)){return $false};$client.EndConnect($pending);return $true}catch{return $false}finally{$client.Dispose()}
+}
+function Ensure-DatabaseTunnel {
+    $cfg = @{ DB_HOST = 'localhost'; DB_PORT = '5432' }
+    Get-Content -LiteralPath $envPath | ForEach-Object {
+        if ($_ -match '^\s*(DB_URL|DB_HOST|DB_PORT)\s*=(.*)$') { $cfg[$matches[1]] = $matches[2].Trim() }
+    }
+    foreach ($name in @('DB_URL', 'DB_HOST', 'DB_PORT')) {
+        $value = [Environment]::GetEnvironmentVariable($name, 'Process')
+        if ($null -ne $value) { $cfg[$name] = $value }
+    }
+
+    $usesTunnel = if ($cfg['DB_URL']) {
+        $cfg['DB_URL'] -match '^jdbc:postgresql://(?:127\.0\.0\.1|localhost):15432/'
+    } else {
+        $cfg['DB_HOST'] -in @('127.0.0.1', 'localhost') -and $cfg['DB_PORT'] -eq '15432'
+    }
+    if (!$usesTunnel -or (Port-Open 15432)) { return }
+
+    Write-Host '数据库 SSH 隧道未连接。请在新窗口按 SSH 提示登录，并保持该窗口打开。'
+    $tunnelScript = Join-Path $projectRoot 'backend/open-db-tunnel.ps1'
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-NoExit', '-File', ('"' + $tunnelScript + '"')) -WorkingDirectory $projectRoot -WindowStyle Normal
+    $deadline = (Get-Date).AddSeconds(60)
+    do {
+        Start-Sleep -Milliseconds 500
+        if (Port-Open 15432) { return }
+    } while ((Get-Date) -lt $deadline)
+    throw '等待数据库 SSH 隧道超时。请完成 SSH 登录后重新运行 local.cmd。'
 }
 function Resolve-Java {
     # Oracle's PATH launcher may fork another java.exe. Start the real JVM so saved PID = server PID.
@@ -82,26 +109,17 @@ if($Action -eq 'ResetOperator'){
     Run-Operator 'reset'
     exit 0
 }
+if(!$owned -and (Port-Open $Port)){throw "Port $Port is already in use. No process was stopped. Choose another port: ./scripts/local.ps1 -Port 8182"}
+if(!(Test-Path -LiteralPath $envPath)){throw 'backend/.env is required. Keep real values only in that ignored file.'}
+if(!$owned){
+    foreach($command in @('java','npm.cmd')){if(!(Get-Command $command -ErrorAction SilentlyContinue)){throw "$command is required. Use the existing JDK 21+ and Node 24.11+ environment."}}
+    $javaBinary=Resolve-Java
+}
+Ensure-DatabaseTunnel
 if($owned){
     Write-Host "Already running: http://127.0.0.1:$($owned.port)"
     if(!$NoBrowser){Start-Process "http://127.0.0.1:$($owned.port)"}
     exit 0
-}
-if(Port-Open $Port){throw "Port $Port is already in use. No process was stopped. Choose another port: ./scripts/local.ps1 -Port 8182"}
-if(!(Test-Path -LiteralPath $envPath)){throw 'backend/.env is required. Keep real values only in that ignored file.'}
-foreach($command in @('java','npm.cmd')){if(!(Get-Command $command -ErrorAction SilentlyContinue)){throw "$command is required. Use the existing JDK 21+ and Node 24.11+ environment."}}
-$javaBinary=Resolve-Java
-
-# Reuse the existing database configuration. Only open the project's established tunnel when needed.
-$cfg=@{}
-Get-Content -LiteralPath $envPath | ForEach-Object {if($_ -match '^\s*([^#=\s]+)\s*=(.*)$'){$cfg[$matches[1]]=$matches[2].Trim()}}
-$dbUrl=$cfg['DB_URL'];if($env:DB_URL){$dbUrl=$env:DB_URL}
-if($dbUrl -match '^jdbc:postgresql://(?:127\.0\.0\.1|localhost):15432/' -and !(Port-Open 15432)){
-    Write-Host 'The database SSH tunnel is closed. Enter the SSH password in the tunnel window.'
-    Start-Process powershell.exe -ArgumentList @('-NoProfile','-NoExit','-File',('"'+(Join-Path $projectRoot 'backend/open-db-tunnel.ps1')+'"')) -WorkingDirectory $projectRoot -WindowStyle Normal
-    $deadline=(Get-Date).AddSeconds(60)
-    while(!(Port-Open 15432) -and (Get-Date) -lt $deadline){Start-Sleep -Milliseconds 500}
-    if(!(Port-Open 15432)){throw 'Database tunnel is not ready. Complete SSH login, then run local.cmd again.'}
 }
 
 # Use a separate Maven output directory, preserving the running development application's classes.
