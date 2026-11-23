@@ -56,6 +56,11 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);await expect(paging).toContainText("第 3 页");await expect(paging.getByRole("button",{name:"下一页"})).toBeDisabled();
   await paging.getByRole("button",{name:"上一页"}).click();await expect(cards.first()).toContainText("合成老师 11");
   await cards.first().getByRole("button",{name:"查看老师"}).click();await expect(page.getByRole("heading",{name:"合成老师 11",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"邀请这位老师",exact:true})).toBeVisible();
+  const drawer = page.getByRole("dialog",{name:"老师资料"});
+  await expect(drawer.getByRole("heading",{name:"教学背景"})).toBeVisible();
+  await expect(drawer.getByRole("heading",{name:"教学方式"})).toBeVisible();
+  await expect(drawer.getByText("初一至初三",{exact:true})).toBeVisible();
+  await expect(drawer.getByRole("button",{name:"邀请这位老师"})).toBeInViewport();
   const reads=queries.length;await page.getByRole("button",{name:"返回老师列表",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);expect(queries.length).toBe(reads);expect(detailCalls).toEqual(["teacher-10"]);
   await page.getByRole("button",{name:"课外学习",exact:true}).click();
   await expect(paging).toContainText("第 1 页");

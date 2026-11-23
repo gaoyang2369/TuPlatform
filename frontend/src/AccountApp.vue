@@ -7,7 +7,6 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import RequestDrafts from "./RequestDrafts.vue";
-import PublicRequests from "./PublicRequests.vue";
 import OperationsReview from "./OperationsReview.vue";
 import MatchProgress from "./MatchProgress.vue";
 import PrivateContacts from "./PrivateContacts.vue";
@@ -17,12 +16,12 @@ import { codePointLength, moneyError, passwordError } from "./account-form.ts";
 import { readScreen, routeTo, writeUrl, listenHistory, restoreScroll, type Screen } from "./navigation.ts";
 import type {Match} from './match-types.ts';
 
+const PublicRequests = defineAsyncComponent(() => import("./PublicRequests.vue"));
 const TeacherDiscovery = defineAsyncComponent(() => import("./TeacherDiscovery.vue"));
 
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
 const screen = ref<Screen>("home");
 const routeRevision = ref(0);
-const teacherId = ref<string>();
 const returnTarget = ref(safeReturn(new URLSearchParams(location.search).get("returnTo")));
 let stopHistory: (() => void) | undefined;
 const pendingReplies=ref<number|null>(null);
@@ -30,7 +29,6 @@ let pendingRead=0,pendingTimer:ReturnType<typeof setInterval>|undefined;
 const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
 const reviewRef = ref<InstanceType<typeof OperationsReview>>();
 const contactsRef = ref<InstanceType<typeof PrivateContacts>>();
-const publicRequestId=ref<string|undefined>(new URLSearchParams(location.search).get("request")??undefined);
 const me = ref<Me | null>(null);
 const profile = ref<Profile | null>(null);
 const busy = ref(false);
@@ -91,8 +89,6 @@ function applyLocation() {
     notice.value = "当前身份无法使用这个入口，已为你打开可用页面。";
     routeTo(target, {}, true);
   } else if (target !== readScreen()) routeTo(target, { returnTo: returnTarget.value }, true);
-  publicRequestId.value = target === "public" ? query.get("request") || undefined : undefined;
-  teacherId.value = target === "teachers" ? query.get("teacher") || undefined : undefined;
   matchId.value = target === "matches" ? query.get("match") || undefined : undefined;
   matchRequestId.value = target === "matches" ? query.get("forRequest") || undefined : undefined;
   screen.value = target; routeRevision.value++;
@@ -396,7 +392,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         <Button v-else class="ml-auto shrink-0" :disabled="busy||booting" @click="showLogin">登录 / 注册</Button>
       </div>
     </header>
-    <main :class="screen==='teachers' ? 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8' : 'account-main'" :aria-busy="busy || booting">
+    <main :class="['teachers','public'].includes(screen) ? 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8' : 'account-main'" :aria-busy="busy || booting">
       <div v-if="booting" data-ui role="status" class="space-y-4 py-8"><span class="sr-only">正在读取账号状态…</span><Skeleton class="h-8 w-44"/><Skeleton class="h-28 w-full rounded-2xl"/></div>
       <template v-else>
         <FeedbackToast v-if="error" :key="'error-' + messageSequence" :message="error" kind="error" :field-errors="fieldErrors" />
@@ -456,9 +452,12 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </section>
 
         <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" :key="routeRevision" @expired="draftSessionExpired" @profile="prepareProfile" @matches="showMatches(undefined,$event)" />
-        <PublicRequests v-else-if="screen==='public'" :key="routeRevision" :initial-id="publicRequestId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="prepareProfile" @login="showLogin" />
+        <Suspense v-else-if="screen==='public'">
+          <PublicRequests :key="me?.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="prepareProfile" @login="showLogin" />
+          <template #fallback><div role="status"><span class="sr-only">正在打开公开需求…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
+        </Suspense>
         <Suspense v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'">
-          <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :initial-id="teacherId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" @profile="prepareProfile" />
+          <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" @profile="prepareProfile" />
           <template #fallback><div role="status"><span class="sr-only">正在打开发现老师…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
         </Suspense>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />

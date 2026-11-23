@@ -30,7 +30,6 @@ async function fixture(page:Page,options:{identity?:'REQUESTER'|'TUTOR';loggedIn
   });
   return {writes};
 }
-async function expandFilters(page:Page){const toggle=page.getByRole('button',{name:'筛选条件',exact:true});if(await toggle.isVisible())await toggle.click();}
 
 test('双入口：首页找老师须登录，找需求可直接浏览且手机首屏有完整卡片',async({page})=>{
   await fixture(page);await page.goto('/');
@@ -87,15 +86,15 @@ test('详情登录后回到原需求，刷新仍在详情且不自动投递',asy
   const {writes}=await fixture(page);await page.goto('/?view=public&request=request-3');
   await page.getByRole('button',{name:'登录后以老师身份投递'}).click();await page.reload();
   await page.locator('#field-account').fill('ux_user');await page.locator('#field-password').fill('test-password');await page.getByRole('button',{name:'登录',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'水彩需求 3',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'我对这个需求感兴趣'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'水彩需求 3',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'发出意向'})).toBeVisible();
   await page.reload();await expect(page.getByRole('heading',{name:'水彩需求 3',exact:true})).toBeVisible();expect(writes).toEqual(['/auth/login']);
 });
 
 test('筛选与分页在刷新、详情返回、浏览器前进后退中恢复',async({page})=>{
-  await fixture(page);await page.goto('/?view=public');await expect(page.locator('.request-card')).toHaveCount(10);await expandFilters(page);
-  await page.getByRole('combobox',{name:'类别',exact:true}).selectOption('DRAWING');await page.getByRole('button',{name:'筛选需求',exact:true}).click();
+  await fixture(page);await page.goto('/?view=public');await expect(page.locator('.request-card')).toHaveCount(10);
+  await page.getByRole('button',{name:'绘画',exact:true}).click();
   await page.getByRole('button',{name:'下一页',exact:true}).click();await expect(page.locator('.pagination')).toContainText('第 2 页');await page.reload();
-  await expect(page.locator('.request-card')).toHaveCount(3);await expect(page.locator('.filter-toolbar')).toContainText('绘画');
+  await expect(page.locator('.request-card')).toHaveCount(3);await expect(page.getByRole('button',{name:'绘画',exact:true})).toHaveAttribute('aria-pressed','true');
   await page.locator('.request-card').first().getByRole('button').click();await expect(page.getByRole('heading',{name:'水彩需求 10',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'返回需求列表'}).click();await expect(page.locator('.pagination')).toContainText('第 2 页');
   await page.evaluate(()=>history.forward());await expect(page.getByRole('button',{name:'返回需求列表'})).toBeVisible();

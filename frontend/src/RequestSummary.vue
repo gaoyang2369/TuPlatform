@@ -1,41 +1,80 @@
 <script setup lang="ts">
-import {moneyText} from "./discovery-display.ts";
 import { computed } from "vue";
-import { categoryNames,areaNames,stageNames,modeNames,weekdayNames,minuteText } from "./request-display.ts";
-const props=defineProps<{ fields:Record<string,unknown>; displayName?:string }>();
-const frequency=computed(()=>props.fields.frequency as {mode?:string;count?:number}|undefined);
-const slots=computed(()=> (props.fields.availableSlots??[]) as {weekday:number;startMinute:number;endMinute:number}[]);
-const preference=computed(()=>props.fields.availabilityPreference as {mode:string;weekdays:number[];periods:string[]}|undefined);
-const periodNames:Record<string,string>={MORNING:"上午",AFTERNOON:"下午",EVENING:"晚上"};
-function hasText(value:unknown) { return typeof value === "string" && value.trim().length > 0; }
-const preferenceText=computed(()=>{
-  const value=preference.value;
-  if(!value)return "";
-  if(value.mode==='NEGOTIABLE')return "时间可协商";
-  const days=[...value.weekdays].sort().join(',');
-  const label=days==='6,7'?'周末':days==='1,2,3,4,5'?'工作日':days==='1,2,3,4,5,6,7'?'每天':value.weekdays.map(day=>weekdayNames[day-1]).join('、');
-  return `${label||'日期待补充'} · ${value.periods.length?value.periods.map(code=>periodNames[code]).join('、'):'时段不限'}（具体时间可协商）`;
+import { ArrowRight, CalendarClock, MapPin, Monitor, UserRound } from "@lucide/vue";
+import { Button } from "@/components/ui/button";
+import { moneyText, timeSummary } from "./discovery-display";
+import { categoryNames, areaNames, stageNames, modeNames, weekdayNames, minuteText } from "./request-display";
+const props = defineProps<{ fields: Record<string, unknown>; displayName?: string; compact?: boolean; openDisabled?: boolean; districtLabel?: string }>();
+const emit = defineEmits<{ open: [event: MouseEvent] }>();
+const text = (key: string) => String(props.fields[key] ?? "").trim();
+const study = computed(() => props.fields.categoryCode === "EXTRACURRICULAR_STUDY");
+const audience = computed(() => study.value ? [text("grade"), text("subject")].filter(Boolean).join(" · ") : stageNames[text("audienceStageCode")]);
+const category = computed(() => categoryNames[text("categoryCode")] || text("categoryCode"));
+const mode = computed(() => modeNames[text("serviceMode")]);
+const street = computed(() => areaNames[text("areaCode")] ? areaNames[text("areaCode")] + "街道" : "");
+const place = computed(() => street.value || text("locationText") || (mode.value === "线上" ? "" : props.districtLabel));
+const budget = computed(() => {
+  const min = moneyText(props.fields.budgetMin), max = moneyText(props.fields.budgetMax);
+  if (!min && !max) return "待补充";
+  return "¥" + (min === max ? min : (min || "待补充") + "–" + (max || "待补充"));
+});
+const time = computed(() => {
+  const pref = props.fields.availabilityPreference as {mode:string;weekdays:number[];periods:string[]} | undefined;
+  if (pref) {
+    if (pref.mode === "NEGOTIABLE") return "时间可协商";
+    const days = [...pref.weekdays].sort().join(",");
+    const label = days === "6,7" ? "周末" : days === "1,2,3,4,5" ? "工作日" : days === "1,2,3,4,5,6,7" ? "每天" : pref.weekdays.map(day => weekdayNames[day-1]).join("、");
+    const periods: Record<string,string> = { MORNING:"上午", AFTERNOON:"下午", EVENING:"晚上" };
+    return (label || "日期待补充") + " · " + (pref.periods.map(code => periods[code]).join("、") || "时段不限") + "（具体时间可协商）";
+  }
+  const slots = (props.fields.availableSlots || []) as {weekday:number;startMinute:number;endMinute:number}[];
+  return slots.map(s => weekdayNames[s.weekday-1] + " " + minuteText(s.startMinute) + "—" + minuteText(s.endMinute)).join("\n") || "待补充";
+});
+const facts = computed(() => {
+  const freq = props.fields.frequency as {mode?:string;count?:number} | undefined;
+  return [
+    ...(study.value ? [["年级", text("grade") || "待补充"], ["科目", text("subject") || "待补充"]] : [["服务对象", audience.value || "待补充"]]),
+    ["服务类别", category.value || "待补充"], ["服务方式", mode.value],
+    ["服务地点", [street.value, text("locationText")].filter(Boolean).join(" · ") || (mode.value !== "线上" ? "待补充" : "")],
+    ["单次时长", (text("durationHours") || "待补充") + " 小时"],
+    ["频率", freq?.mode === "NEGOTIABLE" ? "可协商" : freq?.mode === "PER_WEEK" ? "每周" + (freq.count ?? "待补充") + "次" : "待补充"],
+    ["可约时间", time.value], ["期望开始", text("expectedStartDate")],
+  ].filter(([, value]) => value);
 });
 </script>
 <template>
-  <article class="request-summary">
-    <h2>{{ fields.title||'未填写标题' }}</h2><p v-if="displayName" class="publisher">发布者：{{ displayName }}</p>
-    <dl><dt>服务类别</dt><dd>{{ categoryNames[String(fields.categoryCode)]||'待补充' }}</dd>
-      <template v-if="fields.categoryCode!=='EXTRACURRICULAR_STUDY'"><dt>服务对象</dt><dd>{{ stageNames[String(fields.audienceStageCode)]||'待补充' }}</dd></template>
-      <template v-if="fields.categoryCode==='EXTRACURRICULAR_STUDY'"><dt>年级</dt><dd>{{ fields.grade||'待补充' }}</dd><dt>科目</dt><dd>{{ fields.subject||'待补充' }}</dd></template>
-      <template v-if="fields.serviceMode!=='ONLINE'||hasText(fields.locationText)||areaNames[String(fields.areaCode)]"><dt>服务地点</dt><dd>{{ fields.locationText||(areaNames[String(fields.areaCode)] ? areaNames[String(fields.areaCode)]+'街道附近' : '待补充') }}</dd></template>
-      <template v-if="modeNames[String(fields.serviceMode)]"><dt>服务方式</dt><dd>{{ modeNames[String(fields.serviceMode)] }}</dd></template>
-      <dt>目标与现状</dt><dd class="pre-wrap">{{ fields.goal||'待补充' }}</dd>
-      <dt>预算</dt><dd>{{ moneyText(fields.budgetMin)||'待补充' }}—{{ moneyText(fields.budgetMax)||'待补充' }} 元/小时</dd>
-      <dt>单次时长</dt><dd>{{ fields.durationHours||'待补充' }} 小时</dd>
-      <dt>频率</dt><dd>{{ frequency?.mode==='NEGOTIABLE'?'可协商':frequency?.mode==='PER_WEEK'?`每周${frequency.count??'待补充'}次`:'待补充' }}</dd>
-      <dt>可约时间</dt><dd><span v-if="preference">{{ preferenceText }}</span><template v-else><p v-for="(slot,index) in slots" :key="index">{{ weekdayNames[slot.weekday-1] }} {{ minuteText(slot.startMinute) }}—{{ minuteText(slot.endMinute) }}</p><span v-if="!slots.length">待补充</span></template></dd>
-      <template v-if="hasText(fields.availabilityNote)"><dt>时间备注</dt><dd class="pre-wrap">{{ fields.availabilityNote }}</dd></template>
-      <template v-if="hasText(fields.expectedStartDate)"><dt>期望开始</dt><dd>{{ fields.expectedStartDate }}</dd></template>
-      <template v-if="hasText(fields.tutorExpectations)"><dt>对老师的期待</dt><dd class="pre-wrap">{{ fields.tutorExpectations }}</dd></template>
-    </dl>
+  <article data-ui :class="['request-summary flex min-w-0 flex-col gap-4 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
+    <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <div class="min-w-28 flex-1 space-y-1">
+        <span v-if="compact && category" class="text-xs font-semibold text-muted-foreground">{{ category }}</span>
+        <h2 class="text-xl leading-snug font-bold">{{ fields.title || '未填写标题' }}</h2>
+      </div>
+      <div class="max-w-full text-right" aria-label="预算"><strong class="block text-xl leading-tight font-bold tabular-nums">{{ budget }}</strong><span class="text-xs text-muted-foreground">元/小时</span></div>
+    </div>
+    <template v-if="compact">
+      <div class="space-y-1">
+        <p v-if="audience" class="text-[15px] font-semibold">{{ audience }}</p>
+        <p v-if="fields.goal" class="line-clamp-2 text-[15px] leading-6 text-secondary-foreground">{{ fields.goal }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs text-secondary-foreground">
+        <span v-if="place" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1"><MapPin class="size-3.5 shrink-0"/>{{ place }}</span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1"><Monitor class="size-3.5"/>{{ mode || '方式留待沟通' }}</span>
+      </div>
+      <p class="flex items-start gap-2 text-sm text-secondary-foreground"><CalendarClock class="mt-0.5 size-4 shrink-0"/>{{ timeSummary(fields) }}</p>
+      <p v-if="displayName" class="mt-auto flex items-center gap-2 text-xs text-muted-foreground"><UserRound class="size-3.5"/>{{ displayName }}</p>
+      <Button variant="secondary" :disabled="openDisabled" class="h-11 w-full justify-between rounded-xl bg-slate-100 text-slate-900 group-hover:bg-primary group-hover:text-white hover:bg-primary focus-visible:bg-primary focus-visible:text-white motion-reduce:transition-none" @click="emit('open', $event)">查看需求<ArrowRight/></Button>
+    </template>
+    <template v-else>
+      <p v-if="displayName" class="text-sm text-secondary-foreground">发布者：{{ displayName }}</p>
+      <section class="space-y-1.5"><h3 class="text-xs font-semibold text-slate-500">目标与现状</h3><p class="whitespace-pre-line text-[15px] leading-7">{{ fields.goal || '待补充' }}</p></section>
+      <dl class="grid grid-cols-2 gap-3">
+        <div v-for="[label, value] in facts" :key="label" class="min-w-0 rounded-xl bg-slate-50 p-3.5">
+          <dt class="text-xs font-semibold text-slate-500">{{ label }}</dt><dd class="mt-1 whitespace-pre-line text-[15px]">{{ value }}</dd>
+        </div>
+      </dl>
+      <section v-for="[label, value] in [['时间备注', text('availabilityNote')], ['对老师的期待', text('tutorExpectations')]].filter(([,v]) => v)" :key="label" class="space-y-1.5">
+        <h3 class="text-xs font-semibold text-slate-500">{{ label }}</h3><p class="whitespace-pre-line text-[15px] leading-7">{{ value }}</p>
+      </section>
+    </template>
   </article>
 </template>
-<style scoped>
-.request-summary{overflow-wrap:anywhere}.request-summary h2{font-size:23px;line-height:1.5}.publisher{color:var(--muted);margin:12px 0}.request-summary dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:15px;margin:24px 0}.request-summary dt{color:var(--muted)}.request-summary dd{margin:0;line-height:1.7}.request-summary dd p{margin:0 0 6px}@media(max-width:520px){.request-summary dl{grid-template-columns:80px minmax(0,1fr);font-size:13px;gap:12px}.request-summary h2{font-size:21px}}
-</style>
