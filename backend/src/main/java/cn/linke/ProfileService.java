@@ -48,7 +48,7 @@ class ProfileService {
             teacher.put("priceMin", amount(p.get("price_min"))); teacher.put("priceMax", amount(p.get("price_max")));
             teacher.put("availabilityText", p.get("availability_text")); teacher.put("public", p.get("is_public")); teacher.put("version", p.get("version"));
         }
-        return new Profile((String) p.get("display_name"), ((Number) p.get("version")).longValue(), teacher);
+        return new Profile((String) p.get("display_name"), (String) p.get("avatar_url"), ((Number) p.get("version")).longValue(), teacher);
     }
     private void version(Account a, Long expected) {
         if (expected == null || expected < 0) throw ApiError.invalid("expectedVersion", "请先读取当前资料");
@@ -131,7 +131,7 @@ class ProfileService {
             condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
         }
         var rows=db.queryForList("""
-            SELECT a.id,p.version,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
+            SELECT a.id,p.version,p.avatar_url,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
             FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE
             """+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
         var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(10).map(this::teacherProjection).toList());
@@ -144,6 +144,7 @@ class ProfileService {
         @SuppressWarnings("unchecked") var modes=(List<String>)teacher.get("serviceModes");
         @SuppressWarnings("unchecked") var areas=(List<String>)teacher.get("areaCodes");
         validateTeacher(new TeacherBody(expectedVersion,(String)teacher.get("displayName"),categoryCodes,modes,areas,(String)teacher.get("introduction"),(String)teacher.get("priceMin"),(String)teacher.get("priceMax"),(String)teacher.get("availabilityText")),true);
+        teacher.remove("avatar_url"); // Relationship snapshots retain teaching details. Avatars are read live.
         return teacher;
     }
     private Map<String,Object> teacherProjectionForMatch(UUID id) {
@@ -152,7 +153,7 @@ class ProfileService {
     }
     private Map<String,Object> teacherProjection(UUID id) {
         List<Map<String, Object>> rows = db.queryForList("""
-            SELECT a.id,p.version,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
+            SELECT a.id,p.version,p.avatar_url,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
             FROM profiles p JOIN accounts a ON a.id=p.account_id
             WHERE a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public
             """, id);
@@ -161,6 +162,7 @@ class ProfileService {
     }
     private Map<String,Object> teacherProjection(Map<String,Object> r) {
         var result = new LinkedHashMap<String, Object>();
+        result.put("avatar_url", r.get("avatar_url"));
         result.put("id", r.get("id")); result.put("profileVersion", r.get("version")); result.put("displayName", r.get("display_name"));
         result.put("categoryCodes", values(r.get("category_codes"))); result.put("serviceModes", values(r.get("service_modes"))); result.put("areaCodes", values(r.get("area_codes")));
         result.put("introduction", r.get("introduction")); result.put("priceMin", amount(r.get("price_min"))); result.put("priceMax", amount(r.get("price_max"))); result.put("availabilityText", r.get("availability_text"));

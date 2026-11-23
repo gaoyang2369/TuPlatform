@@ -25,12 +25,12 @@ class AuthService {
         return new Account(r.getObject("id", UUID.class), r.getString("account"), r.getString("email"),
             r.getString("password_hash"), r.getBoolean("email_verified"), r.getString("business_identity"),
             r.getBoolean("operator_granted"), r.getObject("registration_flow_id", UUID.class),
-            r.getString("registration_context_hash"), r.getLong("version"));
+            r.getString("registration_context_hash"), r.getLong("version"), r.getString("avatar_url"));
     }
-    private static final String ACCOUNT = "SELECT a.*, p.version FROM accounts a JOIN profiles p ON p.account_id=a.id ";
+    private static final String ACCOUNT = "SELECT a.*, p.version, p.avatar_url FROM accounts a JOIN profiles p ON p.account_id=a.id ";
     private Account one(List<Account> rows) { return rows.isEmpty() ? null : rows.getFirst(); }
     private boolean managedOperator(Account a) { return a.operator() && a.email().endsWith("@operators.linke.invalid"); }
-    public Me me(Account a) { return new Me(a.id(), a.account(), managedOperator(a) ? "" : a.email(), !managedOperator(a) && a.verified(), a.identity(), a.operator(), a.profileVersion()); }
+    public Me me(Account a) { return new Me(a.id(), a.account(), managedOperator(a) ? "" : a.email(), !managedOperator(a) && a.verified(), a.identity(), a.operator(), a.profileVersion(), a.avatarUrl()); }
     public Account current(String session, boolean lock) {
         if (session == null || session.length() != 43) throw new ApiError(401, "LOGIN_REQUIRED", "请先登录");
         Account a = one(db.query(ACCOUNT + "WHERE a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));

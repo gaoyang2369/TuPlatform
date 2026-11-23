@@ -187,7 +187,7 @@ class MatchDatabaseTest {
         assertEquals(403,assertThrows(ApiError.class,()->profiles.publicTeachers(s.tutor().session(),null,null,null,null)).status);
         var page=profiles.publicTeachers(s.owner().session(),null,"DRAWING",null,"ONLINE");assertEquals(1,((List<?>)page.get("items")).size());
         var projection=profiles.publicTeacher(s.owner().session(),s.tutor().id());
-        assertEquals(Set.of("id","profileVersion","displayName","categoryCodes","serviceModes","areaCodes","introduction","priceMin","priceMax","availabilityText"),projection.keySet());
+        assertEquals(Set.of("id","avatar_url","profileVersion","displayName","categoryCodes","serviceModes","areaCodes","introduction","priceMin","priceMax","availabilityText"),projection.keySet());
         profiles.visibility(s.tutor().session(),new VersionBody(s.teacherVersion()),false,key());
         assertTrue(((List<?>)profiles.publicTeachers(s.owner().session(),null,null,null,null).get("items")).isEmpty());
         assertEquals(404,assertThrows(ApiError.class,()->profiles.publicTeacher(s.owner().session(),s.tutor().id())).status);

@@ -28,6 +28,8 @@ class ApiErrors {
     ResponseEntity<?> known(ApiError e) {
         return ResponseEntity.status(e.status).body(Map.of("code", e.code, "message", e.getMessage(), "fieldErrors", e.fields));
     }
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<?> uploadTooLarge() { return known(AvatarImage.tooLarge()); }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<?> malformed() { return known(new ApiError(422, "INVALID_INPUT", "请求内容不完整或格式不正确")); }
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

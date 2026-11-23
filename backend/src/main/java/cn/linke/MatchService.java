@@ -31,9 +31,9 @@ class MatchService {
         actor(session); // Recheck a revocable session after waiting for the locks.
     }
     private static final String READ="SELECT m.*,n.state,n.initiator_id,n.initiator_role,n.submission_id,n.teacher_profile_version,n.submission_snapshot,n.teacher_snapshot,"+
-        "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id "+
+        "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id, p.avatar_url AS tutor_avatar, owner.avatar_url AS requester_avatar "+
         "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id LEFT JOIN request_submissions s ON s.id=n.submission_id "+
-        "LEFT JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id ";
+        "LEFT JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id JOIN profiles owner ON owner.account_id=m.requester_id ";
     private Map<String,Object> own(UUID actor,UUID id) {
         var rows=db.queryForList(READ+"WHERE m.id=? AND (m.requester_id=? OR m.tutor_id=?)",id,actor,actor);
         if(rows.isEmpty())throw new ApiError(404,"NOT_FOUND","撮合进度不存在或不可查看");
@@ -54,7 +54,8 @@ class MatchService {
         return new MatchView((UUID)r.get("id"),(UUID)r.get("request_id"),((Number)r.get("version")).longValue(),(UUID)r.get("current_round_id"),state,
             (String)r.get("initiator_role"),role,waiting&&!initiator,Boolean.TRUE.equals(r.get("request_expired")),Boolean.TRUE.equals(r.get("teacher_public")),
             waiting&&!initiator,waiting&&!initiator,waiting&&initiator,canStart(r,actor),object(r.get("submission_snapshot")),object(r.get("teacher_snapshot")),
-            !Objects.equals(r.get("submission_id"),r.get("latest_submission_id")),((Number)r.get("teacher_profile_version")).longValue()!=((Number)r.get("current_teacher_version")).longValue());
+            !Objects.equals(r.get("submission_id"),r.get("latest_submission_id")),((Number)r.get("teacher_profile_version")).longValue()!=((Number)r.get("current_teacher_version")).longValue(),
+            (String) r.get("REQUESTER".equals(role) ? "tutor_avatar" : "requester_avatar"));
     }
     public MatchView detail(String session,UUID id) { Account a=actor(session);return view(own(a.id(),id),a.id()); }
     public Map<String,Object> list(String session,String cursor,String state,UUID requestId) {

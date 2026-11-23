@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, RefreshCw, MessagesSquare } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import UserAvatar from "./UserAvatar.vue";
 import MatchStepper from "./MatchStepper.vue";
 import RequestSummary from "./RequestSummary.vue";
 import TeacherSummary from "./TeacherSummary.vue";
@@ -66,7 +67,7 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
   </header>
   <p v-if="error" class="rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{{error}}</p><p v-if="unknown" class="rounded-xl bg-orange-50 p-4 text-sm text-orange-900">{{responseSaved?'回应已保存，最新进度暂未更新。':'上次结果尚未确认。'}}<Button variant="ghost" :disabled="busy" @click="respond('')">重试同一次回应</Button></p><p v-if="conflict" class="rounded-xl bg-orange-50 p-4 text-sm text-orange-900">进度或资料已变化，请刷新后重试。</p>
   <article v-if="detail" class="match-detail mx-auto max-w-4xl space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8">
-    <div class="flex items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-xl font-bold text-indigo-800" aria-hidden="true">{{[...partner(detail)][0]}}</span><div><p class="text-sm text-muted-foreground">{{source(detail)}}</p><h2 class="text-xl font-bold">{{partner(detail)}}</h2></div><Badge variant="secondary" class="status-pill ml-auto" :class="detail.waitingForMe ? 'bg-orange-50 text-orange-800' : ''">{{matchLabel(detail)}}</Badge></div>
+    <div class="flex items-center gap-3"><UserAvatar :url="detail.avatar_url" :name="partner(detail)" class="size-11 rounded-xl text-xl"/><div><p class="text-sm text-muted-foreground">{{source(detail)}}</p><h2 class="text-xl font-bold">{{partner(detail)}}</h2></div><Badge variant="secondary" class="status-pill ml-auto" :class="detail.waitingForMe ? 'bg-orange-50 text-orange-800' : ''">{{matchLabel(detail)}}</Badge></div>
     <MatchStepper :state="detail.state" :shared="shared"/>
     <div v-if="detail.state==='WAITING'" class="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4"><div><h3 class="font-semibold">{{detail.waitingForMe?'期待你的回应':'意向已送达'}}</h3><p class="mt-1 text-sm text-secondary-foreground">{{detail.waitingForMe?'合适的话，接受后就可以联系沟通。':'对方接受后，即可查看彼此的联系方式。'}}</p></div><div class="flex flex-wrap items-center gap-2"><Button v-if="detail.canAccept" :disabled="busy||unknown||conflict" @click="ask('accept',$event)">接受意向</Button><Button v-if="detail.canReject" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('reject',$event)">婉拒</Button><Button v-if="detail.canWithdraw" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('withdraw-intent',$event)">撤回意向</Button></div></div>
     <ContactConsent v-if="detail.state==='MUTUAL'" :key="detail.roundId" @visibility="shared=$event" :match-id="detail.id" :round-id="detail.roundId" @expired="emit('expired')" @contacts="emit('contacts')"/>
@@ -89,7 +90,7 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
     </div>
     <div class="grid gap-6 md:grid-cols-2">
       <article v-for="m in orderedItems" :key="m.id" class="match-row grid content-between gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-lg motion-safe:hover:-translate-y-0.5 sm:p-6">
-        <div class="flex items-start gap-3"><span aria-hidden="true" class="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-xl font-bold text-indigo-800">{{ [...partner(m)][0] }}</span>
+        <div class="flex items-start gap-3"><UserAvatar :url="m.avatar_url" :name="partner(m)" class="size-11 rounded-xl text-xl"/>
           <div class="min-w-0 flex-1"><h2 class="text-xl font-bold">{{ partner(m) }}</h2><p class="text-sm text-secondary-foreground">{{ source(m) }}</p></div>
           <Badge variant="secondary" :class="m.waitingForMe && 'bg-orange-50 text-orange-800'">{{ matchLabel(m) }}</Badge>
         </div>

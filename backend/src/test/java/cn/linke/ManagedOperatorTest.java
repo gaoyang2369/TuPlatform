@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class ManagedOperatorTest {
     private Account account(String email, boolean operator) {
         return new Account(UUID.randomUUID(), "test_operator", email, "unused", true, null,
-            operator, UUID.randomUUID(), "unused", 0);
+            operator, UUID.randomUUID(), "unused", 0, null);
     }
     @Test void internalOperatorCannotSchedulePasswordEmailOrCreateResetToken() {
         var db = mock(JdbcTemplate.class);

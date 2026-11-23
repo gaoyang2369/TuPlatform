@@ -10,6 +10,10 @@ spring:
     import: optional:file:./.env[.properties]
   application:
     name: linke-api
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:TuPlatform}?sslmode=${DB_SSLMODE:require}}
     username: ${DB_USERNAME:${DB_USER:}}
@@ -38,6 +42,7 @@ spring:
       fail-on-unknown-properties: true
       accept-float-as-int: false
 app:
+  avatar-directory: ${AVATAR_DIRECTORY:./data/avatars}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
   secure-cookies: ${SECURE_COOKIES:true}
   mail-enabled: ${MAIL_ENABLED:false}

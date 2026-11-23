@@ -83,3 +83,93 @@ test("接受响应丢失可同键恢复，旧页面撤回冲突须读取已互�
     expect(keys).toHaveLength(3);expect(new Set(keys).size).toBe(1);
   }finally{await tc.close();await oc.close();}
 });
+
+test("裁剪上传头像后，发现、抽屉和双方撮合展示对应账号", async ({ page, browser }) => {
+  const teacherContext = await browser.newContext({ viewport: page.viewportSize() ?? undefined });
+  const adminContext = await browser.newContext();
+  const tp = await teacherContext.newPage(), admin = await adminContext.newPage();
+  try {
+    const { owner, tutor } = await prepare(page, tp, admin);
+    const image = await page.evaluate(() => {
+      const c = document.createElement("canvas"); c.width = 600; c.height = 300;
+      const g = c.getContext("2d")!;
+      g.fillStyle = "#2563eb"; g.fillRect(0, 0, 300, 300);
+      g.fillStyle = "#ea580c"; g.fillRect(300, 0, 300, 300);
+      return c.toDataURL("image/png").split(",")[1]!;
+    });
+    async function upload(actorPage: Page, isTeacher: boolean) {
+      await actorPage.goto("/?view=profile");
+      const panel = actorPage.getByRole("region", { name: "个人头像" });
+      await expect(panel).toContainText(isTeacher ? "上传清晰的本人正面生活照或证件照" : "头像选填");
+      const picker = panel.locator('input[type=file]');
+      await picker.setInputFiles({ name: "large.png", mimeType: "image/png", buffer: Buffer.alloc(2 * 1024 * 1024 + 1) });
+      await expect(panel.getByRole("alert")).toContainText("不能超过 2 MB");
+      await picker.setInputFiles({ name: "mock.png", mimeType: "image/png", buffer: Buffer.from("invalid") });
+      await expect(panel.getByRole("alert")).toContainText("无法打开");
+      await actorPage.locator("#field-displayName").fill("尚未保存的展示名");
+      await picker.setInputFiles({ name: "sample.png", mimeType: "image/png", buffer: Buffer.from(image, "base64") });
+      const canvas = panel.locator("canvas");
+      await expect(canvas).toBeVisible();
+      await panel.getByRole("slider").fill("2");
+      await expect(panel).toContainText("200%");
+      await canvas.scrollIntoViewIfNeeded();
+      const box = (await canvas.boundingBox())!;
+      await actorPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await actorPage.mouse.down();
+      await actorPage.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2);
+      await actorPage.mouse.up();
+      const pixel = await canvas.evaluate(c => [...c.getContext("2d")!.getImageData(170, 150, 1, 1).data]);
+      expect(pixel[2]).toBeGreaterThan(pixel[0]!);
+      await panel.getByRole("button", { name: "保存头像" }).click();
+      await expect(panel.getByRole("status")).toHaveText("头像已更新。");
+      await expect(actorPage.locator("#field-displayName")).toHaveValue("尚未保存的展示名");
+      const navImage = actorPage.getByRole("button", { name: "本人资料", exact: true }).locator("img");
+      await expect.poll(() => navImage.evaluate(el => el.naturalWidth)).toBe(300);
+      const url = (await navImage.getAttribute("src"))!;
+      expect((await (await actorPage.request.get("/api/v1/me")).json()).avatar_url).toBe(url);
+      await actorPage.reload();
+      await expect(actorPage.locator("#field-displayName")).not.toHaveValue("尚未保存的展示名");
+      await expect(navImage).toHaveAttribute("src", url);
+      return url;
+    }
+    const teacherUrl = await upload(tp, true), ownerUrl = await upload(page, false);
+    expect((await tp.request.get(ownerUrl)).status()).toBe(404);
+    const csrf = await (await page.request.get("/api/v1/auth/csrf")).json();
+    const multipart = { file: { name: "test.png", mimeType: "image/png", buffer: Buffer.from(image, "base64") } };
+    const endpoint = "/api/v1/upload/avatar";
+    expect((await page.request.post(endpoint, { multipart, headers: { "X-Account-Id": owner.id } })).status()).toBe(403);
+    expect((await page.request.post(endpoint, { multipart, headers: { [csrf.headerName]: csrf.token, "X-Account-Id": tutor.id } })).status()).toBe(409);
+    const headers = { [csrf.headerName]: csrf.token, "X-Account-Id": owner.id };
+    const oversized = { file: { ...multipart.file, buffer: Buffer.alloc(2 * 1024 * 1024 + 1) } };
+    expect((await page.request.post(endpoint, { headers, multipart: oversized })).status()).toBe(413);
+    const wrongType = { file: { ...multipart.file, mimeType: "image/webp" } };
+    expect((await page.request.post(endpoint, { headers, multipart: wrongType })).status()).toBe(422);
+    expect((await (await page.request.get("/api/v1/me/profile")).json()).avatar_url).toBe(ownerUrl);
+    await page.getByRole("button", { name: "发现老师", exact: true }).click();
+    const card = page.locator(".teacher-card").filter({ hasText: "合成绘画老师" });
+    await expect(card.locator("img")).toHaveAttribute("src", teacherUrl);
+    await expect.poll(() => card.locator("img").evaluate(el => el.naturalWidth)).toBe(300);
+    await card.getByRole("button", { name: "查看老师" }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer.locator("img").first()).toHaveAttribute("src", teacherUrl);
+    await drawer.getByRole("button", { name: "邀请这位老师" }).click();
+    await page.getByRole("button", { name: "发送邀请", exact: true }).click();
+    await expect(page.getByText("等待对方回应", { exact: true })).toBeVisible();
+    const updated = await page.request.post(endpoint, { headers, multipart });
+    expect(updated.ok()).toBeTruthy();
+    const updatedOwnerUrl = (await updated.json()).avatar_url;
+    expect(updatedOwnerUrl).not.toBe(ownerUrl);
+    expect((await page.request.get(ownerUrl)).status()).toBe(404);
+    for (const [viewer, url] of [[page, teacherUrl], [tp, updatedOwnerUrl]] as const) {
+      await viewer.goto("/?view=matches");
+      const avatar = viewer.locator(".match-row img");
+      await expect(avatar).toHaveAttribute("src", url);
+      await expect.poll(() => avatar.evaluate(el => el.naturalWidth)).toBe(300);
+      await viewer.route("**" + url, route => route.abort());
+      await viewer.reload();
+      await expect(viewer.locator(".match-row span[aria-hidden=true]").first()).toHaveText("合");
+    }
+  } finally {
+    await teacherContext.close(); await adminContext.close();
+  }
+});

@@ -22,7 +22,7 @@ async function load() {
   if(props.me.businessIdentity==="TUTOR") {
     const p=await api.request<Profile>("/me/profile");
     if(!p.teacher?.public){needsProfile.value=true;throw new Error("请先补齐本人老师资料并主动公开，再投递需求。");}
-    teacher.value={...p.teacher,id:props.me.id,displayName:p.displayName,profileVersion:p.version};
+    teacher.value={...p.teacher,id:props.me.id,avatar_url:p.avatar_url,displayName:p.displayName,profileVersion:p.version};
   } else {teacher.value=await api.request<PublicTeacher>("/teachers/"+encodeURIComponent(props.teacherId!));}
   const id=props.requestId;
   if(id)request.value=await api.request<PublicRequest>("/public/requests/"+encodeURIComponent(id));

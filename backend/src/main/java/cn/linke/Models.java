@@ -1,5 +1,6 @@
 package cn.linke;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,9 +19,9 @@ record TeacherBody(Long expectedVersion, String displayName, List<String> catego
     List<String> serviceModes, List<String> areaCodes, String introduction,
     String priceMin, String priceMax, String availabilityText) {}
 record Me(UUID id, String account, String email, boolean emailVerified, String businessIdentity,
-    boolean operatorGranted, long profileVersion) {}
+    boolean operatorGranted, long profileVersion, @JsonProperty("avatar_url") String avatarUrl) {}
 record Account(UUID id, String account, String email, String passwordHash, boolean verified,
-    String identity, boolean operator, UUID flowId, String contextHash, long profileVersion) {}
+    String identity, boolean operator, UUID flowId, String contextHash, long profileVersion, String avatarUrl) {}
 record Registration(UUID registrationFlowId, String context, boolean mailAccepted) {}
 record LoginResult(Me me, String session) {}
-record Profile(String displayName, long version, Map<String, Object> teacher) {}
+record Profile(String displayName, @JsonProperty("avatar_url") String avatarUrl, long version, Map<String, Object> teacher) {}

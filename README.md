@@ -71,6 +71,7 @@ Copy-Item backend/.env.example backend/.env
 | `DB_USER` / `DB_PASSWORD` | 数据库账号与密码 |
 | `DB_SSLMODE` | 按数据库 TLS 配置设置；仅本机无 TLS 的开发库可用 `disable` |
 | `DB_URL` / `DB_USERNAME` | 可选，分别覆盖分项连接地址与用户名 |
+| `AVATAR_DIRECTORY` | 头像持久化目录，默认是后端工作目录下的 `data/avatars`。打包运行时建议使用固定绝对路径，随数据库一同备份。 |
 | `PUBLIC_BASE_URL` | 用户访问前端的地址，用于邮件链接；本地开发可设为 `http://127.0.0.1:5173` |
 | `SECURE_COOKIES` | 本地 HTTP 设为 `false`；HTTPS 部署设为 `true` |
 | `MAIL_ENABLED` | 默认 `false`；完整注册、邮箱验证与找回密码需配置 SMTP 并开启邮件 |

@@ -11,6 +11,8 @@ target/
 .vite/
 .cache/
 
+data/avatars/
+
 # Test reports and language caches
 coverage/
 .nyc_output/

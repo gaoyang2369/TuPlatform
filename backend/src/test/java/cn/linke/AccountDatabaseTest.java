@@ -1,5 +1,14 @@
 package cn.linke;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import javax.imageio.ImageIO;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +45,7 @@ class AccountDatabaseTest {
     @Autowired AuthService auth;
     @Autowired ProfileService profiles;
     @Autowired JdbcTemplate db;
+    @Autowired PlatformTransactionManager transactionManager;
     @MockitoBean MailGateway mail;
     private final List<UUID> created = new ArrayList<>();
     private String verificationToken;
@@ -57,6 +67,33 @@ class AccountDatabaseTest {
         LoginResult login = auth.login(new LoginBody(account, password));
         if (identity != null) auth.identity(login.session(), new IdentityBody(identity));
         return new User(id, login.session());
+    }
+    @Test void avatarReplacementFollowsProfileTransaction(@TempDir Path directory) throws Exception {
+        User owner = user("REQUESTER");
+        var avatars = new AvatarService(auth, db, directory.toString());
+        var tx = new TransactionTemplate(transactionManager);
+        var bytes = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(30, 20, BufferedImage.TYPE_INT_RGB), "png", bytes);
+        var file = new MockMultipartFile("file", "synthetic.png", "image/png", bytes.toByteArray());
+        var original = tx.execute(status -> avatars.upload(owner.session(), file));
+        assertNotNull(original);
+        assertEquals(original, profiles.get(owner.session()).avatarUrl());
+
+        var rolledBack = tx.execute(status -> {
+            String url = avatars.upload(owner.session(), file);
+            status.setRollbackOnly();
+            return url;
+        });
+        assertNotNull(rolledBack);
+        assertFalse(Files.exists(directory.resolve(rolledBack.substring(AvatarService.URL_PREFIX.length()))));
+        assertEquals(original, profiles.get(owner.session()).avatarUrl());
+        assertTrue(Files.exists(directory.resolve(original.substring(AvatarService.URL_PREFIX.length()))));
+
+        var replacement = tx.execute(status -> avatars.upload(owner.session(), file));
+        assertNotEquals(original, replacement);
+        assertEquals(replacement, auth.me(auth.current(owner.session(), false)).avatarUrl());
+        assertFalse(Files.exists(directory.resolve(original.substring(AvatarService.URL_PREFIX.length()))));
+        assertEquals(401, assertThrows(ApiError.class, () -> avatars.upload(null, file)).status);
     }
     @Test void verificationNeedsExplicitConfirmationAndCrossBrowserPassword() {
         String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);

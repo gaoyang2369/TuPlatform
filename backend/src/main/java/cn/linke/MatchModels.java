@@ -1,5 +1,6 @@
 package cn.linke;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,4 +22,4 @@ record MatchView(UUID id, UUID requestId, long version, UUID roundId, String sta
     String myRole, boolean waitingForMe, boolean requestExpired, boolean teacherPublic,
     boolean canAccept, boolean canReject, boolean canWithdraw, boolean canInitiateAgain,
     Map<String,Object> submissionSnapshot, Map<String,Object> teacherSnapshot,
-    boolean submissionChanged, boolean teacherProfileChanged) {}
+    boolean submissionChanged, boolean teacherProfileChanged, @JsonProperty("avatar_url") String avatarUrl) {}

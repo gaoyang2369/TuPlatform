@@ -1,8 +1,9 @@
 import type { Teacher } from "./account-api.ts";
 export type PublicRequest=Record<string,unknown>&{id:string;submissionId:string;title:string;publisherDisplayName:string};
-export type PublicTeacher=Omit<Teacher,"public"|"version">&{id:string;profileVersion:number;displayName:string};
+export type PublicTeacher=Omit<Teacher,"public"|"version">&{id:string;profileVersion:number;avatar_url?:string|null;displayName:string};
 export interface Match {
   id:string;requestId:string|null;version:number;roundId:string;state:"WAITING"|"MUTUAL"|"REJECTED"|"WITHDRAWN";
+  avatar_url:string|null;
   initiatorRole:string;myRole:string;waitingForMe:boolean;requestExpired:boolean;teacherPublic:boolean;
   canAccept:boolean;canReject:boolean;canWithdraw:boolean;canInitiateAgain:boolean;
   submissionSnapshot:Record<string,unknown>&{title:string;publisherDisplayName:string;introduction?:string};teacherSnapshot:PublicTeacher;submissionChanged:boolean;teacherProfileChanged:boolean;

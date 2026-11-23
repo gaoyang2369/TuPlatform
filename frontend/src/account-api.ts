@@ -1,6 +1,6 @@
 export type Identity = "REQUESTER" | "TUTOR";
 export interface Me {
-  id: string; account: string; email: string; emailVerified: boolean;
+  id: string; avatar_url: string | null; account: string; email: string; emailVerified: boolean;
   businessIdentity: Identity | null; operatorGranted: boolean; profileVersion: number;
 }
 export interface Teacher {
@@ -8,7 +8,7 @@ export interface Teacher {
   introduction: string; priceMin: string | null; priceMax: string | null;
   availabilityText: string; public: boolean; version: number;
 }
-export interface Profile { displayName: string; version: number; teacher: Teacher | null }
+export interface Profile { avatar_url: string | null; displayName: string; version: number; teacher: Teacher | null }
 export interface ProfileOptions { categoryCodes: string[]; serviceModes: string[]; areaCodes: string[] }
 
 export class ApiFailure extends Error {
@@ -40,8 +40,9 @@ export class AccountApi {
   }
   async request<T>(path: string, method = "GET", body?: unknown, key?: string, retryCsrf = true): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (this.accountId && (path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (this.accountId && (path === "/upload/avatar" || path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
+    const multipart = body instanceof FormData;
+    if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     if (method !== "GET") {
       const csrf = await this.csrfToken(); headers[csrf.headerName] = csrf.token;
@@ -50,7 +51,7 @@ export class AccountApi {
     try {
       response = await this.fetcher("/api/v1" + path, {
         method, headers, credentials: "same-origin", cache: "no-store",
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
       });
     } catch {
       throw new ApiFailure(0, "NETWORK_ERROR", "暂时无法连接服务，请检查连接后重试。当前输入仍保留；操作结果不确定时请先读取最新状态。");
@@ -62,6 +63,7 @@ export class AccountApi {
     if (!response.ok) {
       const error = payload as { code?: string; message?: string; fieldErrors?: Record<string, string> };
       if (error.code === "CSRF_INVALID" && retryCsrf && method !== "GET") {
+        if (headers["X-Account-Id"] && headers["X-Account-Id"] !== this.accountId) throw new ApiFailure(409, "SESSION_CHANGED", "当前账号已变化，请重新登录");
         this.csrf = null; return this.request<T>(path, method, body, key, false);
       }
       throw new ApiFailure(response.status, error.code ?? "REQUEST_FAILED", error.message ?? "操作未完成，请稍后重试", error.fieldErrors);

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UserAvatar from "./UserAvatar.vue";
 import { computed } from "vue";
 import { BadgeCheck, MapPin, Clock3, Info, BookOpen, GraduationCap, Monitor, ArrowRight } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
@@ -8,21 +9,6 @@ import { categoryNames, areaNames, modeNames } from "./request-display";
 
 const props = defineProps<{ teacher: PublicTeacher; compact?: boolean; publicProfile?: boolean; openDisabled?: boolean }>();
 const emit = defineEmits<{ open: [event: MouseEvent] }>();
-const palettes = [
-  "from-indigo-50 to-indigo-200 text-indigo-800",
-  "from-amber-50 to-orange-200 text-amber-900",
-  "from-teal-50 to-teal-200 text-teal-800",
-  "from-violet-50 to-purple-200 text-violet-800",
-  "from-rose-50 to-rose-200 text-rose-800",
-  "from-stone-100 to-stone-300 text-stone-700",
-];
-const palette = computed(() => {
-  let hash = 0;
-  for (const character of props.teacher.id || props.teacher.displayName) {
-    hash = (Math.imul(hash, 31) + character.codePointAt(0)!) >>> 0;
-  }
-  return palettes[hash % palettes.length];
-});
 const rate = computed(() => {
   const { priceMin, priceMax } = props.teacher;
   if (priceMin == null || priceMax == null) return "";
@@ -78,7 +64,7 @@ const facts = computed(() => [
   <div :class="['teacher-summary flex min-w-0 flex-col gap-5 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-36 flex-1 items-center gap-3">
-        <span aria-hidden="true" :class="['grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-linear-to-br text-xl font-bold [&_img]:size-full [&_img]:object-cover', palette]"><slot name="avatar" :teacher="teacher">{{ [...teacher.displayName][0] }}</slot></span>
+        <slot name="avatar" :teacher="teacher"><UserAvatar :url="teacher.avatar_url" :name="teacher.displayName" :color-key="teacher.id" class="size-12 rounded-2xl text-xl"/></slot>
         <div class="min-w-0">
           <h2 class="text-xl leading-snug font-bold">{{ teacher.displayName }}</h2>
           <span v-if="publicProfile" class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-slate-600"><BadgeCheck class="size-3.5 text-blue-600"/>邮箱已验证</span>

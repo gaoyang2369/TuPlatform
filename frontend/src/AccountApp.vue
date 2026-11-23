@@ -6,6 +6,8 @@ import { ArrowLeftRight, BookOpen, Compass, ClipboardList, MessagesSquare, Shiel
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import UserAvatar from "./UserAvatar.vue";
+import AvatarUploader from "./AvatarUploader.vue";
 import RequestDrafts from "./RequestDrafts.vue";
 import OperationsReview from "./OperationsReview.vue";
 import MatchProgress from "./MatchProgress.vue";
@@ -158,6 +160,11 @@ async function run(action: () => Promise<void>) {
   } finally { busy.value = false; }
 }
 function go(target: Screen) { if (busy.value) return; resetMessages(); clearPasswords(); credentials.adultConfirmed = false; navigate(target, { returnTo: returnTarget.value }); }
+function updateAvatar(id: string, url: string | null) {
+  if (me.value?.id !== id) return;
+  me.value.avatar_url = url;
+  if (profile.value) profile.value.avatar_url = url;
+}
 function loadForm(p: Profile) {
   profile.value = p;
   Object.assign(form, { displayName: p.displayName, categoryCodes: [...(p.teacher?.categoryCodes ?? [])], serviceModes: [...(p.teacher?.serviceModes ?? [])], areaCodes: [...(p.teacher?.areaCodes ?? [])], introduction: p.teacher?.introduction ?? "", priceMin: p.teacher?.priceMin ?? "", priceMax: p.teacher?.priceMax ?? "", availabilityText: p.teacher?.availabilityText ?? "" });
@@ -340,7 +347,7 @@ async function reconcileSession() {
     const current = await api.request<Me>("/me");
     if (current.id !== me.value.id || current.businessIdentity !== me.value.businessIdentity) {
       clearPrivate(); returnTarget.value=""; await run(async()=>{await loadAccount();routeTo(defaultScreen(),{},true);applyLocation();});
-    } else void refreshPendingReplies();
+    } else { updateAvatar(current.id, current.avatar_url); void refreshPendingReplies(); }
   } catch (e) {
     if (e instanceof ApiFailure && e.status === 401) { draftSessionExpired(); error.value = "登录已失效，请重新登录。"; }
   }
@@ -371,7 +378,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         <div v-if="me" class="ml-auto flex shrink-0 items-center gap-2">
           <button aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"
             class="flex min-h-11 items-center gap-2 rounded-xl px-1 text-left hover:bg-slate-50 focus-visible:outline-primary aria-[current=page]:bg-blue-50 sm:px-2">
-            <span class="grid size-9 place-items-center rounded-full bg-slate-100 font-bold text-secondary-foreground">{{ [...accountName][0] || '我' }}</span>
+            <UserAvatar :url="me.avatar_url" :name="accountName" :color-key="me.id" class="size-9 rounded-full"/>
             <span><strong class="hidden max-w-32 truncate text-sm md:block">{{ accountName }}</strong><span class="block text-xs text-secondary-foreground">{{ roleLabel }}</span></span>
           </button>
           <Popover><PopoverTrigger as-child><Button variant="secondary" :aria-label="switchLabel === '切换账号' ? switchLabel : switchLabel + '（切换账号）'" title="切换账号" class="h-11 gap-1.5 rounded-full bg-slate-100 text-secondary-foreground" :disabled="busy||booting"><ArrowLeftRight/><span>{{ switchLabel }}</span></Button></PopoverTrigger>
@@ -487,6 +494,8 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <div v-if="!profile" class="space-y-4 rounded-2xl border border-border bg-card p-6"><p>本人资料尚未成功读取。</p><Button class="h-11 rounded-xl" :disabled="busy" @click="run(loadAccount)">重新读取</Button></div>
           <template v-else>
             <div v-if="conflict || latest" class="mb-4 space-y-3 rounded-xl bg-orange-50 p-4 text-sm text-orange-900"><p>请核对最新资料后再保存，当前输入仍保留。</p><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="readLatest">读取最新保存内容</Button><div v-if="latest" class="space-y-2 [&_pre]:whitespace-pre-wrap"><p>最新保存：{{ latest.displayName || '未填展示名' }} · 版本 {{ latest.version }}</p><p v-if="latest.teacher">{{ latest.teacher.introduction || '未填介绍' }}</p><details><summary>查看最新完整内容</summary><pre>{{ JSON.stringify(latest, null, 2) }}</pre></details><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="useLatest">载入最新内容，放弃当前输入</Button><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="retainInput">已核对，保留输入继续编辑</Button></div></div>
+            <AvatarUploader v-if="me" :key="me.id" :url="me.avatar_url" :name="accountName" :account-id="me.id" :teacher="isTutor" :disabled="busy"
+              class="mb-4" @uploading="busy = $event" @uploaded="updateAvatar" @expired="draftSessionExpired"/>
             <form class="account-fields rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8" @submit.prevent="save"><fieldset :disabled="busy" class="space-y-5"><legend class="sr-only">本人资料</legend>
               <label for="field-displayName">展示名 <span class="ml-2 text-xs font-normal text-muted-foreground">{{ isTutor && !isPublic ? '公开前必填' : '必填' }}</span><input id="field-displayName" v-model="form.displayName" autocomplete="nickname" :required="!isTutor || isPublic" :aria-invalid="!!fieldErrors.displayName"><small>{{ codePointLength(form.displayName) }}/30个字符；账号名不会自动作为展示名。</small></label>
               <template v-if="isTutor">

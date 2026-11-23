@@ -46,7 +46,7 @@ class SecurityContractTest {
     }
     @Test void switchedAccountCannotReceiveAnotherAccountsPendingForm() throws Exception {
         UUID current = UUID.randomUUID();
-        when(auth.current(isNull(), eq(false))).thenReturn(new Account(current, "demo", "private@example.com", "hash", true, "REQUESTER", false, UUID.randomUUID(), "context", 0));
+        when(auth.current(isNull(), eq(false))).thenReturn(new Account(current, "demo", "private@example.com", "hash", true, "REQUESTER", false, UUID.randomUUID(), "context", 0, null));
         mvc.perform(patch("/api/v1/me/profile").with(csrf()).header("X-Account-Id", UUID.randomUUID().toString())
             .contentType("application/json").content("{\"expectedVersion\":0,\"displayName\":\"甲\"}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SESSION_CHANGED"));
@@ -59,7 +59,7 @@ class SecurityContractTest {
     }
     @Test void matchStartAndResponseRequireCsrfAndCurrentAccountEvenAtRootPath() throws Exception {
         UUID current=UUID.randomUUID();
-        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
+        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0, null)).when(auth).current(isNull(),eq(false));
         mvc.perform(post("/api/v1/matches").contentType("application/json").content("{}"))
             .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
         mvc.perform(post("/api/v1/matches").with(csrf()).contentType("application/json").content("{}"))
@@ -85,7 +85,7 @@ class SecurityContractTest {
         mvc.perform(get("/api/v1/me/contacts")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/matches/"+UUID.randomUUID()+"/contact-consent")).andExpect(status().isUnauthorized());
         UUID current=UUID.randomUUID();
-        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
+        doReturn(new Account(current,"demo","private@example.com","hash",true,"TUTOR",false,UUID.randomUUID(),"context",0, null)).when(auth).current(isNull(),eq(false));
         for(String method:java.util.List.of("PUT","DELETE")){
             String path="/api/v1/matches/"+UUID.randomUUID()+"/contact-consent";
             mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method),path).contentType("application/json").content("{}"))
@@ -99,7 +99,7 @@ class SecurityContractTest {
     }
     @Test void draftDeletionRequiresCsrfAndCurrentAccountBeforeCallingService() throws Exception {
         UUID actor=UUID.randomUUID(),draft=UUID.randomUUID();
-        doReturn(new Account(actor,"demo","private@example.com","hash",true,"REQUESTER",false,UUID.randomUUID(),"context",0)).when(auth).current(isNull(),eq(false));
+        doReturn(new Account(actor,"demo","private@example.com","hash",true,"REQUESTER",false,UUID.randomUUID(),"context",0, null)).when(auth).current(isNull(),eq(false));
         String endpoint="/api/v1/requests/"+draft;
         mvc.perform(delete(endpoint).contentType("application/json").content("{\"expectedVersion\":3}"))
             .andExpect(status().isForbidden());
