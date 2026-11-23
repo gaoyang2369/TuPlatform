@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme static {
+  --color-background: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-foreground: #0F172A;
+  --color-secondary-foreground: #475569;
+  --color-muted-foreground: #64748B;
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-neighborhood-orange: #EA580C;
+}
+
+@theme inline {
+  --color-card-foreground: var(--color-foreground);
+  --color-primary-foreground: var(--color-card);
+  --color-secondary: var(--color-slate-100);
+  --color-muted: var(--color-slate-100);
+  --color-accent: var(--color-blue-50);
+  --color-accent-foreground: var(--color-foreground);
+  --color-popover: var(--color-card);
+  --color-popover-foreground: var(--color-foreground);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-primary);
+  --color-destructive: var(--color-red-600);
+}
+
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--color-border);
+  }
+
+  [data-ui], [data-slot="dialog-content"], [data-slot="sheet-content"] {
+    color: var(--color-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot], [data-slot] * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
