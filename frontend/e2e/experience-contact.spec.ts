@@ -36,9 +36,9 @@ test('列表紧凑、筛选即生效，详情默认收起长资料',async({page}
 });
 test('接受弹窗居中配色一致，取消不写入，接受后直接显示联系方式',async({page},info)=>{
   const state=await fixture(page);let native=0;page.on('dialog',async d=>{native++;await d.dismiss();});await page.goto('/?view=matches&match=waiting');const accept=page.getByRole('button',{name:'接受意向',exact:true});await accept.click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();
-  const box=(await dialog.boundingBox())!,size=page.viewportSize()!;expect(Math.abs(box.x+box.width/2-size.width/2)).toBeLessThan(3);expect(Math.abs(box.y+box.height/2-size.height/2)).toBeLessThan(3);expect(await dialog.locator('.dialog-card').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(252, 252, 248)');await expect(dialog).toContainText('my_demo_wechat');await shot(page,'accept',info.project.name);
-  await page.keyboard.press('Escape');expect(state.writes).toHaveLength(0);await expect(accept).toBeFocused();await accept.click();await dialog.getByRole('button',{name:'接受意向',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toContainText('other_demo_wechat');await expect(page.getByRole('checkbox')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式'})).toHaveCount(0);expect(state.writes).toHaveLength(1);expect(native).toBe(0);await shot(page,'mutual',info.project.name);
-  await page.getByText('管理我的联系方式',{exact:true}).click();await page.getByRole('button',{name:'停止分享',exact:true}).click();await dialog.getByRole('button',{name:'取消',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await dialog.getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);expect(state.writes).toHaveLength(2);
+  const box=(await dialog.boundingBox())!,size=page.viewportSize()!;expect(Math.abs(box.x+box.width/2-size.width/2)).toBeLessThan(3);expect(Math.abs(box.y+box.height/2-size.height/2)).toBeLessThan(3);expect(await dialog.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');await expect(dialog).toContainText('my_demo_wechat');await shot(page,'accept',info.project.name);
+  await page.keyboard.press('Escape');expect(state.writes).toHaveLength(0);await expect(accept).toBeFocused();await accept.click();await dialog.getByRole('button',{name:'接受意向',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toContainText('other_demo_wechat');await expect(page.getByRole('checkbox')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式'})).toHaveCount(0);expect(state.writes).toHaveLength(1);expect(native).toBe(0);await expect(page.getByLabel('撮合阶段').locator('[aria-current=step]')).toContainText('交换联系方式');await shot(page,'mutual',info.project.name);
+  await page.getByText('管理我的联系方式',{exact:true}).click();await page.getByRole('button',{name:'停止分享',exact:true}).click();await dialog.getByRole('button',{name:'取消',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await dialog.getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);expect(state.writes).toHaveLength(2);await expect(page.getByLabel('撮合阶段').locator('[aria-current=step]')).toContainText('双方确认');
 });
 test('旧记录一次确认，缺少联系方式有补充入口，失败和空列表可恢复',async({page})=>{
   const state=await fixture(page);Object.assign(state.match,{state:'MUTUAL',canAccept:false,canReject:false,waitingForMe:false});state.emptyContacts=true;await page.goto('/?view=matches&match=waiting');await expect(page.getByRole('button',{name:'填写联系方式',exact:true})).toBeVisible();expect(state.writes).toHaveLength(0);
@@ -47,4 +47,23 @@ test('旧记录一次确认，缺少联系方式有补充入口，失败和空�
 });
 test('回应失败保留同一凭据重试，不再次弹窗',async({page})=>{
   const state=await fixture(page);state.failAccept=true;let release!:()=>void;const hold=new Promise<void>(resolve=>release=resolve);await page.route('**/api/v1/matches/waiting',async route=>{await hold;await route.fallback();});await page.goto('/?view=matches&match=waiting');await expect(page.getByText('正在读取联系记录…',{exact:true})).toBeVisible();release();await page.getByRole('button',{name:'接受意向',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'接受意向',exact:true}).click();await expect(page.getByRole('button',{name:'重试同一次回应'})).toBeVisible();await expect(page.getByRole('dialog')).not.toBeVisible();state.failAccept=false;await page.getByRole('button',{name:'重试同一次回应'}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();expect(state.writes).toHaveLength(2);expect(state.writes[0]).toEqual(state.writes[1]);
+});
+
+test('接受后立即卸载确认层，互选详情没有撤回文案残影', async ({ page }) => {
+  await fixture(page);
+  await page.goto('/?view=matches&match=waiting');
+  const layers = page.locator('[data-slot="dialog-content"], [data-slot="dialog-overlay"]');
+  await expect(layers).toHaveCount(0);
+  await page.getByRole('button', { name: '接受意向', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  const closingFrames = await dialog.getByRole('button', { name: '接受意向', exact: true }).evaluate(async el => {
+    (el as HTMLButtonElement).click();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return document.querySelectorAll('[data-slot="dialog-content"], [data-slot="dialog-overlay"]').length;
+  });
+  expect(closingFrames).toBe(0);
+  await expect(page.getByTestId('shared-contacts')).toBeVisible();
+  await expect(layers).toHaveCount(0);
+  await expect(page.getByText('撤回后，对方将无法接受本次意向。')).toHaveCount(0);
 });

@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import {computed,onBeforeUnmount,onMounted,ref} from 'vue';
+import {computed,onBeforeUnmount,onMounted,ref,watch} from 'vue';
 import {api,ApiFailure} from './account-api.ts';
 import type {ContactField,Contacts,Grant} from './contact-types.ts';
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShieldCheck } from "@lucide/vue";
 import ConfirmDialog from './ConfirmDialog.vue';
 import ContactExchangeNotice from './ContactExchangeNotice.vue';
 const props=defineProps<{matchId:string;roundId:string}>();
-const emit=defineEmits<{expired:[];contacts:[]}>();
+const emit=defineEmits<{expired:[];contacts:[];visibility:[shared:boolean]}>();
 const grant=ref<Grant|null>(null),contacts=ref<Contacts|null>(null),withdrawOpen=ref(false);
+watch(() => !!grant.value?.canViewContacts, shared => emit('visibility', shared));
 const selected=computed<ContactField[]>(()=>[...(contacts.value?.phone?['PHONE' as const]:[]),...(contacts.value?.wechat?['WECHAT' as const]:[])]);
 const busy=ref(false),error=ref(''),notice=ref(''),unknown=ref(false),conflict=ref(false),saved=ref(false);
 let alive=true,epoch=0,timer:ReturnType<typeof setInterval>|undefined;
@@ -43,22 +47,20 @@ function background(){if(document.hidden){++epoch;clearValues();return;}if(!busy
 onMounted(()=>{void refresh();document.addEventListener('visibilitychange',background);window.addEventListener('focus',background);timer=setInterval(background,15000);});
 onBeforeUnmount(()=>{alive=false;++epoch;clearInterval(timer);document.removeEventListener('visibilitychange',background);window.removeEventListener('focus',background);clearValues();contacts.value=null;pending=null;});
 </script>
-<template><section class="consent" aria-labelledby="consent-title">
-  <div class="contact-heading"><h3 id="consent-title">{{grant?.canViewContacts?'对方联系方式':'联系对方'}}</h3><button v-if="error||conflict||unknown" class="text-button" :disabled="busy" @click="refresh">重新读取</button></div>
-  <p v-if="error" class="message error" role="alert">{{error}}</p><p v-if="notice" class="sr-only" role="status">{{notice}}</p>
-  <p v-if="unknown" class="message warning">{{saved?'操作已保存，最新状态暂未更新。':'上次操作结果尚未确认。'}}<button class="text-button" :disabled="busy" @click="perform()">重试同一次授权操作</button></p>
-  <p v-if="conflict" class="message warning">联系方式已变化，请重新读取后确认。</p>
+<template><section class="space-y-4 rounded-2xl bg-slate-50 p-4 sm:p-6" aria-labelledby="consent-title">
+  <div class="flex items-center justify-between gap-3"><h3 id="consent-title" class="flex items-center gap-2 text-xl font-bold"><ShieldCheck class="size-5 text-primary"/>{{grant?.canViewContacts?'对方联系方式':'联系对方'}}</h3><Button v-if="error||conflict||unknown" variant="ghost" :disabled="busy" @click="refresh">重新读取</Button></div>
+  <p class="text-sm leading-6 text-secondary-foreground">平台无中介。双方同意后，可直接联系对方商定安排。</p>
+  <p v-if="error" class="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{{error}}</p><p v-if="notice" class="text-sm text-secondary-foreground" role="status">{{notice}}</p>
+  <p v-if="unknown" class="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">{{saved?'操作已保存，最新状态暂未更新。':'上次操作结果尚未确认。'}}<Button variant="ghost" :disabled="busy" @click="perform()">重试同一次授权操作</Button></p>
+  <p v-if="conflict" class="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">联系方式已变化，请重新读取后确认。</p>
   <template v-if="grant">
-    <div v-if="grant.canViewContacts&&grant.otherSharedContacts" class="shared-contacts" data-testid="shared-contacts"><div v-if="grant.otherSharedContacts.phone" class="contact-value"><span>手机号</span><a :href="`tel:+86${grant.otherSharedContacts.phone}`">{{grant.otherSharedContacts.phone}}</a></div><div v-if="grant.otherSharedContacts.wechat" class="contact-value"><span>微信</span><strong>{{grant.otherSharedContacts.wechat}}</strong></div><p class="contact-help">添加时可以说明来自邻课，沟通课程与安排。</p></div>
+    <div v-if="grant.canViewContacts&&grant.otherSharedContacts" class="space-y-3 rounded-xl bg-card p-4" data-testid="shared-contacts"><div v-if="grant.otherSharedContacts.phone" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>手机号</span><a :href="`tel:+86${grant.otherSharedContacts.phone}`">{{grant.otherSharedContacts.phone}}</a></div><div v-if="grant.otherSharedContacts.wechat" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>微信</span><strong>{{grant.otherSharedContacts.wechat}}</strong></div><p class="text-sm leading-6 text-secondary-foreground">添加时可以说明来自邻课，沟通课程与安排。</p></div>
     <template v-else-if="!grant.myConsent">
-      <template v-if="contacts&&(contacts.phone||contacts.wechat)"><p class="contact-help">{{grant.requiresReconfirmation?'联系方式有更新，确认后即可继续交换。':'这条联系记录尚未确认交换联系方式。'}}</p><ContactExchangeNotice :contacts="contacts" action="同意交换"/><button class="primary agree-button" :disabled="busy||!canAgree" @click="perform()">同意交换联系方式</button></template>
-      <template v-else-if="contacts"><p class="contact-help">补充手机号或微信，让对方能联系到你。</p><button class="primary agree-button" :disabled="busy||unknown" @click="emit('contacts')">填写联系方式</button></template>
+      <template v-if="contacts&&(contacts.phone||contacts.wechat)"><p class="text-sm leading-6 text-secondary-foreground">{{grant.requiresReconfirmation?'联系方式有更新，确认后即可继续交换。':'这条联系记录尚未确认交换联系方式。'}}</p><ContactExchangeNotice :contacts="contacts" action="同意交换"/><Button class="h-11 rounded-xl" :disabled="busy||!canAgree" @click="perform()">同意交换联系方式</Button></template>
+      <template v-else-if="contacts"><p class="text-sm leading-6 text-secondary-foreground">补充手机号或微信，让对方能联系到你。</p><Button class="h-11 rounded-xl" :disabled="busy||unknown" @click="emit('contacts')">填写联系方式</Button></template>
     </template>
-    <p v-else class="contact-help" role="status">你已同意交换，等待对方补充或确认联系方式。</p>
-    <details class="contact-settings"><summary>管理我的联系方式</summary><div class="contact-settings-body"><p v-if="grant.myConsent" class="contact-help">{{grant.canViewContacts?'已向对方分享：':'将向对方分享：'}}{{grant.mySelectedFields.map(f=>f==='PHONE'?'手机号':'微信').join('、')}}</p><div class="form-actions"><button class="text-button" :disabled="busy||unknown" @click="emit('contacts')">填写或修改我的联系方式</button><button v-if="grant.myConsent||grant.requiresReconfirmation" class="text-button" :disabled="busy||unknown||conflict" @click="withdrawOpen=true">停止分享</button></div></div></details>
-  </template><p v-else-if="busy" class="contact-help" role="status">正在读取联系方式…</p>
+    <p v-else class="text-sm leading-6 text-secondary-foreground" role="status">你已同意交换，等待对方补充或确认联系方式。</p>
+    <details class="rounded-xl bg-card p-3.5 text-sm"><summary>管理我的联系方式</summary><div class="mt-2 space-y-2"><p v-if="grant.myConsent" class="text-sm leading-6 text-secondary-foreground">{{grant.canViewContacts?'已向对方分享：':'将向对方分享：'}}{{grant.mySelectedFields.map(f=>f==='PHONE'?'手机号':'微信').join('、')}}</p><div class="flex flex-wrap gap-2"><Button variant="ghost" :disabled="busy||unknown" @click="emit('contacts')">填写或修改我的联系方式</Button><Button v-if="grant.myConsent||grant.requiresReconfirmation" variant="ghost" :disabled="busy||unknown||conflict" @click="withdrawOpen=true">停止分享</Button></div></div></details>
+  </template><div v-else-if="busy" class="text-sm leading-6 text-secondary-foreground" role="status">正在读取联系方式…<Skeleton class="mt-2 h-16 w-full"/></div>
   <ConfirmDialog :open="withdrawOpen" title="停止分享联系方式？" confirm-text="停止分享" :busy="busy" @cancel="withdrawOpen=false" @confirm="perform('DELETE')"><p>停止后，双方将无法在这里查看联系方式。对方已经保存的信息不受影响。</p></ConfirmDialog>
 </section></template>
-<style scoped>
-.consent{margin-top:24px;padding:22px;border:1px solid #dce6d2;border-radius:12px;background:#f4f7ef;overflow-wrap:anywhere}.contact-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.contact-heading h3{font-size:17px}.contact-heading button{padding:0}.consent .message{margin:14px 0}.shared-contacts{margin-top:16px}.contact-value{display:grid;grid-template-columns:64px 1fr;align-items:baseline;gap:16px;margin:10px 0}.contact-value>span{font-size:13px;color:var(--muted)}.contact-value strong,.contact-value a{font-size:20px;font-weight:600;color:var(--green);word-break:break-all}.contact-value a{text-decoration:none}.contact-value a:hover{text-decoration:underline}.contact-help{font-size:13px;color:var(--muted);margin:12px 0;line-height:1.7}.contact-settings{margin-top:18px;padding-top:12px;border-top:1px solid #dce6d2}.contact-settings summary{font-size:12px;color:var(--muted);cursor:pointer}.contact-settings-body{padding-top:6px}.contact-settings .form-actions{gap:20px}.agree-button{margin-top:14px}.consent .exchange-notice{padding:0;background:transparent}@media(max-width:600px){.consent{padding:18px 16px}.contact-value{grid-template-columns:50px 1fr;gap:10px}.contact-value strong,.contact-value a{font-size:18px}}
-</style>

@@ -15,8 +15,8 @@ function fixture(action: string, argument: string) {
     path.join(root, "backend/src/test/tools/BrowserFixture.java"), action, argument], { encoding: "utf8", env: process.env }));
 }
 function user(role: string): User { const value = fixture("create", role); fixtures.push(value); return value; }
-async function login(page: Page, actor: User) {
-  await page.goto("/?view=profile");
+async function login(page: Page, actor: User, entry = "/?view=profile") {
+  await page.goto(entry);
   await expect(page.getByRole("heading", { name: "登录邻课" })).toBeVisible();
   await page.getByLabel("账号", { exact: true }).fill(actor.account);
   await page.getByLabel("密码", { exact: true }).fill(actor.password);
@@ -52,7 +52,7 @@ test("验证链接只检查，跨浏览器核对密码后登录、确认身份�
   await page.getByLabel("注册密码", { exact: true }).fill(actor.password);
   await page.getByRole("button", { name: "确认验证", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登录邻课" })).toBeVisible();
-  await login(page, actor);
+  await login(page, actor, "/?view=login");
   await expect(page.getByRole("heading", { name: "你希望如何参与？" })).toBeVisible();
   await page.getByRole("radio", { name: /我是需求方/ }).check();
   await page.getByRole("checkbox", { name: /我已理解上述职责/ }).check();
@@ -136,6 +136,7 @@ test("重置密码撤销旧浏览器会话，退出后不显示上一账号资�
     await expect(page.locator("#field-displayName")).toHaveCount(0);
     await login(page, { ...actor, password: newPassword });
     await expect(page.locator("#field-displayName")).toBeVisible();
+    await page.getByRole("button", { name: /切换账号/ }).click();
     await page.getByRole("button", { name: "退出登录", exact: true }).click();
     await expect(page.getByRole("button", { name: "我想找老师", exact:true })).toBeVisible();
     await expect(page.locator("#field-displayName")).toHaveCount(0);

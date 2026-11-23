@@ -4,7 +4,7 @@ import path from "node:path";
 test("老师卡片展示教学方向，十位分页、失败重试及详情返回保留状态",async({page},info)=>{
   const teachers=Array.from({length:23},(_,i)=>({
     id:`teacher-${i}`,profileVersion:1,displayName:`合成老师 ${String(i+1).padStart(2,"0")}`,
-    categoryCodes:[i<13?"EXTRACURRICULAR_STUDY":"DANCE"],serviceModes:["ONLINE"],areaCodes:[],
+    categoryCodes:[i<13?"EXTRACURRICULAR_STUDY":"DANCE"],serviceModes:["ONLINE"],areaCodes:[i%2?"PS_KENGZI":"PS_PINGSHAN"],
     introduction:i===1?"面向小学三至六年级，擅长数学思维和应用题，重视理解与表达。":i<13?"背景：合成教学经历。\n方向：初中数学与物理\n年级范围：初一至初三\n科目：数学、物理\n教学方式：通过例题讲解与复盘练习。":"方向：成人现代舞入门与节奏训练。\n教学方式：分解动作，循序练习。",
     priceMin:i===2?null:"100.00",priceMax:i===2?null:"150.00",availabilityText:"周末可协商"
   }));
@@ -13,7 +13,7 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
     const url=new URL(route.request().url()),endpoint=url.pathname.replace("/api/v1","");
     if(endpoint==="/me")return route.fulfill({json:{id:"requester",account:"requester",email:"test@example.invalid",emailVerified:true,businessIdentity:"REQUESTER",operatorGranted:false,profileVersion:0}});
     if(endpoint==="/me/profile")return route.fulfill({json:{displayName:"合成需求方",version:0,teacher:null}});
-    if(endpoint==="/profile-options")return route.fulfill({json:{categoryCodes:["DANCE","EXTRACURRICULAR_STUDY"],serviceModes:["ONLINE","OFFLINE"],areaCodes:["PS_PINGSHAN"]}});
+    if(endpoint==="/profile-options")return route.fulfill({json:{categoryCodes:["DANCE","EXTRACURRICULAR_STUDY"],serviceModes:["ONLINE","OFFLINE"],areaCodes:["PS_PINGSHAN","PS_KENGZI"]}});
     if(endpoint==="/teachers"){
       queries.push(url.searchParams);
       if(failNext){failNext=false;return route.fulfill({status:503,json:{message:"暂时无法读取，请重试。"}});}
@@ -28,22 +28,81 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   const cards=page.locator(".teacher-card"),paging=page.getByRole("navigation",{name:"老师分页"});
   await expect(cards).toHaveCount(10);await expect(paging.getByRole("button",{name:"上一页"})).toBeDisabled();
   await expect(page.getByRole("button",{name:"加载更多老师"})).toHaveCount(0);expect(detailCalls).toHaveLength(0);
-  await expect(cards.first().locator(".teacher-introduction")).toContainText("初一至初三");await expect(cards.first().locator(".teacher-introduction")).toContainText("数学、物理");await expect(cards.first()).not.toContainText("合成教学经历");
+  const intro = cards.first().locator(".teacher-introduction");
+  await expect(intro.getByText("初中数学与物理", { exact: true })).toBeVisible();
+  await expect(intro.getByText("初一至初三 · 数学 / 物理", { exact: true })).toBeVisible();
+  await expect(cards.first()).not.toContainText("合成教学经历");
   await expect(cards.nth(1)).toContainText("小学三至六年级");await expect(cards.nth(2)).toContainText("面议");
+  const width = page.viewportSize()!.width;
+  const nav = page.getByRole("navigation", {name:"主要任务"});
+  const logo = page.getByRole("link", {name:"邻课首页"});
+  const navBounds = (await nav.boundingBox())!, logoBounds = (await logo.boundingBox())!;
+  expect(navBounds.y >= logoBounds.y + logoBounds.height).toBe(width < 768);
+  await expect(nav.getByRole("button", {name:"发现老师"})).toHaveAttribute("aria-current", "page");
+  await expect(cards.first().getByText("¥100–150", {exact:true})).toHaveCSS("color", "rgb(15, 23, 42)");
+  expect(await cards.first().evaluate(el => getComputedStyle(el.parentElement!).gridTemplateColumns.split(" ").length)).toBe(width >= 1024 ? 3 : width >= 768 ? 2 : 1);
+  await expect(cards.first().getByText("邮箱已验证",{exact:true})).toBeVisible();
+  await expect(page.getByRole("combobox")).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/teacher-discovery/cards-${info.project.name}.png`),fullPage:false});
+  if (await page.evaluate(() => matchMedia("(hover: hover)").matches)) {
+    const button = cards.first().getByRole("button", {name:"查看老师"});
+    await cards.first().getByRole("heading").hover();
+    await expect(button).toHaveCSS("background-color", "rgb(37, 99, 235)");
+    await expect(button).toHaveCSS("color", "rgb(255, 255, 255)");
+  }
   failNext=true;await paging.getByRole("button",{name:"下一页"}).click();await expect(page.getByRole("alert")).toContainText("暂时无法读取");await expect(paging).toContainText("第 1 页");await expect(cards.first()).toContainText("合成老师 01");
   await page.getByRole("button",{name:"重新读取",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);await expect(cards.first()).toContainText("合成老师 11");
   await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);await expect(paging).toContainText("第 3 页");await expect(paging.getByRole("button",{name:"下一页"})).toBeDisabled();
   await paging.getByRole("button",{name:"上一页"}).click();await expect(cards.first()).toContainText("合成老师 11");
   await cards.first().getByRole("button",{name:"查看老师"}).click();await expect(page.getByRole("heading",{name:"合成老师 11",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"邀请这位老师",exact:true})).toBeVisible();
-  const reads=queries.length;await page.getByRole("button",{name:"返回老师列表",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);expect(queries.length).toBeGreaterThanOrEqual(reads);expect(detailCalls).toEqual(["teacher-10"]);
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"类别",exact:true}).selectOption("EXTRACURRICULAR_STUDY");await page.getByRole("button",{name:"筛选老师",exact:true}).click();await expect(paging).toContainText("第 1 页");
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"方式",exact:true}).selectOption("OFFLINE");await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);expect(queries.at(-1)?.get("serviceMode")).toBeNull();expect(queries.at(-1)?.get("categoryCode")).toBe("EXTRACURRICULAR_STUDY");
-  await page.getByRole("button",{name:"筛选老师",exact:true}).click();await expect(cards).toHaveCount(0);await expect(page.getByText("暂无符合条件的公开老师，可以稍后再来查看。")).toBeVisible();await expect(paging).toHaveCount(0);
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"方式",exact:true}).selectOption("ONLINE");await page.getByRole("combobox",{name:"类别",exact:true}).selectOption("DANCE");await page.getByRole("button",{name:"筛选老师",exact:true}).click();await expect(cards).toHaveCount(10);await expect(cards.first()).toContainText("成人现代舞入门");await expect(paging.getByRole("button",{name:"下一页"})).toBeDisabled();
+  const drawer = page.getByRole("dialog",{name:"老师资料"});
+  await expect(drawer.getByRole("heading",{name:"教学背景"})).toBeVisible();
+  await expect(drawer.getByRole("heading",{name:"教学方式"})).toBeVisible();
+  await expect(drawer.getByText("初一至初三",{exact:true})).toBeVisible();
+  await expect(drawer.getByRole("button",{name:"邀请这位老师"})).toBeInViewport();
+  const reads=queries.length;await page.getByRole("button",{name:"返回老师列表",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);expect(queries.length).toBe(reads);expect(detailCalls).toEqual(["teacher-10"]);
+  await page.getByRole("button",{name:"课外学习",exact:true}).click();
+  await expect(paging).toContainText("第 1 页");
+  expect(queries.at(-1)?.get("categoryCode")).toBe("EXTRACURRICULAR_STUDY");
+  await paging.getByRole("button",{name:"下一页"}).click();
+  await expect(cards).toHaveCount(3);
+  const mode=page.getByRole("button",{name:"授课方式",exact:true});
+  await mode.click();await page.getByRole("checkbox",{name:"线下",exact:true}).check();
+  await expect(cards).toHaveCount(0);await expect(paging).toHaveCount(0);
+  await expect(page.getByText("暂无符合条件的公开老师，可以稍后再来查看。")).toBeVisible();
+  await page.getByRole("checkbox",{name:"线上",exact:true}).check();
+  await expect(cards).toHaveCount(10);await page.keyboard.press("Escape");
+  await page.getByRole("button",{name:"舞蹈",exact:true}).click();
+  await expect(cards.first()).toContainText("成人现代舞入门");
+  await expect(paging.getByRole("button",{name:"下一页"})).toBeDisabled();
+
+  await page.getByRole("button",{name:"重置筛选",exact:true}).click();
+  await page.getByRole("button",{name:"坪山街道",exact:true}).click();
+  await page.getByRole("checkbox",{name:"坪山街道",exact:true}).check();
+  await page.getByRole("checkbox",{name:"坑梓街道",exact:true}).check();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button",{name:"时薪区间"}).click();
+  await page.getByRole("checkbox",{name:"100 至不足 200 元"}).check();
+  await expect(page).toHaveURL(/price=100to200/);
+  await page.keyboard.press("Escape");
+  await paging.getByRole("button",{name:"下一页"}).click();
+  await expect(cards.first()).toContainText("合成老师 12");
+  await page.reload();await expect(cards.first()).toContainText("合成老师 12");
+  await paging.getByRole("button",{name:"下一页"}).click();
+  await expect(cards).toHaveCount(2);await expect(cards.last()).toContainText("合成老师 23");
+  await paging.getByRole("button",{name:"上一页"}).click();
+  await expect(cards).toHaveCount(10);
+  await cards.last().getByRole("button",{name:"查看老师"}).focus();
+  const scroll=await page.evaluate(()=>scrollY);
+  expect(scroll).toBeGreaterThan(0);
+  await page.keyboard.press("Enter");await expect(page.getByRole("dialog")).toBeVisible();
+  await expect.poll(() => page.getByRole("dialog").evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    return rect.left >= 0 && Math.abs(rect.right - innerWidth) <= 1 && rect.bottom <= innerHeight + 1;
+  })).toBe(true);
+  await page.keyboard.press("Escape");await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(cards.last().getByRole("button",{name:"查看老师"})).toBeFocused();
+  await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(scroll);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

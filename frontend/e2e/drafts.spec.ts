@@ -25,14 +25,14 @@ test.afterEach(()=>{for(const actor of actors.splice(0))fixture("cleanup",actor.
 test("三步保存、预算大于999、重开不丢第一步",async({page},info)=>{
   await start(page);
   await page.getByLabel("需求标题",{exact:false}).fill("合成绘画需求");
-  await page.getByLabel("服务类别",{exact:false}).selectOption("DRAWING");
-  await page.getByLabel("服务对象阶段").selectOption("ADULT");
+  await page.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"绘画",exact:true}).check();
+  await page.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"成年",exact:true}).check();
   await page.getByLabel("小区或附近地标",{exact:false}).fill("坪山区 · 合成花园");
   await page.getByLabel("目标与现状",{exact:false}).fill("合成测试：希望学习绘画基础。");
   await page.getByRole("button",{name:"保存并下一步"}).click();
   await expect(page.getByLabel("预算下限")).toBeVisible();
   await page.getByLabel("预算下限").fill("1000.01");await page.getByLabel("预算上限").fill("1600.99");
-  await page.getByLabel("单次时长（小时）",{exact:true}).fill("1.5");await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("PER_WEEK");await page.getByLabel("每周次数").fill("2");
+  await page.getByLabel("单次时长（小时）",{exact:true}).fill("1.5");await page.getByRole("group",{name:"频率",exact:true}).getByRole("radio",{name:"每周固定次数",exact:true}).check();await page.getByLabel("每周次数").fill("2");
   await page.getByRole("radio",{name:"填写精确时间",exact:true}).check();await page.getByRole("button",{name:"添加时段"}).click();await page.getByLabel("结束",{exact:true}).fill("24:00");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:path.join(root,`.tools/stage1-browser/draft-${info.project.name}.png`),fullPage:true});
@@ -74,7 +74,7 @@ test("两标签页冲突先核对最新内容，保留输入后再保存",async(
 
 test("保存失败不进入下一步，保留输入并可重试",async({page})=>{
   await start(page);await page.getByLabel("需求标题",{exact:false}).fill("网络失败时保留的标题");
-  await page.route("**/api/v1/requests/*/draft",route=>route.abort("failed"),{times:1});
+  await page.route("**/api/v1/requests",route=>route.abort("failed"),{times:1});
   await page.getByRole("button",{name:"保存并下一步"}).click();
   await expect(page.getByRole("alert")).toContainText("暂时无法连接服务");
   await expect(page.getByLabel("需求标题",{exact:false})).toHaveValue("网络失败时保留的标题");
@@ -83,7 +83,7 @@ test("保存失败不进入下一步，保留输入并可重试",async({page})=>
   await page.getByLabel("预算下限").fill("1.001");await page.getByRole("button",{name:"保存并预览"}).click();
   await expect(page.getByRole("alert")).toContainText("两位小数");await expect(page.getByLabel("预算下限")).toHaveValue("1.001");
   await page.getByLabel("预算下限").fill("100");
-  await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("PER_WEEK");await page.getByLabel("每周次数").fill("abc");
+  await page.getByRole("group",{name:"频率",exact:true}).getByRole("radio",{name:"每周固定次数",exact:true}).check();await page.getByLabel("每周次数").fill("abc");
   await page.getByRole("button",{name:"保存并预览"}).click();await expect(page.getByRole("alert")).toContainText("整数");await expect(page.getByLabel("每周次数")).toHaveValue("abc");
   await page.getByLabel("每周次数").fill("2");await page.getByRole("button",{name:"保存并预览"}).click();
   await expect(page.getByRole("heading",{name:"网络失败时保留的标题",exact:true})).toBeVisible();

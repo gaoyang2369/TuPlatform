@@ -47,6 +47,8 @@ test("误点新建或放弃输入不创建，主动保存才创建且校验失�
   await expect(page.getByRole("heading",{name:"放弃的输入",exact:true})).toHaveCount(0);expect(state.creates).toBe(0);
   await page.getByRole("button",{name:"新建需求草稿"}).click();await page.locator("#draft-title").fill("待修正标题");state.rejectCreate=true;
   await page.getByRole("button",{name:"保存草稿",exact:true}).click();await expect(page.getByRole("alert")).toContainText("请修改标题");expect(state.items).toHaveLength(0);
+  await expect(page.locator("#draft-title")).toHaveAttribute("aria-invalid","true");
+  await page.getByRole("button",{name:/标题需要修改.*返回填写/}).click();await expect(page.locator("#draft-title")).toBeFocused();
   await page.locator("#draft-title").fill("首次手动保存");await page.getByRole("button",{name:"保存草稿",exact:true}).click();
   await expect(page.getByText("当前为已保存内容",{exact:true})).toBeVisible();expect(state.items).toHaveLength(1);expect(state.items[0].fields.title).toBe("首次手动保存");expect(state.keys[0]).not.toBe(state.keys[1]);
   await page.getByRole("button",{name:"保存草稿",exact:true}).click();await expect.poll(()=>state.patches).toBe(1);expect(state.items).toHaveLength(1);
@@ -68,4 +70,26 @@ test("未提交草稿删除需确认，取消不删除，失败可重试且已�
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("暂时无法删除");expect(state.items).toHaveLength(2);
   await page.getByRole("button",{name:"确认删除草稿",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("heading",{name:"可删除的草稿",exact:true})).toHaveCount(0);await expect(page.getByRole("heading",{name:"已提交的需求",exact:true})).toBeVisible();expect(state.items).toHaveLength(1);
+});
+
+test("需求列表从加载、读取错误恢复到空态，表单操作栏在视口内", async ({ page }) => {
+  await setup(page);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/me/requests", async route => {
+    await held;
+    await route.fulfill({status: 503, json: {message: "需求暂时不可用"}});
+  }, {times: 1});
+  await page.reload();
+  await expect(page.locator('[data-slot="skeleton"]').first()).toBeVisible();
+  release();
+  await expect(page.getByRole("alert")).toContainText("需求暂时不可用");
+  await page.getByRole("button", {name: "重新读取", exact: true}).click();
+  await expect(page.getByText(/暂时没有已保存的需求/)).toBeVisible();
+  await page.getByRole("button", {name: "新建需求草稿"}).click();
+  const save = page.getByRole("button", {name: "保存并下一步"});
+  await expect(save).toBeInViewport({ratio: 1});
+  await page.locator("#draft-goal").focus();
+  await expect(save).toBeInViewport({ratio: 1});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

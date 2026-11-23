@@ -31,7 +31,7 @@ for(const identity of ["REQUESTER","TUTOR"] as const) {
 }
 
 test("浏览列表每页10条、组合筛选与详情返回保留页码",async({page},info)=>{
-  const data=Array.from({length:23},(_,index)=>({id:"request-"+index,submissionId:"submission-"+index,title:"分页需求 "+String(index+1).padStart(2,"0"),categoryCode:"EXTRACURRICULAR_STUDY",audienceStageCode:"SENIOR",grade:index<13?"高一":"高二",subject:index<13?"数学、物理":"英语",districtCode:"SZ_PINGSHAN",locationText:"测试花园",serviceMode:"OFFLINE",budgetMin:"100",budgetMax:"150",durationHours:"2",goal:"合成需求说明",publisherDisplayName:"合成需求方"}));
+  const data=Array.from({length:23},(_,index)=>({id:"request-"+index,submissionId:"submission-"+index,title:"分页需求 "+String(index+1).padStart(2,"0"),categoryCode:"EXTRACURRICULAR_STUDY",audienceStageCode:"SENIOR",grade:index<13?"高一":"高二",subject:index<13?"数学、物理":"英语",districtCode:"SZ_PINGSHAN",locationText:"测试花园",serviceMode:"OFFLINE",budgetMin:index%2?"210":"80",budgetMax:index%2?"300":"100",durationHours:"2",goal:"合成需求说明",publisherDisplayName:"合成需求方"}));
   const queries:URLSearchParams[]=[];
   await page.route("**/api/v1/**",async route=>{
     const url=new URL(route.request().url()),endpoint=url.pathname.replace("/api/v1","");
@@ -56,15 +56,38 @@ test("浏览列表每页10条、组合筛选与详情返回保留页码",async({
   await page.getByRole("button",{name:"刷新需求",exact:true}).click();await expect(page.getByRole("heading",{name:"分页需求 11",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"返回需求列表",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards.first()).toContainText("分页需求 11");
   await expect(page.getByRole("button",{name:"返回需求列表",exact:true})).toHaveCount(0);
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"区域",exact:true}).selectOption("SZ_PINGSHAN");await page.getByRole("combobox",{name:"年级",exact:true}).fill("高一");await page.getByRole("combobox",{name:"科目",exact:true}).fill("物理");
-  await page.getByRole("button",{name:"筛选需求",exact:true}).click();await expect(paging).toContainText("第 1 页");await expect(cards).toHaveCount(10);
+  await page.getByRole("button",{name:"区域",exact:true}).click();
+  await page.getByRole("checkbox",{name:"坪山区",exact:true}).check();
+  await page.keyboard.press("Escape");
+  const study = page.getByRole("button",{name:"年级与科目",exact:true});
+  await study.click();
+  await page.getByLabel("年级",{exact:true}).fill("高一");
+  await page.getByLabel("科目",{exact:true}).fill("物理");
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/subject=/);
+  await expect(paging).toContainText("第 1 页");await expect(cards).toHaveCount(10);
   expect(queries.at(-1)?.get("districtCode")).toBe("SZ_PINGSHAN");expect(queries.at(-1)?.get("grade")).toBe("高一");expect(queries.at(-1)?.get("subject")).toBe("物理");
-  await page.screenshot({path:path.resolve(import.meta.dirname,"../../.tools/navigation-filters/requests-"+info.project.name+".png"),fullPage:true});
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"年级",exact:true}).fill("高二");await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);expect(queries.at(-1)?.get("grade")).toBe("高一");
-  await page.getByRole("button",{name:"筛选需求",exact:true}).click();await expect(cards).toHaveCount(0);await expect(page.getByText("暂无符合条件的公开需求，可以调整筛选条件。")).toBeVisible();
-  if(await page.getByRole("button",{name:"筛选条件",exact:true}).isVisible())await page.getByRole("button",{name:"筛选条件",exact:true}).click();
-  await page.getByRole("combobox",{name:"类别",exact:true}).selectOption("DRAWING");await expect(page.getByRole("combobox",{name:"年级",exact:true})).toHaveValue("");await expect(page.getByRole("combobox",{name:"科目",exact:true})).toBeDisabled();
+  await page.screenshot({path:path.resolve(import.meta.dirname,"../../.tools/navigation-filters/requests-"+info.project.name+".png")});
+  await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);
+  await study.click();await page.getByLabel("年级",{exact:true}).fill("高二");await page.keyboard.press("Escape");
+  await expect(cards).toHaveCount(0);await expect(page.getByText("暂无符合条件的公开需求，可以调整筛选条件。")).toBeVisible();
+  await page.getByRole("button",{name:"绘画",exact:true}).click();await expect(study).toBeDisabled();
+  await expect(page).toHaveURL(/category=DRAWING/);
+  expect(queries.at(-1)?.has("grade")).toBe(false);expect(queries.at(-1)?.has("subject")).toBe(false);
+  await page.getByRole("button",{name:"重置筛选",exact:true}).click();
+  const budget = page.getByRole("button",{name:"预算区间",exact:true});
+  await budget.click();await page.getByRole("checkbox",{name:"低于 100 元"}).check();await page.keyboard.press("Escape");
+  await expect(cards).toHaveCount(10);await expect(cards.nth(1)).toContainText("分页需求 03");
+  await paging.getByRole("button",{name:"下一页"}).click();
+  await expect(cards).toHaveCount(2);await expect(cards.first()).toContainText("分页需求 21");
+  await page.reload();await expect(cards.last()).toContainText("分页需求 23");
+  const trigger = cards.last().getByRole("button",{name:"查看需求"});
+  await trigger.focus();
+  const scrollY = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press("Enter");await expect(page.getByRole("dialog",{name:"需求详情"})).toBeVisible();
+  await page.keyboard.press("Escape");await expect(trigger).toBeFocused();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
+  await budget.click();await page.getByRole("checkbox",{name:"200 元及以上"}).check();await page.keyboard.press("Escape");
+  await expect(paging).toContainText("第 1 页");await expect(cards.nth(1)).toContainText("分页需求 02");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme static {
+  --color-background: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-foreground: #0F172A;
+  --color-secondary-foreground: #475569;
+  --color-muted-foreground: #64748B;
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-neighborhood-orange: #EA580C;
+}
+
+@theme inline {
+  --color-card-foreground: var(--color-foreground);
+  --color-primary-foreground: var(--color-card);
+  --color-secondary: var(--color-slate-100);
+  --color-muted: var(--color-slate-100);
+  --color-accent: var(--color-blue-50);
+  --color-accent-foreground: var(--color-foreground);
+  --color-popover: var(--color-card);
+  --color-popover-foreground: var(--color-foreground);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-primary);
+  --color-destructive: var(--color-red-600);
+}
+
+@utility field-control {
+  @apply block min-h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:bg-slate-50 aria-invalid:border-red-500;
+}
+
+@layer base {
+  body { @apply bg-background text-foreground antialiased; font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+  button:not(:disabled), summary { cursor: pointer; }
+  :where(button, a, summary, input, textarea):focus-visible { @apply outline-2 outline-offset-2 outline-primary; }
+  input[type="checkbox"], input[type="radio"] { @apply accent-primary; }
+  *, ::before, ::after {
+    border-color: var(--color-border);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot], [data-slot] * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}

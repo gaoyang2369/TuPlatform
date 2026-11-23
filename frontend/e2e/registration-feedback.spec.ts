@@ -18,7 +18,7 @@ test("注册短密码提交与悬浮提示不挤动页面、自动消失及重�
   await page.locator("#field-password").fill("1234567");
   await page.getByLabel("确认密码", { exact: true }).fill("1234567");
   await page.getByRole("checkbox", { name: "我确认本人已年满18岁。" }).check();
-  const card = page.locator(".auth-card");
+  const card = page.getByRole("region", { name: "账号服务" });
   const before = await card.boundingBox();
   await page.getByRole("button", { name: "注册并验证邮箱" }).click();
   const alert = page.getByRole("alert");

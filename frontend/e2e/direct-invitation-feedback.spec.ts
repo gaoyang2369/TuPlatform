@@ -40,7 +40,7 @@ test('保存弹窗在视口中央、配色一致；取消与 Escape 不写入，
   await page.locator('#contact-phone').fill('13800000000');await save.click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();
   const bounds=(await dialog.boundingBox())!,viewport=page.viewportSize()!;
   expect(Math.abs(bounds.x+bounds.width/2-viewport.width/2)).toBeLessThan(3);expect(Math.abs(bounds.y+bounds.height/2-viewport.height/2)).toBeLessThan(3);
-  expect(await dialog.locator('.dialog-card').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(252, 252, 248)');
+  expect(await dialog.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
   await expect(dialog.getByRole('button',{name:'取消',exact:true})).toBeFocused();
   await page.screenshot({path:path.resolve(import.meta.dirname,'../../.tools/direct-invitations/confirm-'+info.project.name+'.png')});
   await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(save).toBeFocused();expect(state.contactWrites).toBe(0);
@@ -68,4 +68,23 @@ test('没有需求也能直接邀请，留言选填，不调用需求接口且�
 test('邀请响应不确定时锁定留言，重试复用相同凭据与内容',async({page})=>{
   const state=await fixture(page);state.failInvite=true;await page.goto('/?view=teachers&teacher=teacher');await page.getByRole('button',{name:'邀请这位老师'}).click();await page.getByRole('button',{name:'发送邀请',exact:true}).click();await expect(page.getByText('上次结果尚未确认。请用同一次操作重试，或到撮合进度查看。')).toBeVisible();await expect(page.locator('#invitation-introduction')).toBeDisabled();
   state.failInvite=false;await page.getByRole('button',{name:'重试同一次意向'}).click();await expect(page.locator('.match-detail .status-pill')).toBeVisible();expect(state.invites).toHaveLength(2);expect(state.invites[0]).toEqual(state.invites[1]);expect(state.invites[0].body.introduction).toBe('');
+});
+
+test('本人联系方式读取中、失败与首次填写入口', async ({ page }, info) => {
+  await fixture(page);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/v1/me/contacts', async route => {
+    await held;
+    await route.fulfill({ status: 503, json: { message: '暂时无法读取联系方式' } });
+  }, { times: 1 });
+  await page.goto('/?view=contacts');
+  await expect(page.getByText('正在读取联系方式…', { exact: true })).toBeVisible();
+  await expect(page.locator('#contact-phone')).toHaveCount(0);
+  release();
+  await expect(page.getByRole('alert')).toContainText('暂时无法读取联系方式');
+  await page.getByRole('button', { name: '读取最新联系方式' }).click();
+  await expect(page.getByText(/尚未填写联系方式/)).toBeVisible();
+  await expect(page.getByRole('button', { name: '保存私密联系方式' })).toBeDisabled();
+  await page.screenshot({path: path.resolve(import.meta.dirname, '../../.tools/direct-invitations/private-' + info.project.name + '.png')});
 });

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleCheck, CircleAlert, X } from "@lucide/vue";
 import { onBeforeUnmount, ref, watch } from "vue";
 
 const props = defineProps<{ message: string; kind: "error" | "success"; fieldErrors?: Record<string, string> }>();
@@ -10,21 +11,16 @@ watch(() => props.message, () => { visible.value = true; resume(); }, { immediat
 onBeforeUnmount(pause);
 </script>
 
-<template>
-  <Transition name="toast">
-    <div v-if="visible" class="feedback-toast" @mouseenter="pause" @mouseleave="resume" @focusin="pause" @focusout="resume">
-      <div :class="['message', kind]" :role="kind === 'error' ? 'alert' : 'status'" aria-atomic="true">
-        <div class="toast-content">{{ message }}<ul v-if="fieldErrors && Object.keys(fieldErrors).length"><li v-for="(value, field) in fieldErrors" :key="field"><a :href="'#field-' + field">{{ value }}</a></li></ul></div>
-        <button type="button" class="toast-close" aria-label="关闭提示" @click="visible = false">×</button>
-      </div>
-    </div>
-  </Transition>
-</template>
 
-<style scoped>
-.feedback-toast{position:fixed;z-index:1000;top:24px;left:50%;transform:translateX(-50%);width:max-content;max-width:min(560px,calc(100vw - 32px))}
-.feedback-toast .message{display:flex;align-items:flex-start;gap:16px;margin:0;padding:14px 16px;box-shadow:0 8px 30px #20352226;max-height:calc(100dvh - 48px);overflow:auto}
-.toast-content{min-width:0;flex:1}.toast-close{flex:none;background:transparent;color:inherit;font-size:22px;line-height:1;width:28px;height:28px;border-radius:4px;padding:0}
-.toast-enter-active,.toast-leave-active{transition:opacity .18s ease,translate .18s ease}.toast-enter-from,.toast-leave-to{opacity:0;translate:0 -8px}
-@media(prefers-reduced-motion:reduce){.toast-enter-active,.toast-leave-active{transition:none}}
-</style>
+<template>
+  <div v-if="visible" class="feedback-toast fixed top-3 left-1/2 z-40 w-max max-w-[min(34rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-white p-4 text-foreground shadow-lg sm:top-6"
+    @mouseenter="pause" @mouseleave="resume" @focusin="pause" @focusout="resume">
+    <div :role="kind === 'error' ? 'alert' : 'status'" class="flex items-start gap-3 text-sm leading-6" aria-atomic="true">
+      <component :is="kind === 'error' ? CircleAlert : CircleCheck" class="mt-0.5 size-5 shrink-0" :class="kind === 'error' ? 'text-red-700' : 'text-emerald-700'"/>
+      <div class="min-w-0 [overflow-wrap:anywhere]">{{ message }}
+        <ul v-if="fieldErrors" class="mt-1 space-y-1"><li v-for="(value, field) in fieldErrors" :key="field"><a :href="'#field-' + field" class="text-primary underline">{{ value }}</a></li></ul>
+      </div>
+      <button type="button" class="ml-auto grid size-7 shrink-0 place-items-center rounded-full hover:bg-slate-100" aria-label="关闭提示" @click="visible = false"><X class="size-4"/></button>
+    </div>
+  </div>
+</template>
