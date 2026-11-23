@@ -195,7 +195,7 @@ defineExpose({requestLeave});
 </script>
 
 <template>
-  <section data-ui class="draft-page space-y-5 text-foreground [overflow-wrap:anywhere]" :class="view==='edit' && 'mx-auto max-w-4xl'">
+  <section class="draft-page space-y-5 text-foreground [overflow-wrap:anywhere]" :class="view==='edit' && 'mx-auto max-w-4xl'">
     <header class="flex flex-wrap items-center justify-between gap-3">
       <div><h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">{{ view==='list'?'我的需求':current?.status==='DRAFT'?'填写需求草稿':'需求进度' }}</h1>
         <p class="mt-1 text-[15px] text-secondary-foreground">草稿手动保存，提交并审核通过后才会公开。</p></div>
@@ -341,5 +341,4 @@ defineExpose({requestLeave});
 .draft-form :is(input, textarea, fieldset) { @apply scroll-mt-32; scroll-margin-bottom: 8rem; }
 summary { @apply cursor-pointer text-sm font-medium; }
 pre { @apply whitespace-pre-wrap; }
-.draft-page :deep(.feedback-toast .success) { @apply rounded-xl border border-blue-100 bg-card text-foreground; }
 </style>

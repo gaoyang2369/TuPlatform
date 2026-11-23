@@ -2,7 +2,7 @@
 
 - TuPlatform connects requesters with teachers through discovery, applications/invitations, mutual selection, and consent-based contact sharing. Preserve both user journeys.
 - Use `docs/mvp-spec.md` for business rules and `README.md` for setup. Update existing canonical docs when behavior changes; avoid duplicate handoff reports.
-- Follow existing Vue 3 (`<script setup lang="ts">`), TypeScript, Vite, and Spring Boot/PostgreSQL patterns. The frontend entry is `frontend/src/AccountApp.vue`; do not extend legacy prototype files (`App.vue`, `style.css`).
+- Follow existing Vue 3 (`<script setup lang="ts">`), TypeScript, Vite, and Spring Boot/PostgreSQL patterns. The frontend entry is `frontend/src/AccountApp.vue`.
 - Keep backend and business-logic changes focused and avoid unrelated refactors. Do not add non-UI dependencies without clear need (approved frontend UI stack is listed below).
 - Keep user-facing copy and task summaries in Chinese unless requested otherwise.
 - Enforce permissions and validation on the server. Preserve same-origin Cookie session, `/auth/csrf`, and `Idempotency-Key` behavior in `frontend/src/account-api.ts`, and preserve URL-parameter navigation behavior in `frontend/src/navigation.ts`.
@@ -12,7 +12,7 @@
 
 ### Approved UI Stack
 - Standardize new and refactored UI on **Tailwind CSS v4**, **shadcn-vue** (`frontend/src/components/ui/`), **@lucide/vue** (icons), and **Motion for Vue** (subtle layout/tab micro-interactions). Curated **Inspira UI** primitives may be used sparingly for polish.
-- Migrate pages incrementally off the legacy global `frontend/src/account.css`. Do not add new feature styles to `account.css`; remove `account.css` once all active views are migrated.
+- Keep shared tokens and base controls in `frontend/src/styles/theme.css`. Use Tailwind utilities and scoped component styles for active views.
 
 ### Visual Direction & Design Tokens (60-30-10)
 - **Surfaces**: Page canvas `#F8FAFC`; elevated cards `#FFFFFF` with crisp `1px` `#E2E8F0` borders, `rounded-2xl` radius, and subtle hover elevation (`shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition`).

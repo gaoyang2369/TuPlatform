@@ -11,7 +11,7 @@
 | 预约分支 | 仅旧原型提议/双方确认演示，现首版已延期，不要求按原路线开发 |
 | file协议 | 内置浏览器限制访问，未进行直接双击HTML模式实测 |
 
-原型位置：[App.vue](../../frontend/src/App.vue)、[domain.ts](../../frontend/src/domain.ts)、[模拟测试](../../frontend/tests/flows.test.mjs)。运行命令见[项目说明](../../README.md)。当前规格另见[首版规则](../mvp-spec.md)，待执行真实验收另见[核心清单](mvp-cases.md)。
+早期原型界面已退役。保留的原型规则与用例见[domain.ts](../../frontend/src/domain.ts)、[模拟测试](../../frontend/tests/flows.test.mjs)。运行命令见[项目说明](../../README.md)。当前规格另见[首版规则](../mvp-spec.md)，待执行真实验收另见[核心清单](mvp-cases.md)。
 
 两张原合成截图保留作为当时的视觉记录，不是当前Figma或新规则的证据：
 

@@ -28,7 +28,7 @@ onMounted(()=>{window.addEventListener('beforeunload',beforeUnload);void read();
 onBeforeUnmount(()=>{alive=false;window.removeEventListener('beforeunload',beforeUnload);form.phone='';form.wechat='';saved.value=null;latest.value=null;});
 </script>
 <template>
-<section data-ui class="space-y-5 text-foreground [overflow-wrap:anywhere]">
+<section class="space-y-5 text-foreground [overflow-wrap:anywhere]">
   <header class="flex flex-wrap items-center justify-between gap-3">
     <div><h1 class="text-3xl font-bold tracking-tight">本人私密联系方式</h1><p class="mt-2 text-[15px] text-secondary-foreground">仅在双方同意后向对方展示，邮箱始终保密。</p></div>
     <Button variant="outline" :disabled="busy" @click="read"><RefreshCw/>读取最新联系方式</Button>
@@ -60,6 +60,6 @@ onBeforeUnmount(()=>{alive=false;window.removeEventListener('beforeunload',befor
 <style scoped>
 @reference "./styles/theme.css";
 label { @apply block text-sm font-semibold; }
-input { @apply my-2 block h-11 w-full rounded-xl border border-border bg-card px-3 text-base focus-visible:outline-2 focus-visible:outline-primary; }
+input { @apply field-control my-2; }
 small { @apply block text-xs leading-5 text-muted-foreground; }
 </style>

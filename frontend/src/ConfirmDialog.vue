@@ -13,10 +13,10 @@ watch(() => props.open, open => {
 </script>
 <template>
   <Dialog :open="open" @update:open="!$event && !busy && emit('cancel')">
-    <DialogContent :show-close-button="false" :aria-busy="busy" class="max-h-[90dvh] overflow-y-auto rounded-2xl bg-card"
+    <DialogContent v-if="open" :show-close-button="false" :aria-busy="busy" class="max-h-[90dvh] overflow-y-auto rounded-2xl bg-white"
       @open-auto-focus.prevent="cancelButton?.$el.focus()" @close-auto-focus.prevent="trigger?.focus()" @interact-outside.prevent>
       <DialogHeader><DialogTitle class="text-xl font-bold">{{ title }}</DialogTitle>
-        <DialogDescription as="div" class="mt-2 space-y-3 text-left text-[15px] leading-6 text-secondary-foreground"><slot/></DialogDescription>
+        <DialogDescription as="div" class="mt-2 space-y-3 text-left text-[15px] leading-6 text-secondary-foreground [overflow-wrap:anywhere]"><slot/></DialogDescription>
       </DialogHeader>
       <DialogFooter class="gap-2">
         <Button ref="cancelButton" variant="secondary" :disabled="busy" @click="emit('cancel')">{{ cancelText }}</Button>

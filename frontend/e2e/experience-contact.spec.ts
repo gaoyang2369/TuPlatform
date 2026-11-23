@@ -48,3 +48,22 @@ test('旧记录一次确认，缺少联系方式有补充入口，失败和空�
 test('回应失败保留同一凭据重试，不再次弹窗',async({page})=>{
   const state=await fixture(page);state.failAccept=true;let release!:()=>void;const hold=new Promise<void>(resolve=>release=resolve);await page.route('**/api/v1/matches/waiting',async route=>{await hold;await route.fallback();});await page.goto('/?view=matches&match=waiting');await expect(page.getByText('正在读取联系记录…',{exact:true})).toBeVisible();release();await page.getByRole('button',{name:'接受意向',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'接受意向',exact:true}).click();await expect(page.getByRole('button',{name:'重试同一次回应'})).toBeVisible();await expect(page.getByRole('dialog')).not.toBeVisible();state.failAccept=false;await page.getByRole('button',{name:'重试同一次回应'}).click();await expect(page.getByTestId('shared-contacts')).toBeVisible();expect(state.writes).toHaveLength(2);expect(state.writes[0]).toEqual(state.writes[1]);
 });
+
+test('接受后立即卸载确认层，互选详情没有撤回文案残影', async ({ page }) => {
+  await fixture(page);
+  await page.goto('/?view=matches&match=waiting');
+  const layers = page.locator('[data-slot="dialog-content"], [data-slot="dialog-overlay"]');
+  await expect(layers).toHaveCount(0);
+  await page.getByRole('button', { name: '接受意向', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  const closingFrames = await dialog.getByRole('button', { name: '接受意向', exact: true }).evaluate(async el => {
+    (el as HTMLButtonElement).click();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return document.querySelectorAll('[data-slot="dialog-content"], [data-slot="dialog-overlay"]').length;
+  });
+  expect(closingFrames).toBe(0);
+  await expect(page.getByTestId('shared-contacts')).toBeVisible();
+  await expect(layers).toHaveCount(0);
+  await expect(page.getByText('撤回后，对方将无法接受本次意向。')).toHaveCount(0);
+});

@@ -42,7 +42,7 @@ const facts = computed(() => {
 });
 </script>
 <template>
-  <article data-ui :class="['request-summary flex min-w-0 flex-col gap-4 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
+  <article :class="['request-summary flex min-w-0 flex-col gap-4 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
     <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
       <div class="min-w-28 flex-1 space-y-1">
         <span v-if="compact && category" class="text-xs font-semibold text-muted-foreground">{{ category }}</span>

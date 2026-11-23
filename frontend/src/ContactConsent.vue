@@ -47,7 +47,7 @@ function background(){if(document.hidden){++epoch;clearValues();return;}if(!busy
 onMounted(()=>{void refresh();document.addEventListener('visibilitychange',background);window.addEventListener('focus',background);timer=setInterval(background,15000);});
 onBeforeUnmount(()=>{alive=false;++epoch;clearInterval(timer);document.removeEventListener('visibilitychange',background);window.removeEventListener('focus',background);clearValues();contacts.value=null;pending=null;});
 </script>
-<template><section data-ui class="space-y-4 rounded-2xl bg-slate-50 p-4 sm:p-6" aria-labelledby="consent-title">
+<template><section class="space-y-4 rounded-2xl bg-slate-50 p-4 sm:p-6" aria-labelledby="consent-title">
   <div class="flex items-center justify-between gap-3"><h3 id="consent-title" class="flex items-center gap-2 text-xl font-bold"><ShieldCheck class="size-5 text-primary"/>{{grant?.canViewContacts?'对方联系方式':'联系对方'}}</h3><Button v-if="error||conflict||unknown" variant="ghost" :disabled="busy" @click="refresh">重新读取</Button></div>
   <p class="text-sm leading-6 text-secondary-foreground">平台无中介。双方同意后，可直接联系对方商定安排。</p>
   <p v-if="error" class="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{{error}}</p><p v-if="notice" class="text-sm text-secondary-foreground" role="status">{{notice}}</p>

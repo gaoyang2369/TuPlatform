@@ -57,7 +57,7 @@ async function filter(value: string) {
 onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
 </script>
 <template>
-<section data-ui class="space-y-5 text-foreground [overflow-wrap:anywhere] sm:space-y-7" :class="selectedId && 'mx-auto max-w-4xl'" :aria-busy="busy">
+<section class="space-y-5 text-foreground [overflow-wrap:anywhere] sm:space-y-7" :class="selectedId && 'mx-auto max-w-4xl'" :aria-busy="busy">
   <header class="flex flex-wrap items-center justify-between gap-3">
     <div class="space-y-1"><h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">撮合进度</h1>
       <p class="text-[15px] text-secondary-foreground">{{ selectedId ? '查看回应，继续沟通。' : '查看收到和发出的意向，跟进每一次回应。' }}</p></div>
@@ -99,5 +99,5 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
     </div>
     <Button v-if="cursor" variant="secondary" :disabled="busy" @click="run(()=>list(true))">加载更多进度</Button>
   </template><div v-else-if="busy" role="status" class="space-y-3"><p>正在读取联系记录…</p><Skeleton class="h-48 w-full rounded-2xl"/></div>
-  <ConfirmDialog :open="!!confirmAction" :title="`${actionNames[confirmAction]||''}？`" :confirm-text="actionNames[confirmAction]" :busy="busy" @cancel="confirmAction='';contacts=null" @confirm="respond(confirmAction)"><template v-if="confirmAction==='accept'"><p>接受后，与{{detail?partner(detail):'对方'}}开始沟通。</p><ContactExchangeNotice v-if="contacts" :contacts="contacts" action="接受意向"/></template><p v-else>{{confirmAction==='reject'?'婉拒后，本次意向将结束。':'撤回后，对方将无法接受本次意向。'}}</p></ConfirmDialog>
+  <ConfirmDialog :open="!!confirmAction" :title="`${actionNames[confirmAction]||''}？`" :confirm-text="actionNames[confirmAction]" :busy="busy" @cancel="confirmAction='';contacts=null" @confirm="respond(confirmAction)"><template v-if="confirmAction==='accept'"><p>接受后，与{{detail?partner(detail):'对方'}}开始沟通。</p><ContactExchangeNotice v-if="contacts" :contacts="contacts" action="接受意向"/></template><p v-else-if="confirmAction==='reject'">婉拒后，本次意向将结束。</p><p v-else-if="confirmAction==='withdraw-intent'">撤回后，对方将无法接受本次意向。</p></ConfirmDialog>
 </section></template>

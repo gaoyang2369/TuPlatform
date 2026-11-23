@@ -29,14 +29,19 @@
   --color-destructive: var(--color-red-600);
 }
 
+@utility field-control {
+  @apply block min-h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:bg-slate-50 aria-invalid:border-red-500;
+}
+
 @layer base {
+  body { @apply bg-background text-foreground antialiased; font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+  button:not(:disabled), summary { cursor: pointer; }
+  :where(button, a, summary, input, textarea):focus-visible { @apply outline-2 outline-offset-2 outline-primary; }
+  input[type="checkbox"], input[type="radio"] { @apply accent-primary; }
   *, ::before, ::after {
     border-color: var(--color-border);
   }
 
-  [data-ui], [data-slot="dialog-content"], [data-slot="sheet-content"] {
-    color: var(--color-foreground);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

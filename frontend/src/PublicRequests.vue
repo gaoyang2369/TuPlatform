@@ -65,7 +65,7 @@ function districtLabel(item: PublicRequest) {
 </script>
 
 <template>
-  <section data-ui class="space-y-5 text-foreground sm:space-y-8">
+  <section class="space-y-5 text-foreground sm:space-y-8">
     <header ref="heading" tabindex="-1" class="scroll-mt-32 space-y-2 outline-none">
       <p class="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700"><MapPin class="size-3.5"/>深圳 · 坪山</p>
       <h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">浏览需求</h1>

@@ -75,7 +75,7 @@ const facts = computed(() => [
 </script>
 
 <template>
-  <div data-ui :class="['teacher-summary flex min-w-0 flex-col gap-5 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
+  <div :class="['teacher-summary flex min-w-0 flex-col gap-5 text-foreground [overflow-wrap:anywhere]', compact && 'h-full']">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-36 flex-1 items-center gap-3">
         <span aria-hidden="true" :class="['grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-linear-to-br text-xl font-bold [&_img]:size-full [&_img]:object-cover', palette]"><slot name="avatar" :teacher="teacher">{{ [...teacher.displayName][0] }}</slot></span>
