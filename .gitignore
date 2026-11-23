@@ -12,6 +12,7 @@ target/
 .cache/
 
 data/avatars/
+private_uploads/
 
 # Test reports and language caches
 coverage/

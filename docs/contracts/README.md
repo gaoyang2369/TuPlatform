@@ -37,11 +37,23 @@
 | 提交请求 | `expectedVersion, publisherDeclaration:SELF_ADULT或GUARDIAN_OF_MINOR, declarationVersion:publisher-v1`；不从草稿复制旧勾选 |
 | 本人需求 `MyRequest` | `id,status,version,draft?,latestSubmission?,reviewFeedback?,activeMatchCounts`；本人可读当时提交、声明和审核反馈；无用户填写/查看的具体截止日 |
 | 公开需求 `PublicRequest` | `id, submissionId, publisherDisplayName, title, categoryCode, audienceStageCode, areaCode, goal, serviceMode?, budgetMin,budgetMax,durationHours,frequency,availableSlots,availabilityNote?,expectedStartDate?,tutorExpectations?`；不含联系方式、邮箱、精确地址、发布声明、具体截止日或内部审核信息 |
-| 公开老师 `PublicTeacher` | `id, profileVersion, displayName, categoryCodes,serviceModes,areaCodes,introduction,priceMin?,priceMax?,availabilityText?`；资料明确为本人自述，不返回核验/认证标识、联系方式和邮箱 |
+| 公开老师 `PublicTeacher` | 基本资料、教学简历、`is_school_verified, is_skill_verified`。两项布尔值取自已通过的申请。公开投影不含证件路径、申请记录、驳回原因、联系方式或邮箱 |
 | 撮合 `Match` | `id,requestId,version,roundId,state:WAITING或MUTUAL或REJECTED或WITHDRAWN,initiatorRole,myRole,waitingForMe,requestExpired,teacherPublic,canAccept,canReject,canWithdraw,canInitiateAgain,submissionSnapshot,teacherSnapshot`；快照仅含本次沟通所需需求/老师业务字段，不含发布声明、具体截止日、审核内部信息或私密联系方式 |
 | 授权进度 `Grant` | `version,myConsent,otherConsent,mySelectedFields[],requiresReconfirmation,canViewContacts`；仅双方当前有效同意且选中值仍匹配时，另返回`mySharedContacts`和`otherSharedContacts`，其中仅含选中手机号/微信；其余状态完全省略这两个值对象 |
 
 金额用十进制字符串，不用浮点数、科学记数法、千分位或货币符号；预算与老师报价至多两位小数，时长用如`"0.5"`、`"1"`的小时字符串。数据库金额可沿用`numeric(14,2)`作为技术容量；超出可存储范围明确422提示，不舍入、不截断，也不将容量解释为指导价或999元上限。日期为`YYYY-MM-DD`，提交当天按Asia/Shanghai校验。
+
+## 试点老师认证接口
+
+以下路径同时支持 `/api` 与 `/api/v1` 前缀。写入沿用同源会话、CSRF 和 `X-Account-Id`。认证记录包含 `id, user_id, verify_type, status, reject_reason, created_at, reviewed_at`，存储路径只在服务端使用。
+
+| 方法与路径 | 权限与返回 |
+| --- | --- |
+| `POST /verifications` | 老师本人。multipart 字段 `verify_type` 为 `student_id` 或 `skill_cert`，`file` 为可读取的 JPG、PNG、WebP 或未加密 PDF，每份 ≤5 MiB。图片最多 4800 万像素。成功返回 201 和待审核记录。 |
+| `GET /verifications` | 老师本人，每类最近一条申请组成的数组。 |
+| `GET /admin/verifications?status=pending` | 仅运营。可按 pending（默认）、approved、rejected 筛选，排除本人的申请。 |
+| `GET /admin/verifications/{id}/proof` | 上传者或运营下载证件，响应禁止缓存。未登录 401，其他人 404。 |
+| `POST /admin/verifications/{id}/review` | 运营审核他人的待审记录。JSON 字段 `status` 为 approved 或 rejected，驳回时 `reject_reason` 为必填、最多 300 字。已处理记录返回 409。 |
 
 ## 账号与本人资料
 

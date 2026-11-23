@@ -1,0 +1,118 @@
+import { expect, test, type APIRequestContext } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import { sampleResume } from "./resume-fixture";
+
+const root = path.resolve(import.meta.dirname, "../..");
+const actors: string[] = [];
+function fixture(action: string, value: string) {
+  const drivers = path.join(root, ".tools/maven-repository/org/postgresql/postgresql");
+  const version = readdirSync(drivers).filter(v => /^\d/.test(v)).sort().at(-1)!;
+  const driver = path.join(drivers, version, "postgresql-" + version + ".jar");
+  return JSON.parse(execFileSync("java", ["-cp", driver, path.join(root, "backend/src/test/tools/BrowserFixture.java"),
+    action, value], { encoding: "utf8" }));
+}
+async function write(client: APIRequestContext, endpoint: string, data: unknown, id?: string, method = "POST") {
+  const csrf = await (await client.get("/api/v1/auth/csrf")).json();
+  const response = await client.fetch("/api/v1" + endpoint, { method, data, headers: {
+    [csrf.headerName]: csrf.token, ...(id ? { "X-Account-Id": id, "Idempotency-Key": crypto.randomUUID() } : {}),
+  } });
+  expect(response.ok(), endpoint + " " + response.status()).toBe(true);
+  return response.json();
+}
+async function login(client: APIRequestContext, role: string) {
+  const user = fixture("create", role);
+  actors.push(user.id);
+  await write(client, "/auth/login", {account: user.account, password: user.password});
+  return user.id as string;
+}
+test.afterEach(() => { for (const id of actors.splice(0)) fixture("cleanup", id); });
+
+test("老师提交和重提私有证件，运营核验，家长查看双徽章", async ({ page, browser, request }, info) => {
+  test.setTimeout(120000);
+  const { baseURL, viewport, isMobile, hasTouch } = info.project.use;
+  const parentContext = await browser.newContext({ baseURL, viewport, isMobile, hasTouch });
+  const operatorContext = await browser.newContext({ baseURL, viewport, isMobile, hasTouch });
+  try {
+    const tutor = await login(page.request, "TUTOR");
+    await login(parentContext.request, "REQUESTER");
+    await login(operatorContext.request, "OPERATOR");
+    const saved = await write(page.request, "/me/teacher-profile", { ...sampleResume, expectedVersion: 0,
+      displayName: "合成核验老师", categoryCodes: ["DRAWING"], serviceModes: ["ONLINE"], areaCodes: [],
+      introduction: "水彩入门", priceMin: null, priceMax: null, availabilityText: "周末" }, tutor, "PUT");
+    await write(page.request, "/me/teacher-profile/publish", {expectedVersion: saved.version}, tutor);
+
+    const parent = await parentContext.newPage(), operator = await operatorContext.newPage();
+    await parent.goto("/?view=teachers");
+    const card = parent.locator(".teacher-card").filter({hasText: "合成核验老师"});
+    await expect(card.getByText("邮箱已验证")).toBeVisible();
+    await card.getByRole("button", {name:"查看老师"}).click();
+    await expect(parent.getByRole("dialog")).toContainText("该老师已通过邮箱验证，学籍信息核验中；具体授课安排由双方协商确认。");
+    await parent.getByRole("button", {name:"返回老师列表"}).click();
+
+    await page.goto("/?view=profile");
+    const mine = page.getByRole("region", {name:"本校学籍与资质认证"});
+    const school = mine.getByRole("article").filter({has: page.getByRole("heading", {name:"本校学籍", exact:true})});
+    await expect(school).toContainText("未提交");
+    const upload = async (label: string) => {
+      await mine.getByLabel("选择" + label + "材料").setInputFiles(path.join(root, "frontend/e2e/fixtures/resume.pdf"));
+      await mine.getByRole("button", {name:"提交" + label + "认证"}).click();
+    };
+    await upload("本校学籍");
+    await expect(school).toContainText("审核中");
+    const proof = (await school.getByRole("link").getAttribute("href"))!;
+    expect((await page.request.get(proof)).status()).toBe(200);
+    expect((await parent.request.get(proof)).status()).toBe(404);
+    expect((await request.get(proof)).status()).toBe(401);
+    const submissionId = proof.split("/").at(-2);
+    const staticRead = await request.get("/private_uploads/verifications/" + submissionId + ".pdf");
+    // Some development servers serve the SPA shell for unknown paths.
+    expect((await staticRead.body()).subarray(0, 5).toString()).not.toBe("%PDF-");
+    expect((await parent.request.get("/api/admin/verifications")).status()).toBe(403);
+    expect((await operator.request.post("/api/admin/verifications/" + submissionId + "/review", {
+      data: { status: "approved" },
+    })).status()).toBe(403);
+
+    await operator.goto("/?view=review");
+    await operator.getByRole("button", {name:"老师认证审核"}).click();
+    const queue = operator.getByRole("region", {name:"老师认证审核"});
+    const submission = (label: string) => queue.getByRole("article").filter({hasText:tutor})
+      .filter({has:operator.getByRole("heading", {name:label, exact:true})});
+    const row = submission("本校学籍");
+    await expect(row).toBeVisible();
+    const document = await operator.request.get(proof);
+    expect(document.status()).toBe(200);
+    expect(document.headers()["cache-control"]).toContain("no-store");
+    await row.getByLabel("驳回原因", {exact:false}).fill("请保留院校名称");
+    await row.getByRole("button", {name:"驳回申请"}).click();
+    await expect(queue.getByRole("status")).toContainText("已驳回");
+    await mine.getByRole("button", {name:"刷新认证状态"}).click();
+    await expect(school).toContainText("请保留院校名称");
+    await upload("本校学籍");
+    await expect(school).toContainText("审核中");
+    await upload("技能证书");
+    await expect(mine.getByText("审核中", {exact:true})).toHaveCount(2);
+    await queue.getByRole("button", {name:"刷新待核验申请"}).click();
+    for (const label of ["本校学籍","技能证书"]) {
+      await submission(label).getByRole("button", {name:"确认核验通过"}).click();
+      await expect(submission(label)).toHaveCount(0);
+    }
+    await mine.getByRole("button", {name:"刷新认证状态"}).click();
+    await expect(mine.getByText("已核验", {exact:true})).toHaveCount(2);
+    await parent.reload();
+    await expect(card).toContainText("本校学籍已核验");
+    await expect(card).toContainText("技能证书已核验");
+    await card.getByRole("button", {name:"查看老师"}).click();
+    const drawer = parent.getByRole("dialog");
+    await expect(drawer).toContainText("本校学籍已核验");
+    await expect(drawer).toContainText("技能证书已核验");
+    await expect(drawer).toContainText("该老师已完成本校在读学籍核验；具体授课安排与费用由双方协商确认。");
+    await expect(drawer.getByRole("link", {name: /证件|材料/})).toHaveCount(0);
+    expect(await parent.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    expect((await parent.request.get(proof)).status()).toBe(404);
+  } finally {
+    await parentContext.close();
+    await operatorContext.close();
+  }
+});

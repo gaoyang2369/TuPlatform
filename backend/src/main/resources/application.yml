@@ -44,6 +44,7 @@ spring:
 app:
   pilot-school: ${PILOT_SCHOOL_NAME:深圳技术大学}
   avatar-directory: ${AVATAR_DIRECTORY:./data/avatars}
+  verification-directory: ${VERIFICATION_DIRECTORY:${user.home}/.tuplatform/private_uploads/verifications}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
   secure-cookies: ${SECURE_COOKIES:true}
   mail-enabled: ${MAIL_ENABLED:false}

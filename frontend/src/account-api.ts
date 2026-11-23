@@ -10,6 +10,7 @@ export interface ResumeFields {
   casesJson: TeachingCase[]; trialPolicy: string;
 }
 export interface Teacher extends Partial<ResumeFields> {
+  is_school_verified?: boolean; is_skill_verified?: boolean;
   resumePdfUrl?: string | null; resumePdfName?: string | null;
   categoryCodes: string[]; serviceModes: string[]; areaCodes: string[];
   introduction: string; priceMin: string | null; priceMax: string | null;
@@ -47,7 +48,7 @@ export class AccountApi {
   }
   async request<T>(path: string, method = "GET", body?: unknown, key?: string, retryCsrf = true): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (this.accountId && (path === "/upload/avatar" || path.split("?")[0] === "/upload/resume" || path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
+    if (this.accountId && (path === "/verifications" || path.startsWith("/admin/verifications") || path === "/upload/avatar" || path.split("?")[0] === "/upload/resume" || path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
     const multipart = body instanceof FormData;
     if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;

@@ -23,6 +23,7 @@ class AccountContextConfig implements WebMvcConfigurer {
                     throw new ApiError(409, "SESSION_CHANGED", "浏览器中的账号已变化，请重新读取账号状态后操作");
                 return true;
             }
-        }).addPathPatterns("/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**");
+        }).addPathPatterns("/api/verifications", "/api/v1/verifications", "/api/admin/verifications/**", "/api/v1/admin/verifications/**",
+            "/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**");
     }
 }

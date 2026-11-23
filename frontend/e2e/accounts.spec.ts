@@ -83,7 +83,7 @@ test("老师保存、主动公开、冲突留输入、网络失败恢复及停�
   await expect(preview).toContainText("设计学院 · 大三");
   await expect(preview).toContainText("能独立调出所需色彩");
   await preview.getByRole("button", { name: "返回编辑" }).click();
-  await page.locator('input[type=file][accept*="pdf"]').setInputFiles(path.join(root, "frontend/e2e/fixtures/resume.pdf"));
+  await page.getByLabel("选择 PDF（最大 5 MB）").setInputFiles(path.join(root, "frontend/e2e/fixtures/resume.pdf"));
   await expect(page.getByRole("link", { name: "resume.pdf" })).toBeVisible();
   await page.getByRole("checkbox", { name: "绘画", exact: true }).check();
   await page.getByRole("checkbox", { name: "线下", exact: true }).check();

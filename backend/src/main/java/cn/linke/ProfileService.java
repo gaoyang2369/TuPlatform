@@ -18,6 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 class ProfileService {
+    private static final String TRUST_FIELDS = """
+        EXISTS (SELECT 1 FROM verifications v WHERE v.user_id=p.account_id AND v.verify_type='student_id' AND v.status='approved') AS is_school_verified,
+        EXISTS (SELECT 1 FROM verifications v WHERE v.user_id=p.account_id AND v.verify_type='skill_cert' AND v.status='approved') AS is_skill_verified
+        """;
+    private static final String TEACHER_QUERY = "SELECT a.id,p.*," + TRUST_FIELDS + " FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE ";
     private final JdbcTemplate db;
     private final AuthService auth;
     private final Secrets secrets;
@@ -41,10 +46,11 @@ class ProfileService {
     }
     private String amount(Object value) { return value == null ? null : ((BigDecimal) value).toPlainString(); }
     private Profile read(Account a) {
-        Map<String, Object> p = db.queryForMap("SELECT * FROM profiles WHERE account_id=?", a.id());
+        Map<String, Object> p = db.queryForMap("SELECT p.*," + TRUST_FIELDS + " FROM profiles p WHERE account_id=?", a.id());
         Map<String, Object> teacher = null;
         if ("TUTOR".equals(a.identity())) {
             teacher = new LinkedHashMap<>();
+            addVerificationFlags(teacher, p);
             addResumeFields(teacher, p, true);
             teacher.put("categoryCodes", values(p.get("category_codes"))); teacher.put("serviceModes", values(p.get("service_modes")));
             teacher.put("areaCodes", values(p.get("area_codes"))); teacher.put("introduction", p.get("introduction"));
@@ -86,7 +92,8 @@ class ProfileService {
     private TeacherBody storedBody(String name, Map<String, Object> fields) {
         var input = new LinkedHashMap<>(fields);
         input.put("displayName", name);
-        for (String key : List.of("id", "public", "version", "profileVersion", "avatar_url", "resumePdfUrl", "resumePdfName"))
+        for (String key : List.of("id", "public", "version", "profileVersion", "avatar_url", "resumePdfUrl", "resumePdfName",
+                "is_school_verified", "is_skill_verified"))
             input.remove(key);
         return json.convertValue(input, TeacherBody.class);
     }
@@ -193,10 +200,7 @@ class ProfileService {
             if(!allowed.contains(filter[1]))throw ApiError.invalid("filter","请选择有效的筛选条件");
             condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
         }
-        var rows=db.queryForList("""
-            SELECT a.id,p.*
-            FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE
-            """+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
+        var rows=db.queryForList(TEACHER_QUERY+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
         var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(10).map(this::teacherProjection).toList());
         result.put("nextCursor",rows.size()>10?rows.get(9).get("id").toString():null);return result;
     }
@@ -206,6 +210,8 @@ class ProfileService {
         validateTeacher(storedBody((String) teacher.get("displayName"), teacher), true);
         teacher.remove("resumePdfUrl");
         teacher.remove("resumePdfName");
+        teacher.remove("is_school_verified");
+        teacher.remove("is_skill_verified");
         teacher.remove("avatar_url"); // Relationship snapshots retain teaching details. Avatars are read live.
         return teacher;
     }
@@ -214,16 +220,18 @@ class ProfileService {
         catch(ApiError e) { throw new ApiError(422,"PROFILE_NOT_PUBLIC","老师须先补齐必填资料并主动公开，才能投递或被邀请"); }
     }
     private Map<String,Object> teacherProjection(UUID id) {
-        List<Map<String, Object>> rows = db.queryForList("""
-            SELECT a.id,p.*
-            FROM profiles p JOIN accounts a ON a.id=p.account_id
-            WHERE a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public
-            """, id);
+        List<Map<String, Object>> rows = db.queryForList(TEACHER_QUERY +
+            "a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public", id);
         if (rows.isEmpty()) throw new ApiError(404, "NOT_FOUND", "老师资料当前不可查看");
         return teacherProjection(rows.getFirst());
     }
+    private void addVerificationFlags(Map<String,Object> result, Map<String,Object> row) {
+        result.put("is_school_verified", row.get("is_school_verified"));
+        result.put("is_skill_verified", row.get("is_skill_verified"));
+    }
     private Map<String,Object> teacherProjection(Map<String,Object> r) {
         var result = new LinkedHashMap<String, Object>();
+        addVerificationFlags(result, r);
         addResumeFields(result, r, false);
         result.put("avatar_url", r.get("avatar_url"));
         result.put("id", r.get("id")); result.put("profileVersion", r.get("version")); result.put("displayName", r.get("display_name"));

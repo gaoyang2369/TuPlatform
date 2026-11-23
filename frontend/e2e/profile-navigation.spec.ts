@@ -23,6 +23,7 @@ for (const identity of ["REQUESTER", "TUTOR"] as const) {
         return route.fulfill({ json: saved });
       }
       if (endpoint === "/me/profile") return route.fulfill({ json: saved });
+      if (endpoint === "/verifications") return route.fulfill({ json: [] });
       if (endpoint === "/profile-options") return route.fulfill({ json: { categoryCodes: [], serviceModes: [], areaCodes: [] } });
       if (endpoint === "/publishing-options") return route.fulfill({ json: { categories: [], streets: [], serviceModes: [] } });
       if (endpoint === "/teachers" || endpoint === "/public/requests") return route.fulfill({ json: { items: [], nextCursor: null } });

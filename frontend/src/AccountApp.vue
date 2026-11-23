@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from "./UserAvatar.vue";
 import TeacherResumeFields from "./TeacherResumeFields.vue";
 import TeacherSummary from "./TeacherSummary.vue";
+import TeacherVerifications from "./TeacherVerifications.vue";
 import DiscoverySheet from "./DiscoverySheet.vue";
 import { resumeDraft, resumeFields, trialPolicies } from "./teacher-resume";
 import AvatarUploader from "./AvatarUploader.vue";
@@ -69,6 +70,7 @@ const teacherValues = computed(() => {
 const previewTeacher = computed(() => ({
   ...teacherValues.value, displayName: form.displayName || "尚未填写展示名", id: me.value?.id ?? "",
   profileVersion: profile.value?.version ?? 0, avatar_url: me.value?.avatar_url,
+  is_school_verified: profile.value?.teacher?.is_school_verified, is_skill_verified: profile.value?.teacher?.is_skill_verified,
   resumePdfUrl: profile.value?.teacher?.resumePdfUrl, resumePdfName: profile.value?.teacher?.resumePdfName,
 }));
 let baseline = "";
@@ -187,6 +189,9 @@ function loadForm(p: Profile) {
   profile.value = p;
   Object.assign(form, { resume: resumeDraft(p.teacher), displayName: p.displayName, categoryCodes: [...(p.teacher?.categoryCodes ?? [])], serviceModes: [...(p.teacher?.serviceModes ?? [])], areaCodes: [...(p.teacher?.areaCodes ?? [])], introduction: p.teacher?.introduction ?? "", priceMin: p.teacher?.priceMin ?? "", priceMax: p.teacher?.priceMax ?? "", availabilityText: p.teacher?.availabilityText ?? "" });
   baseline = JSON.stringify(form); conflict.value = false; latest.value = null; preview.value = false; pendingVisibility = null;
+}
+function updateVerificationFlags(school: boolean, skill: boolean) {
+  if (profile.value?.teacher) Object.assign(profile.value.teacher, { is_school_verified: school, is_skill_verified: skill });
 }
 async function loadAccount() {
   const current = await api.request<Me>("/me");
@@ -565,6 +570,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
               <ul v-if="Object.keys(fieldErrors).length" aria-label="填写错误" class="space-y-1 rounded-xl bg-red-50 p-4 text-sm text-red-800"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field" class="underline">{{ message }}</a></li></ul>
               <p v-if="isPublic" class="text-sm leading-6 text-secondary-foreground">保存成功即更新对外展示，历史意向资料不随之覆盖。</p>
             </fieldset></form>
+            <TeacherVerifications v-if="isTutor && me" :key="me.id" @expired="draftSessionExpired" @updated="updateVerificationFlags"/>
           </template>
           </template>
         </section>

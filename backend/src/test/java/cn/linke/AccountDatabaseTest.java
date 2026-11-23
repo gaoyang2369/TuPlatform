@@ -70,6 +70,48 @@ class AccountDatabaseTest {
     }
     @Autowired ResumeService resumes;
 
+    @Test void proofsRemainPrivateAcrossRejectionResubmissionAndApproval(@TempDir Path directory) throws Exception {
+        var tutor = user("TUTOR");
+        var parent = user("REQUESTER");
+        var reviewer = user(null);
+        db.update("UPDATE accounts SET operator_granted=true WHERE id IN (?,?)", reviewer.id(), tutor.id());
+        var service = new VerificationService(auth, db, directory.toString());
+        var tx = new TransactionTemplate(transactionManager);
+        var bytes = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(12, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
+        var file = new MockMultipartFile("file", "../../private.png", "image/png", bytes.toByteArray());
+        var rollback = tx.execute(s -> {
+            var item = service.submit(tutor.session(), "student_id", file);
+            s.setRollbackOnly();
+            return item.id();
+        });
+        assertFalse(Files.exists(directory.resolve(rollback + ".png")));
+        assertThrows(ApiError.class, () -> service.submit(parent.session(), "student_id", file));
+        var item = tx.execute(s -> service.submit(tutor.session(), "student_id", file));
+        assertEquals(409, assertThrows(ApiError.class, () -> service.submit(tutor.session(), "student_id", file)).status);
+        assertEquals(401, assertThrows(ApiError.class, () -> service.proof(null, item.id())).status);
+        assertEquals(404, assertThrows(ApiError.class, () -> service.proof(parent.session(), item.id())).status);
+        assertArrayEquals(bytes.toByteArray(), service.proof(tutor.session(), item.id()).bytes());
+        assertArrayEquals(bytes.toByteArray(), service.proof(reviewer.session(), item.id()).bytes());
+        var reject = new VerificationService.Decision("rejected", "请保留院校名称");
+        assertEquals(403, assertThrows(ApiError.class, () -> service.queue(parent.session(), "pending")).status);
+        assertEquals(403, assertThrows(ApiError.class, () -> service.review(parent.session(), item.id(), reject)).status);
+        assertEquals(409, assertThrows(ApiError.class, () -> service.review(tutor.session(), item.id(), reject)).status);
+        assertEquals(422, assertThrows(ApiError.class, () -> service.review(reviewer.session(), item.id(),
+            new VerificationService.Decision("rejected", " "))).status);
+        service.review(reviewer.session(), item.id(), reject);
+        assertEquals(reject.reject_reason(), service.mine(tutor.session()).getFirst().reject_reason());
+        var retry = tx.execute(s -> service.submit(tutor.session(), "student_id", file));
+        var approve = new VerificationService.Decision("approved", null);
+        assertFalse((boolean) profiles.get(tutor.session()).teacher().get("is_school_verified"));
+        assertNotNull(service.review(reviewer.session(), retry.id(), approve).reviewed_at());
+        assertTrue((boolean) profiles.get(tutor.session()).teacher().get("is_school_verified"));
+        assertFalse((boolean) profiles.get(tutor.session()).teacher().get("is_skill_verified"));
+        assertEquals(409, assertThrows(ApiError.class, () -> service.review(reviewer.session(), retry.id(), reject)).status);
+        assertTrue(service.queue(reviewer.session(), "approved").stream().anyMatch(row -> row.id().equals(retry.id())));
+        assertEquals(List.of(retry.id()), service.mine(tutor.session()).stream().map(VerificationService.Entry::id).toList());
+    }
+
     @Test void resumeAccessTracksVisibilityReplacementDeletionAndVersion() throws Exception {
         var tutor = user("TUTOR");
         var requester = user("REQUESTER");

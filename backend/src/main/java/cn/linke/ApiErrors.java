@@ -17,8 +17,11 @@ class ApiErrors {
     }
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     ResponseEntity<?> uploadTooLarge(jakarta.servlet.http.HttpServletRequest request) {
+        if (request.getRequestURI().endsWith("/verifications")) return known(VerificationProof.tooLarge());
         return known(request.getRequestURI().endsWith("/upload/resume") ? ResumeService.tooLarge() : AvatarImage.tooLarge());
     }
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    ResponseEntity<?> missingResource() { return known(new ApiError(404, "NOT_FOUND", "资源不存在")); }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<?> malformed() { return known(new ApiError(422, "INVALID_INPUT", "请求内容不完整或格式不正确")); }
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

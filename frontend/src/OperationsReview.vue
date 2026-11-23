@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DiscoverySheet from "./DiscoverySheet.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import RequestSummary from "./RequestSummary.vue";
+import VerificationReview from "./VerificationReview.vue";
+const showVerifications = ref(false);
 import { statusNames,declarationNames } from "./request-display.ts";
 type Submission={id:string;requestId:string;status:string;version:number;submittedAt:string;expiresAt:string;fields:Record<string,unknown>;publisherDisplayName:string;publisherDeclaration:string;reviewFeedback:string|null;priorReviewFeedback:string|null};
 const emit=defineEmits<{expired:[]}>();
@@ -66,7 +68,9 @@ defineExpose({requestLeave});
     <header ref="heading" tabindex="-1" class="space-y-2">
       <h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">需求审核</h1>
       <p class="text-[15px] text-secondary-foreground">核对本次提交的内容。自己的需求不会进入审核队列。</p>
+      <Button variant="outline" class="min-h-11" :aria-expanded="showVerifications" @click="showVerifications=!showVerifications"><ShieldCheck/>老师认证审核</Button>
     </header>
+    <VerificationReview v-if="showVerifications" @expired="emit('expired')"/>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div role="group" aria-label="审核状态" class="flex flex-wrap gap-1 rounded-2xl border border-border bg-card p-1">
         <Button v-for="code in states" :key="code" variant="ghost" class="rounded-full aria-pressed:bg-blue-50 aria-pressed:text-primary" :aria-pressed="status===code" :disabled="busy" @click="filter(code)">{{ statusNames[code] }}</Button>

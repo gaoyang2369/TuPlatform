@@ -73,7 +73,10 @@ const facts = computed(() => [
         <slot name="avatar" :teacher="teacher"><UserAvatar :url="teacher.avatar_url" :name="teacher.displayName" :color-key="teacher.id" class="rounded-2xl text-xl" :class="publicProfile && !compact ? 'size-16 ring-2 ring-white' : 'size-12'"/></slot>
         <div class="min-w-0">
           <h2 class="text-xl leading-snug font-bold">{{ teacher.displayName }}</h2>
-          <span v-if="publicProfile" class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-slate-600"><BadgeCheck class="size-3.5 text-blue-600"/>邮箱已验证</span>
+          <div v-if="publicProfile" class="mt-1 flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700"><BadgeCheck class="size-3.5"/>{{ teacher.is_school_verified ? '本校学籍已核验' : '邮箱已验证' }}</span>
+            <span v-if="teacher.is_skill_verified" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"><BadgeCheck class="size-3.5"/>技能证书已核验</span>
+          </div>
         </div>
       </div>
       <div class="max-w-full shrink-0 text-right">
@@ -120,7 +123,7 @@ const facts = computed(() => [
       <section class="space-y-2"><h3 class="text-lg font-bold">服务说明</h3>
         <p class="whitespace-pre-line text-[15px] leading-7 text-secondary-foreground">{{ introduction.paragraphs.find(p => p.label === '服务说明')?.text || '授课内容、具体时间和费用由双方沟通确认。' }}</p>
       </section>
-      <p class="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm text-secondary-foreground"><Info class="mt-0.5 size-4 shrink-0"/>资料为老师本人自述，平台未作资格认证。</p>
+      <p class="flex items-start gap-2 rounded-xl bg-blue-50 p-3 text-sm text-secondary-foreground"><Info class="mt-0.5 size-4 shrink-0 text-primary"/>{{ teacher.is_school_verified ? '该老师已完成本校在读学籍核验；具体授课安排与费用由双方协商确认。' : '该老师已通过邮箱验证，学籍信息核验中；具体授课安排由双方协商确认。' }}</p>
       <section v-if="teacher.resumePdfUrl" class="space-y-2 rounded-2xl border border-blue-100 bg-blue-50 p-4">
         <h3 class="flex items-center gap-2 font-bold"><FileText class="size-5 text-primary"/>完整简历（PDF）</h3>
         <p class="break-all text-sm text-secondary-foreground">{{ teacher.resumePdfName }}</p>
@@ -143,7 +146,6 @@ const facts = computed(() => [
       </div>
       <p class="flex items-start gap-2 text-sm text-secondary-foreground"><Clock3 class="mt-0.5 size-4 shrink-0 text-muted-foreground"/><span :class="compact ? 'line-clamp-2' : 'whitespace-pre-wrap'">{{ teacher.availabilityText || '时间可协商' }}</span></p>
       <Button v-if="compact" variant="default" :disabled="openDisabled" class="mt-auto h-11 w-full justify-between rounded-xl bg-primary px-4 text-white transition-colors group-hover:bg-primary group-hover:text-white hover:bg-primary focus-visible:bg-primary focus-visible:text-white motion-reduce:transition-none" @click="emit('open', $event)">查看老师<ArrowRight aria-hidden="true"/></Button>
-      <p v-else class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-secondary-foreground">资料为老师本人自述，平台未作资格认证。</p>
     </template>
   </div>
 </template>
