@@ -17,7 +17,10 @@ record BaseProfileBody(Long expectedVersion, String displayName) {}
 record VersionBody(Long expectedVersion) {}
 record TeacherBody(Long expectedVersion, String displayName, List<String> categoryCodes,
     List<String> serviceModes, List<String> areaCodes, String introduction,
-    String priceMin, String priceMax, String availabilityText) {}
+    String priceMin, String priceMax, String availabilityText, String schoolName, String collegeMajor,
+    String gradeLevel, List<String> teachGrades, List<String> teachSubjects, String yearsExp,
+    List<String> teachingStyleTags, List<TeachingCase> casesJson, String trialPolicy) {}
+record TeachingCase(@JsonProperty("student_grade") String studentGrade, String focus, String outcome) {}
 record Me(UUID id, String account, String email, boolean emailVerified, String businessIdentity,
     boolean operatorGranted, long profileVersion, @JsonProperty("avatar_url") String avatarUrl) {}
 record Account(UUID id, String account, String email, String passwordHash, boolean verified,

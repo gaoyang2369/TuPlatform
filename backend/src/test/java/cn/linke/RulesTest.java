@@ -36,12 +36,34 @@ class RulesTest {
         assertThrows(ApiError.class, () -> Rules.priceRange(BigDecimal.ONE, null));
         assertThrows(ApiError.class, () -> Rules.priceRange(BigDecimal.TEN, BigDecimal.ONE));
     }
+    @Test void structuredResumeIsRequiredOnSaveAndLimitsStylesAndCases() {
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        var body = ResumeFixtures.teacher(0L, "", List.of(), List.of(), List.of(), "", null, null, "");
+        ProfileService.validateResume(body);
+        var source = json.valueToTree(body);
+        var invalid = java.util.Map.of("teachGrades", List.of(" "), "teachSubjects", List.of(),
+            "teachingStyleTags", List.of("耐心细致","擅长基础巩固","习惯培养","备课认真"),
+            "trialPolicy", "任意政策", "casesJson", List.of());
+        invalid.forEach((field, value) -> {
+            var changed = (com.fasterxml.jackson.databind.node.ObjectNode) source.deepCopy();
+            changed.set(field, json.valueToTree(value));
+            ApiError error = assertThrows(ApiError.class, () -> ProfileService.validateResume(json.convertValue(changed, TeacherBody.class)));
+            assertTrue(error.fields.containsKey(field));
+        });
+        for (var cases : List.of(java.util.Collections.nCopies(4, body.casesJson().getFirst()),
+                                  List.of(new TeachingCase("小学","色彩"," ")))) {
+            var changed = (com.fasterxml.jackson.databind.node.ObjectNode) source.deepCopy();
+            changed.set("casesJson", json.valueToTree(cases));
+            assertThrows(ApiError.class, () -> ProfileService.validateResume(json.convertValue(changed, TeacherBody.class)));
+        }
+    }
+
     @Test void selectionsRespectConfiguredCategoriesAndRequiredOfflineArea() {
         assertThrows(ApiError.class, () -> Rules.choices("categoryCodes", List.of("DRAWING"), Set.of(), true));
         assertThrows(ApiError.class, () -> Rules.choices("serviceModes", List.of("ONLINE", "ONLINE"), Rules.MODES, true));
-        var service = new ProfileService(null, null, null, null, "DRAWING");
-        assertDoesNotThrow(() -> service.validateTeacher(new TeacherBody(0L, "老师", List.of("DRAWING"), List.of("ONLINE"), List.of(), "自述", null, null, ""), true));
-        assertThrows(ApiError.class, () -> service.validateTeacher(new TeacherBody(0L, "老师", List.of("DRAWING"), List.of("OFFLINE"), List.of(), "自述", null, null, ""), true));
-        assertDoesNotThrow(() -> service.validateTeacher(new TeacherBody(0L, "", List.of(), List.of(), List.of(), "", null, null, ""), false));
+        var service = new ProfileService(null, null, null, null, "DRAWING", "试点大学");
+        assertDoesNotThrow(() -> service.validateTeacher(ResumeFixtures.teacher(0L, "老师", List.of("DRAWING"), List.of("ONLINE"), List.of(), "自述", null, null, ""), true));
+        assertThrows(ApiError.class, () -> service.validateTeacher(ResumeFixtures.teacher(0L, "老师", List.of("DRAWING"), List.of("OFFLINE"), List.of(), "自述", null, null, ""), true));
+        assertDoesNotThrow(() -> service.validateTeacher(ResumeFixtures.teacher(0L, "", List.of(), List.of(), List.of(), "", null, null, ""), false));
     }
 }

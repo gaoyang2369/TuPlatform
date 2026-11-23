@@ -68,6 +68,46 @@ class AccountDatabaseTest {
         if (identity != null) auth.identity(login.session(), new IdentityBody(identity));
         return new User(id, login.session());
     }
+    @Autowired ResumeService resumes;
+
+    @Test void resumeAccessTracksVisibilityReplacementDeletionAndVersion() throws Exception {
+        var tutor = user("TUTOR");
+        var requester = user("REQUESTER");
+        var otherTutor = user("TUTOR");
+        byte[] bytes;
+        try (var pdf = new org.apache.pdfbox.pdmodel.PDDocument(); var out = new ByteArrayOutputStream()) {
+            pdf.addPage(new org.apache.pdfbox.pdmodel.PDPage());
+            pdf.save(out);
+            bytes = out.toByteArray();
+        }
+        var file = new MockMultipartFile("file", "水彩简历.PDF", "application/pdf", bytes);
+        assertEquals(403, assertThrows(ApiError.class, () -> resumes.upload(requester.session(), null, file)).status);
+        for (var invalid : List.of(
+                new MockMultipartFile("file", "notes.txt", "application/pdf", bytes),
+                new MockMultipartFile("file", "fake.pdf", "application/pdf", "%PDF-broken".getBytes()),
+                new MockMultipartFile("file", "oversize.pdf", "application/pdf", new byte[5242881]))) {
+            assertThrows(ApiError.class, () -> resumes.upload(tutor.session(), 0L, invalid));
+        }
+        var original = resumes.upload(tutor.session(), 0L, file);
+        UUID fileId = UUID.fromString(original.resumePdfUrl().substring("/api/v1/resumes/".length()).replace(".pdf", ""));
+        assertArrayEquals(bytes, resumes.read(tutor.session(), fileId).content());
+        assertEquals(404, assertThrows(ApiError.class, () -> resumes.read(requester.session(), fileId)).status);
+        var saved = profiles.saveTeacher(tutor.session(), ResumeFixtures.teacher(original.version(), "老师", List.of("DRAWING"),
+            List.of("ONLINE"), List.of(), "绘画", null, null, ""));
+        var visible = profiles.visibility(tutor.session(), new VersionBody(saved.version()), true, UUID.randomUUID().toString());
+        assertArrayEquals(bytes, resumes.read(requester.session(), fileId).content());
+        assertEquals(404, assertThrows(ApiError.class, () -> resumes.read(otherTutor.session(), fileId)).status);
+        assertEquals(401, assertThrows(ApiError.class, () -> resumes.read(null, fileId)).status);
+        var hidden = profiles.visibility(tutor.session(), new VersionBody(visible.version()), false, UUID.randomUUID().toString());
+        assertEquals(404, assertThrows(ApiError.class, () -> resumes.read(requester.session(), fileId)).status);
+        var replacement = resumes.upload(tutor.session(), hidden.version(), file);
+        assertEquals(404, assertThrows(ApiError.class, () -> resumes.read(tutor.session(), fileId)).status);
+        assertEquals(409, assertThrows(ApiError.class, () -> resumes.delete(tutor.session(), original.version())).status);
+        assertEquals(403, assertThrows(ApiError.class, () -> resumes.delete(requester.session(), null)).status);
+        resumes.delete(tutor.session(), replacement.version());
+        assertNull(profiles.get(tutor.session()).teacher().get("resumePdfUrl"));
+    }
+
     @Test void avatarReplacementFollowsProfileTransaction(@TempDir Path directory) throws Exception {
         User owner = user("REQUESTER");
         var avatars = new AvatarService(auth, db, directory.toString());
@@ -132,9 +172,9 @@ class AccountDatabaseTest {
     }
     @Test void profilePublicationRequiresCompletenessAndUsesVersionsAndReceipts() {
         User tutor = user("TUTOR"), requester = user("REQUESTER");
-        Profile draft = profiles.saveTeacher(tutor.session(), new TeacherBody(0L, "", List.of(), List.of(), List.of(), "", null, null, ""));
+        Profile draft = profiles.saveTeacher(tutor.session(), ResumeFixtures.teacher(0L, "", List.of(), List.of(), List.of(), "", null, null, ""));
         assertThrows(ApiError.class, () -> profiles.visibility(tutor.session(), new VersionBody(draft.version()), true, UUID.randomUUID().toString()));
-        Profile filled = profiles.saveTeacher(tutor.session(), new TeacherBody(draft.version(), "合成老师", List.of("DRAWING"), List.of("ONLINE"), List.of(), "自述资料", null, null, ""));
+        Profile filled = profiles.saveTeacher(tutor.session(), ResumeFixtures.teacher(draft.version(), "合成老师", List.of("DRAWING"), List.of("ONLINE"), List.of(), "自述资料", null, null, ""));
         assertEquals(false, filled.teacher().get("public"));
         assertThrows(ApiError.class, () -> profiles.publicTeacher(requester.session(), tutor.id()));
         String key = UUID.randomUUID().toString();
@@ -145,7 +185,7 @@ class AccountDatabaseTest {
         var publicView = profiles.publicTeacher(requester.session(), tutor.id());
         for (String privateField : List.of("email", "phone", "wechat", "passwordHash", "account")) assertFalse(publicView.containsKey(privateField));
         assertThrows(ApiError.class, () -> profiles.publicTeacher(null, tutor.id()));
-        assertThrows(ApiError.class, () -> profiles.saveTeacher(tutor.session(), new TeacherBody(filled.version(), "旧版本", List.of(), List.of(), List.of(), "", null, null, "")));
+        assertThrows(ApiError.class, () -> profiles.saveTeacher(tutor.session(), ResumeFixtures.teacher(filled.version(), "旧版本", List.of(), List.of(), List.of(), "", null, null, "")));
         Profile stopped = profiles.visibility(tutor.session(), new VersionBody(published.version()), false, UUID.randomUUID().toString());
         assertEquals(false, stopped.teacher().get("public"));
         assertThrows(ApiError.class, () -> profiles.publicTeacher(requester.session(), tutor.id()));

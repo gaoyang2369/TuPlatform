@@ -40,7 +40,7 @@ class MatchDatabaseTest {
     }
     private long publish(User tutor) {
         var p=profiles.get(tutor.session());
-        var saved=profiles.saveTeacher(tutor.session(),new TeacherBody(p.version(),"当时老师",List.of("DRAWING"),List.of("ONLINE"),List.of(),"合成介绍",null,null,""));
+        var saved=profiles.saveTeacher(tutor.session(),ResumeFixtures.teacher(p.version(),"当时老师",List.of("DRAWING"),List.of("ONLINE"),List.of(),"合成介绍",null,null,""));
         return profiles.visibility(tutor.session(),new VersionBody(saved.version()),true,key()).version();
     }
     private Setup setup() throws Exception {
@@ -187,7 +187,7 @@ class MatchDatabaseTest {
         assertEquals(403,assertThrows(ApiError.class,()->profiles.publicTeachers(s.tutor().session(),null,null,null,null)).status);
         var page=profiles.publicTeachers(s.owner().session(),null,"DRAWING",null,"ONLINE");assertEquals(1,((List<?>)page.get("items")).size());
         var projection=profiles.publicTeacher(s.owner().session(),s.tutor().id());
-        assertEquals(Set.of("id","avatar_url","profileVersion","displayName","categoryCodes","serviceModes","areaCodes","introduction","priceMin","priceMax","availabilityText"),projection.keySet());
+        assertEquals(Set.of("id","avatar_url","profileVersion","displayName","categoryCodes","serviceModes","areaCodes","introduction","priceMin","priceMax","availabilityText","schoolName","collegeMajor","gradeLevel","teachGrades","teachSubjects","yearsExp","teachingStyleTags","casesJson","trialPolicy","resumePdfUrl","resumePdfName"),projection.keySet());
         profiles.visibility(s.tutor().session(),new VersionBody(s.teacherVersion()),false,key());
         assertTrue(((List<?>)profiles.publicTeachers(s.owner().session(),null,null,null,null).get("items")).isEmpty());
         assertEquals(404,assertThrows(ApiError.class,()->profiles.publicTeacher(s.owner().session(),s.tutor().id())).status);
@@ -304,7 +304,7 @@ class MatchDatabaseTest {
     }
     @Test void newApprovedSubmissionAllowsRejectedActorAndCapturesFreshSnapshots() throws Exception {
         var s=setup();var original=start(s,false);act(s.owner(),original,"REJECT");
-        var changed=profiles.saveTeacher(s.tutor().session(),new TeacherBody(s.teacherVersion(),"最新老师名字",List.of("DRAWING"),List.of("ONLINE"),List.of(),"最新自述",null,null,""));
+        var changed=profiles.saveTeacher(s.tutor().session(),ResumeFixtures.teacher(s.teacherVersion(),"最新老师名字",List.of("DRAWING"),List.of("ONLINE"),List.of(),"最新自述",null,null,""));
         var historical=matches.detail(s.owner().session(),original.id());
         assertEquals("当时老师",historical.teacherSnapshot().get("displayName"));assertTrue(historical.teacherProfileChanged());
         expire(s);var expired=drafts.get(s.owner().session(),s.request());

@@ -3,7 +3,14 @@ export interface Me {
   id: string; avatar_url: string | null; account: string; email: string; emailVerified: boolean;
   businessIdentity: Identity | null; operatorGranted: boolean; profileVersion: number;
 }
-export interface Teacher {
+export interface TeachingCase { student_grade: string; focus: string; outcome: string }
+export interface ResumeFields {
+  schoolName: string; collegeMajor: string; gradeLevel: string; yearsExp: string;
+  teachGrades: string[]; teachSubjects: string[]; teachingStyleTags: string[];
+  casesJson: TeachingCase[]; trialPolicy: string;
+}
+export interface Teacher extends Partial<ResumeFields> {
+  resumePdfUrl?: string | null; resumePdfName?: string | null;
   categoryCodes: string[]; serviceModes: string[]; areaCodes: string[];
   introduction: string; priceMin: string | null; priceMax: string | null;
   availabilityText: string; public: boolean; version: number;
@@ -40,7 +47,7 @@ export class AccountApi {
   }
   async request<T>(path: string, method = "GET", body?: unknown, key?: string, retryCsrf = true): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (this.accountId && (path === "/upload/avatar" || path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
+    if (this.accountId && (path === "/upload/avatar" || path.split("?")[0] === "/upload/resume" || path.startsWith("/me/") || path === "/teachers" || path.startsWith("/teachers?") || path.startsWith("/teachers/") || path === "/matches" || path.startsWith("/matches/") || path === "/requests" || path.startsWith("/requests/") || path.startsWith("/operations/"))) headers["X-Account-Id"] = this.accountId;
     const multipart = body instanceof FormData;
     if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;

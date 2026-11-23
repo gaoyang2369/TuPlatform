@@ -1,3 +1,4 @@
+import { sampleResume, fillResume } from "./resume-fixture";
 import {test,expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 import {execFileSync} from 'node:child_process';
@@ -28,6 +29,7 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
   await login(ownerPage,owner);await login(tutorPage,tutor);await login(operatorPage,operator);
   await ownerPage.locator('#field-displayName').fill('合成需求方');await ownerPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(ownerPage.locator('.feedback-toast').getByRole('status')).toContainText('资料已保存');
   await tutorPage.locator('#field-displayName').fill('合成绘画老师');await tutorPage.getByRole('checkbox',{name:'绘画',exact:true}).check();await tutorPage.getByRole('checkbox',{name:'线上',exact:true}).check();await tutorPage.locator('#field-introduction').fill('合成老师自述');
+  await fillResume(tutorPage);
   await tutorPage.getByRole('button',{name:'保存资料',exact:true}).click();await expect(tutorPage.locator('.feedback-toast').getByRole('status')).toContainText('资料已保存');await tutorPage.getByRole('banner').getByRole('button',{name:'本人资料',exact:true}).click();await tutorPage.getByRole('button',{name:'预览并公开'}).click();await tutorPage.getByRole('button',{name:'确认公开资料'}).click();await expect(tutorPage.getByText('资料已公开',{exact:true})).toBeVisible();
   let request:string;
   if(ui){
@@ -60,7 +62,7 @@ test('无需发布需求，发送和接受即同意交换，互选前隐藏、�
     const tp=await tc.newPage(),owner=user('REQUESTER'),tutor=user('TUTOR');let native=0;for(const p of [page,tp])p.on('dialog',async d=>{native++;await d.dismiss();});
     await login(page,owner);await login(tp,tutor);
     expect((await write(page,owner,'/me/profile',{expectedVersion:0,displayName:'合成直接邀请人'},'PATCH')).ok()).toBe(true);
-    const saved=await write(tp,tutor,'/me/teacher-profile',{expectedVersion:0,displayName:'合成直接邀请老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'水彩入门教学',priceMin:null,priceMax:null,availabilityText:'周末下午'});
+    const saved=await write(tp,tutor,'/me/teacher-profile',{expectedVersion:0,...sampleResume,displayName:'合成直接邀请老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'水彩入门教学',priceMin:null,priceMax:null,availabilityText:'周末下午'});
     expect(saved.ok()).toBe(true);const profile=await saved.json();expect((await write(tp,tutor,'/me/teacher-profile/publish',{expectedVersion:profile.version},'POST')).ok()).toBe(true);
     await saveContacts(page,'','direct_owner');await saveContacts(tp,'','direct_teacher');
     await page.goto('/?view=teachers&teacher='+tutor.id);await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.locator('.exchange-notice')).toContainText('direct_owner');await page.locator('#invitation-introduction').fill('想了解周末水彩课');await page.getByRole('button',{name:'发送邀请',exact:true}).click();

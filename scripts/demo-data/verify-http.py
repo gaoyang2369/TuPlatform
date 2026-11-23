@@ -104,7 +104,8 @@ try:
         assert detail['displayName']==row['displayName']
         natural_content(detail['displayName'])
         natural_content(detail['introduction'])
-        for key in ['categoryCodes','serviceModes','areaCodes','introduction','availabilityText']:
+        for key in ['categoryCodes','serviceModes','areaCodes','introduction','availabilityText',
+                    'collegeMajor','gradeLevel','teachGrades','teachSubjects','yearsExp','teachingStyleTags','casesJson','trialPolicy']:
             assert detail[key]==row['teacher'][key]
         assert not {'email','password','phone','wechat'} & detail.keys()
     for category in categories:

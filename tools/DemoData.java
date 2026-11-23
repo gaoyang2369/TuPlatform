@@ -101,7 +101,7 @@ public class DemoData {
         try(Connection db=DriverManager.getConnection(url,auth)) {
             db.setAutoCommit(false);
             require(count(db,"SELECT CASE WHEN current_database()=? THEN 1 ELSE 0 END",args[4])==1,"Actual database differs from explicit target; no writes");
-            require(count(db,"SELECT count(*) FROM flyway_schema_history WHERE success AND version IN ('1','2','3','4','5')")==5,"Existing V1-V5 migrations required");
+            require(count(db,"SELECT count(*) FROM flyway_schema_history WHERE success AND version IN ('1','2','3','4','5','6','7','8')")==8,"Existing V1-V8 migrations required");
             if(action.equals("inspect")){summary(db,data);db.rollback();return;}
             if(action.equals("verify")){verify(db,data);summary(db,data);db.rollback();return;}
             // Serialize this batch without locking unrelated application data.
@@ -135,6 +135,13 @@ public class DemoData {
                 var credential=secrets.addObject();credential.put("account",name);credential.put("password",password);credential.put("displayName",text(a,"displayName"));credential.put("identity",text(a,"identity"));
                 var p=a.path("teacher");
                 update(db,"INSERT INTO profiles(account_id,display_name,version,category_codes,service_modes,area_codes,introduction,price_min,price_max,availability_text,is_public) VALUES (?,?,?,CAST(? AS jsonb),CAST(? AS jsonb),CAST(? AS jsonb),?,?,?,?,?)",id(name),text(a,"displayName"),p.isMissingNode()?1L:2L,p.path("categoryCodes").isMissingNode()?"[]":encode(p.path("categoryCodes")),p.path("serviceModes").isMissingNode()?"[]":encode(p.path("serviceModes")),p.path("areaCodes").isMissingNode()?"[]":encode(p.path("areaCodes")),p.path("introduction").asText(""),p.path("priceMin").isTextual()?new java.math.BigDecimal(text(p,"priceMin")):null,p.path("priceMax").isTextual()?new java.math.BigDecimal(text(p,"priceMax")):null,p.path("availabilityText").asText(""),!p.isMissingNode());
+                if (!p.isMissingNode()) {
+                    update(db, """
+                        UPDATE profiles SET college_major=?, grade_level=?, teach_grades=?::jsonb, teach_subjects=?::jsonb,
+                          years_exp=?, teaching_style_tags=?::jsonb, cases_json=?::jsonb, trial_policy=? WHERE account_id=?
+                        """, text(p,"collegeMajor"), text(p,"gradeLevel"), encode(p.path("teachGrades")), encode(p.path("teachSubjects")),
+                        text(p,"yearsExp"), encode(p.path("teachingStyleTags")), encode(p.path("casesJson")), text(p,"trialPolicy"), id(name));
+                }
             }
             int index=0;
             for(var r:rows(data,"requests")) {

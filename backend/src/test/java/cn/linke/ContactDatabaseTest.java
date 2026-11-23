@@ -40,7 +40,7 @@ class ContactDatabaseTest {
     }
     private Setup setup(boolean invite,boolean accept) throws Exception {
         User owner=user("REQUESTER"),tutor=user("TUTOR"),operator=user("TUTOR");db.update("UPDATE accounts SET operator_granted=true WHERE id=?",operator.id());
-        var p=profiles.saveTeacher(tutor.session(),new TeacherBody(0L,"合成老师",List.of("DRAWING"),List.of("ONLINE"),List.of(),"合成介绍",null,null,""));
+        var p=profiles.saveTeacher(tutor.session(),ResumeFixtures.teacher(0L,"合成老师",List.of("DRAWING"),List.of("ONLINE"),List.of(),"合成介绍",null,null,""));
         long teacherVersion=profiles.visibility(tutor.session(),new VersionBody(p.version()),true,key()).version();
         var d=drafts.create(owner.session(),key());var saved=drafts.save(owner.session(),d.id(),new DraftPatch(d.version(),(ObjectNode)json.readTree("""
             {"title":"联系方式闭环需求","categoryCode":"DRAWING","audienceStageCode":"ADULT","areaCode":"PS_PINGSHAN","goal":"合成目标",

@@ -1,3 +1,4 @@
+import { fillResume } from "./resume-fixture";
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
@@ -72,7 +73,18 @@ test("老师保存、主动公开、冲突留输入、网络失败恢复及停�
   const actor = user("TUTOR");
   await login(page, actor);
   await expect(page.getByRole("heading", { name: "让合适的人认识你" })).toBeVisible();
+  await page.getByRole("navigation", { name: "主要任务" }).getByRole("button", { name: "我的资料" }).click();
+  await fillResume(page);
+  await page.getByRole("button", { name: "添加辅导案例" }).click();
+  await page.getByRole("button", { name: "删除案例 2" }).click();
   await page.locator("#field-displayName").fill("合成绘画老师");
+  await page.getByRole("button", { name: "预览家长看到的样子" }).click();
+  const preview = page.getByRole("dialog", { name: "老师资料" });
+  await expect(preview).toContainText("设计学院 · 大三");
+  await expect(preview).toContainText("能独立调出所需色彩");
+  await preview.getByRole("button", { name: "返回编辑" }).click();
+  await page.locator('input[type=file][accept*="pdf"]').setInputFiles(path.join(root, "frontend/e2e/fixtures/resume.pdf"));
+  await expect(page.getByRole("link", { name: "resume.pdf" })).toBeVisible();
   await page.getByRole("checkbox", { name: "绘画", exact: true }).check();
   await page.getByRole("checkbox", { name: "线下", exact: true }).check();
   await page.getByRole("checkbox", { name: "坪山街道", exact: true }).check();
@@ -89,6 +101,24 @@ test("老师保存、主动公开、冲突留输入、网络失败恢复及停�
   await expect(page.getByText("资料已公开", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await page.screenshot({ path: path.join(root, `.tools/stage1-browser/teacher-${testInfo.project.name}.png`), fullPage: true });
+  const parent = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
+  try {
+    const visitor = await parent.newPage();
+    await login(visitor, user("REQUESTER"), "/?view=teachers");
+    const card = visitor.locator("article.teacher-card").filter({ hasText: "合成绘画老师" });
+    await expect(card).toContainText("设计学院 · 大三");
+    await expect(card).toContainText("可试课");
+    await card.getByRole("button", { name: "查看老师" }).click();
+    const drawer = visitor.getByRole("dialog", { name: "老师资料" });
+    await expect(drawer).toContainText("能独立调出所需色彩");
+    const url = await drawer.getByRole("link", { name: "下载 PDF" }).getAttribute("href");
+    const download = await visitor.request.get(url!);
+    expect(download.headers()["content-type"]).toContain("application/pdf");
+    expect(download.headers()["content-disposition"]).toContain("attachment");
+    await page.getByRole("button", { name: "删除附件" }).click();
+    await expect(page.getByRole("link", { name: "resume.pdf" })).toHaveCount(0);
+    expect((await visitor.request.get(url!)).status()).toBe(404);
+  } finally { await parent.close(); }
   const other = await browser.newContext({ baseURL: testInfo.project.use.baseURL as string || "http://127.0.0.1:5174" });
   try {
     const second = await other.newPage(); await login(second, actor);

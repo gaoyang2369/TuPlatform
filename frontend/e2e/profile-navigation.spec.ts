@@ -1,3 +1,4 @@
+import { sampleResume } from "./resume-fixture";
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
@@ -6,7 +7,7 @@ for (const identity of ["REQUESTER", "TUTOR"] as const) {
     const tutor = identity === "TUTOR";
     const target = tutor ? "浏览需求" : "发现老师";
     const profilePath = tutor ? "/me/teacher-profile" : "/me/profile";
-    const teacher = tutor ? { categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: null, priceMax: null, availabilityText: "", public: false, version: 0 } : null;
+    const teacher = tutor ? { ...sampleResume, categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: null, priceMax: null, availabilityText: "", public: false, version: 0 } : null;
     let saved = { displayName: "原展示名", version: 0, teacher };
     let failSave = true;
     let published = 0;

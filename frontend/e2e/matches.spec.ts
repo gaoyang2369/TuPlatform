@@ -1,3 +1,4 @@
+import { sampleResume } from "./resume-fixture";
 import {test,expect} from "@playwright/test";
 import type {Page} from "@playwright/test";
 import {execFileSync} from "node:child_process";
@@ -22,7 +23,7 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page){
   const owner=user("REQUESTER"),tutor=user("TUTOR"),operator=user("OPERATOR");
   await login(ownerPage,owner);await login(tutorPage,tutor);await login(operatorPage,operator);
   await write(ownerPage,owner,"/me/profile",{expectedVersion:0,displayName:"合成需求方"},"PATCH");
-  const teacher=await write(tutorPage,tutor,"/me/teacher-profile",{expectedVersion:0,displayName:"合成绘画老师",categoryCodes:["DRAWING"],serviceModes:["ONLINE"],areaCodes:[],introduction:"只用于联调的老师自述",priceMin:null,priceMax:null,availabilityText:""},"PUT");
+  const teacher=await write(tutorPage,tutor,"/me/teacher-profile",{expectedVersion:0,...sampleResume,displayName:"合成绘画老师",categoryCodes:["DRAWING"],serviceModes:["ONLINE"],areaCodes:[],introduction:"只用于联调的老师自述",priceMin:null,priceMax:null,availabilityText:""},"PUT");
   await write(tutorPage,tutor,"/me/teacher-profile/publish",{expectedVersion:teacher.version});
   const draft=await write(ownerPage,owner,"/requests",{});
   const saved=await write(ownerPage,owner,`/requests/${draft.id}/draft`,{expectedVersion:draft.version,fields:{title:"合成撮合需求",categoryCode:"DRAWING",audienceStageCode:"ADULT",areaCode:"PS_PINGSHAN",goal:"希望学习绘画基础",budgetMin:"100",budgetMax:"200",durationHours:"1.5",frequency:{mode:"NEGOTIABLE"},availableSlots:[{weekday:1,startMinute:600,endMinute:660}]}},"PATCH");

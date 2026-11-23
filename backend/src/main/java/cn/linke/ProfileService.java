@@ -23,8 +23,10 @@ class ProfileService {
     private final Secrets secrets;
     private final ObjectMapper json;
     private final Set<String> categories;
+    private final String pilotSchool;
     ProfileService(JdbcTemplate db, AuthService auth, Secrets secrets, ObjectMapper json,
-        @Value("${app.teacher-categories}") String categories) {
+        @Value("${app.teacher-categories}") String categories, @Value("${app.pilot-school}") String pilotSchool) {
+        this.pilotSchool = pilotSchool;
         this.db = db; this.auth = auth; this.secrets = secrets; this.json = json;
         this.categories = Arrays.stream(categories.split(",")).map(String::strip).filter(s -> !s.isEmpty()).collect(Collectors.toUnmodifiableSet());
         if (!Rules.CATEGORIES.containsAll(this.categories)) throw new IllegalArgumentException("Unknown TEACHER_CATEGORIES");
@@ -43,6 +45,7 @@ class ProfileService {
         Map<String, Object> teacher = null;
         if ("TUTOR".equals(a.identity())) {
             teacher = new LinkedHashMap<>();
+            addResumeFields(teacher, p, true);
             teacher.put("categoryCodes", values(p.get("category_codes"))); teacher.put("serviceModes", values(p.get("service_modes")));
             teacher.put("areaCodes", values(p.get("area_codes"))); teacher.put("introduction", p.get("introduction"));
             teacher.put("priceMin", amount(p.get("price_min"))); teacher.put("priceMax", amount(p.get("price_max")));
@@ -65,14 +68,74 @@ class ProfileService {
         Account a = auth.business(session, "TUTOR"); version(a, body.expectedVersion());
         boolean published = Boolean.TRUE.equals(read(a).teacher().get("public"));
         validateTeacher(body, published);
+        validateResume(body);
         db.update("""
             UPDATE profiles SET display_name=?,category_codes=CAST(? AS jsonb),service_modes=CAST(? AS jsonb),area_codes=CAST(? AS jsonb),
-              introduction=?,price_min=?,price_max=?,availability_text=?,version=version+1,updated_at=now() WHERE account_id=?
+              introduction=?,price_min=?,price_max=?,availability_text=?,school_name=?,college_major=?,grade_level=?,
+              teach_grades=?::jsonb,teach_subjects=?::jsonb,years_exp=?,teaching_style_tags=?::jsonb,cases_json=?::jsonb,
+              trial_policy=?,version=version+1,updated_at=now() WHERE account_id=?
             """, body.displayName() == null ? "" : body.displayName(), encode(body.categoryCodes() == null ? List.of() : body.categoryCodes()),
             encode(body.serviceModes() == null ? List.of() : body.serviceModes()), encode(body.areaCodes() == null ? List.of() : body.areaCodes()),
             body.introduction() == null ? "" : body.introduction(), Rules.money("priceMin", body.priceMin()), Rules.money("priceMax", body.priceMax()),
-            body.availabilityText() == null ? "" : body.availabilityText(), a.id());
+            body.availabilityText() == null ? "" : body.availabilityText(),
+            body.schoolName() == null || body.schoolName().isBlank() ? pilotSchool : body.schoolName(), body.collegeMajor(),
+            body.gradeLevel(), encode(body.teachGrades()), encode(body.teachSubjects()), body.yearsExp(),
+            encode(body.teachingStyleTags() == null ? List.of() : body.teachingStyleTags()), encode(body.casesJson()), body.trialPolicy(), a.id());
         return read(a);
+    }
+    private TeacherBody storedBody(String name, Map<String, Object> fields) {
+        var input = new LinkedHashMap<>(fields);
+        input.put("displayName", name);
+        for (String key : List.of("id", "public", "version", "profileVersion", "avatar_url", "resumePdfUrl", "resumePdfName"))
+            input.remove(key);
+        return json.convertValue(input, TeacherBody.class);
+    }
+    private void addResumeFields(Map<String, Object> result, Map<String, Object> row, boolean editing) {
+        List<String> grades = values(row.get("teach_grades"));
+        // Legacy public profiles may have no school on record. The editor offers the pilot default.
+        boolean useDefault = row.get("school_name") == null && (editing || !grades.isEmpty());
+        result.put("schoolName", useDefault ? pilotSchool : row.get("school_name"));
+        result.put("collegeMajor", row.get("college_major"));
+        result.put("gradeLevel", row.get("grade_level"));
+        result.put("teachGrades", grades);
+        result.put("teachSubjects", values(row.get("teach_subjects")));
+        result.put("yearsExp", row.get("years_exp"));
+        result.put("teachingStyleTags", values(row.get("teaching_style_tags")));
+        try {
+            result.put("casesJson", json.readValue(row.get("cases_json").toString(), new TypeReference<List<TeachingCase>>() {}));
+        } catch (Exception e) { throw new IllegalStateException("Invalid stored teaching cases", e); }
+        result.put("trialPolicy", row.get("trial_policy"));
+        result.put("resumePdfUrl", row.get("resume_pdf_url"));
+        result.put("resumePdfName", row.get("resume_pdf_name"));
+    }
+    static final Set<String> STYLES = Set.of("耐心细致", "擅长基础巩固", "习惯培养", "善于引导思考", "备课认真");
+    static final Set<String> POLICIES = Set.of("支持线上免费沟通15分钟", "支持首次试课半价", "按正常时薪试课", "暂不支持试课");
+    static void validateResume(TeacherBody body) {
+        Rules.text("schoolName", body.schoolName(), 100, false);
+        Rules.text("collegeMajor", body.collegeMajor(), 100, false);
+        Rules.text("gradeLevel", body.gradeLevel(), 30, false);
+        Rules.text("yearsExp", body.yearsExp(), 80, false);
+        requiredLabels("teachGrades", body.teachGrades());
+        requiredLabels("teachSubjects", body.teachSubjects());
+        if (Rules.choices("teachingStyleTags", body.teachingStyleTags(), STYLES, false).size() > 3)
+            throw ApiError.invalid("teachingStyleTags", "最多选择三个教学风格标签");
+        if (body.trialPolicy() == null || !POLICIES.contains(body.trialPolicy()))
+            throw ApiError.invalid("trialPolicy", "请选择首次试课政策");
+        if (body.casesJson() == null || body.casesJson().isEmpty() || body.casesJson().size() > 3)
+            throw ApiError.invalid("casesJson", "请填写一至三条辅导案例");
+        for (TeachingCase item : body.casesJson()) {
+            if (item == null) throw ApiError.invalid("casesJson", "请填写完整案例");
+            Rules.text("casesJson", item.studentGrade(), 40, true);
+            Rules.text("casesJson", item.focus(), 300, true);
+            Rules.text("casesJson", item.outcome(), 300, true);
+        }
+    }
+    private static void requiredLabels(String field, List<String> labels) {
+        if (labels == null || labels.isEmpty() || labels.size() > 32)
+            throw ApiError.invalid(field, "请填写 1 至 32 项");
+        for (String label : labels) Rules.text(field, label, 40, true);
+        if (labels.stream().map(String::strip).distinct().count() != labels.size())
+            throw ApiError.invalid(field, "请移除重复项");
     }
     void validateTeacher(TeacherBody body, boolean complete) {
         Rules.text("displayName", body.displayName(), 30, complete);
@@ -99,9 +162,9 @@ class ProfileService {
         Profile p = read(a);
         if (publish) {
             Map<String, Object> t = p.teacher();
-            validateTeacher(new TeacherBody(p.version(), p.displayName(), values(encode(t.get("categoryCodes"))),
-                values(encode(t.get("serviceModes"))), values(encode(t.get("areaCodes"))), (String) t.get("introduction"),
-                (String) t.get("priceMin"), (String) t.get("priceMax"), (String) t.get("availabilityText")), true);
+            TeacherBody stored = storedBody(p.displayName(), t);
+            validateTeacher(stored, true);
+            validateResume(stored);
         }
         if (!Boolean.valueOf(publish).equals(p.teacher().get("public"))) {
             db.update("UPDATE profiles SET is_public=?,version=version+1,updated_at=now() WHERE account_id=?", publish, a.id());
@@ -131,7 +194,7 @@ class ProfileService {
             condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
         }
         var rows=db.queryForList("""
-            SELECT a.id,p.version,p.avatar_url,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
+            SELECT a.id,p.*
             FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE
             """+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
         var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(10).map(this::teacherProjection).toList());
@@ -140,10 +203,9 @@ class ProfileService {
     Map<String,Object> matchTeacher(UUID id,long expectedVersion) {
         var teacher=teacherProjectionForMatch(id);
         if(((Number)teacher.get("profileVersion")).longValue()!=expectedVersion)throw new ApiError(409,"TEACHER_PROFILE_CHANGED","老师资料已变化，请重新读取并核对");
-        @SuppressWarnings("unchecked") var categoryCodes=(List<String>)teacher.get("categoryCodes");
-        @SuppressWarnings("unchecked") var modes=(List<String>)teacher.get("serviceModes");
-        @SuppressWarnings("unchecked") var areas=(List<String>)teacher.get("areaCodes");
-        validateTeacher(new TeacherBody(expectedVersion,(String)teacher.get("displayName"),categoryCodes,modes,areas,(String)teacher.get("introduction"),(String)teacher.get("priceMin"),(String)teacher.get("priceMax"),(String)teacher.get("availabilityText")),true);
+        validateTeacher(storedBody((String) teacher.get("displayName"), teacher), true);
+        teacher.remove("resumePdfUrl");
+        teacher.remove("resumePdfName");
         teacher.remove("avatar_url"); // Relationship snapshots retain teaching details. Avatars are read live.
         return teacher;
     }
@@ -153,7 +215,7 @@ class ProfileService {
     }
     private Map<String,Object> teacherProjection(UUID id) {
         List<Map<String, Object>> rows = db.queryForList("""
-            SELECT a.id,p.version,p.avatar_url,p.display_name,p.category_codes,p.service_modes,p.area_codes,p.introduction,p.price_min,p.price_max,p.availability_text
+            SELECT a.id,p.*
             FROM profiles p JOIN accounts a ON a.id=p.account_id
             WHERE a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public
             """, id);
@@ -162,6 +224,7 @@ class ProfileService {
     }
     private Map<String,Object> teacherProjection(Map<String,Object> r) {
         var result = new LinkedHashMap<String, Object>();
+        addResumeFields(result, r, false);
         result.put("avatar_url", r.get("avatar_url"));
         result.put("id", r.get("id")); result.put("profileVersion", r.get("version")); result.put("displayName", r.get("display_name"));
         result.put("categoryCodes", values(r.get("category_codes"))); result.put("serviceModes", values(r.get("service_modes"))); result.put("areaCodes", values(r.get("area_codes")));

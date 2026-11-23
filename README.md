@@ -71,6 +71,7 @@ Copy-Item backend/.env.example backend/.env
 | `DB_USER` / `DB_PASSWORD` | 数据库账号与密码 |
 | `DB_SSLMODE` | 按数据库 TLS 配置设置；仅本机无 TLS 的开发库可用 `disable` |
 | `DB_URL` / `DB_USERNAME` | 可选，分别覆盖分项连接地址与用户名 |
+| `PILOT_SCHOOL_NAME` | 老师资料的默认院校名，默认「深圳技术大学」，老师可在表单中修改。 |
 | `AVATAR_DIRECTORY` | 头像持久化目录，默认是后端工作目录下的 `data/avatars`。打包运行时建议使用固定绝对路径，随数据库一同备份。 |
 | `PUBLIC_BASE_URL` | 用户访问前端的地址，用于邮件链接；本地开发可设为 `http://127.0.0.1:5173` |
 | `SECURE_COOKIES` | 本地 HTTP 设为 `false`；HTTPS 部署设为 `true` |
@@ -147,6 +148,22 @@ Playwright 配置包含桌面 `1366 × 900` 和手机宽度 `390 × 844`，默�
 3. 代理到测试后端的前端：在另一个终端的 `frontend` 目录，设置 `$env:API_PROXY_TARGET = 'http://127.0.0.1:8081'`，运行 `npm.cmd run dev -- --port 5174`。
 
 随后在已设置 `TEST_DB_*` 的终端进入 `frontend`，运行 `npm.cmd run test:e2e`。手机宽度仿真不等于真机验证。历史检查结果与未验证边界见[核心验收清单](docs/acceptance/mvp-cases.md)及[产品体验评审](docs/design/product-experience-review.md)。
+
+### 老师主页与简历验收
+
+在专用测试库启动前后端后，用合成老师账号打开「我的资料」，填写可授年级、科目和一条完整案例，选择试课政策。点击「预览家长看到的样子」可核对未保存的编辑。保存后点击「预览并公开」并确认。
+
+上传一份不含联系方式的 PDF（最大 5 MiB）。用另一浏览器会话登录需求方，从「发现老师」核对学院、年级和试课标签，打开资料抽屉核对案例并下载附件。老师删除、替换附件后原地址失效，停止公开后需求方无法再读取附件。PDF 数据保存在 PostgreSQL 中，随数据库备份。
+
+| 操作 | 接口 | 输入与结果 |
+| --- | --- | --- |
+| 读取当前资料 | `GET /api/v1/me/profile` | 老师的完整资料在 `teacher` 内，包含附件名称与当前访问路径 |
+| 保存老师资料 | `PUT /api/v1/me/teacher-profile` | 传 `expectedVersion`、基本资料及结构化字段。返回最新资料与版本 |
+| 上传或替换 PDF | `POST /api/upload/resume` | multipart 的 `file`，可传 `expectedVersion`。返回 `resumePdfUrl`、`resumePdfName`、`version` |
+| 删除自己的 PDF | `DELETE /api/upload/resume` | 可传查询参数 `expectedVersion`，返回空附件及当前版本 |
+| 查看或下载 | `GET /api/v1/resumes/{id}.pdf` | 默认查看，`?download=true` 下载。仅本人或有权浏览当前公开资料的需求方可读 |
+
+附件写入同样支持 `/api/v1/upload/resume`。沿用同源会话、CSRF 和 `X-Account-Id`。表单不接受自填附件地址。公开和停止公开沿用现有版本检查及幂等键。
 
 ## 文档导航
 

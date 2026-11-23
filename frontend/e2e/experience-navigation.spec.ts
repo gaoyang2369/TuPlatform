@@ -1,10 +1,11 @@
+import { sampleResume } from "./resume-fixture";
 import {test,expect,type Page} from '@playwright/test';
 
 async function fixture(page:Page,options:{identity?:'REQUESTER'|'TUTOR';loggedIn?:boolean;published?:boolean}={}) {
   let loggedIn=options.loggedIn??false;
   const identity=options.identity??'TUTOR';
   const me={id:'ux-user',account:'ux_user',emailVerified:true,businessIdentity:identity,operatorGranted:false};
-  const teacher={id:'teacher-1',profileVersion:1,displayName:'示例老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'方向：水彩入门',availabilityText:'周末下午可协商',priceMin:'100.00',priceMax:'150.50',public:options.published??true,version:1};
+  const teacher={...sampleResume,id:'teacher-1',profileVersion:1,displayName:'示例老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'方向：水彩入门',availabilityText:'周末下午可协商',priceMin:'100.00',priceMax:'150.50',public:options.published??true,version:1};
   let profile={displayName:'示例用户',version:1,teacher:identity==='TUTOR'?teacher:null};
   const requests=Array.from({length:13},(_,i)=>({id:'request-'+i,submissionId:'submission-'+i,title:'水彩需求 '+i,publisherDisplayName:'示例需求方',categoryCode:'DRAWING',audienceStageCode:'ADULT',serviceMode:'ONLINE',budgetMin:'80.00',budgetMax:'120.50',durationHours:'1.5',frequency:{mode:'PER_WEEK',count:1},availabilityPreference:{mode:'PREFERRED',weekdays:[6,7],periods:['AFTERNOON']},goal:'学习基础水彩'}));
   const writes:string[]=[];

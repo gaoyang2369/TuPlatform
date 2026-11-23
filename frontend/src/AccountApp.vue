@@ -7,6 +7,10 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from "./UserAvatar.vue";
+import TeacherResumeFields from "./TeacherResumeFields.vue";
+import TeacherSummary from "./TeacherSummary.vue";
+import DiscoverySheet from "./DiscoverySheet.vue";
+import { resumeDraft, resumeFields, trialPolicies } from "./teacher-resume";
 import AvatarUploader from "./AvatarUploader.vue";
 import RequestDrafts from "./RequestDrafts.vue";
 import OperationsReview from "./OperationsReview.vue";
@@ -52,10 +56,21 @@ const token = ref("");
 const requiresRegistrationPassword = ref(true);
 const validLink = ref(false);
 const preview = ref(false);
+const livePreview = ref(false);
+const previewButton = ref<HTMLButtonElement>();
 const stopConfirm = ref(false);
 const conflict = ref(false);
 const latest = ref<Profile | null>(null);
-const form = reactive({ displayName: "", categoryCodes: [] as string[], serviceModes: [] as string[], areaCodes: [] as string[], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
+const form = reactive({ resume: resumeDraft(), displayName: "", categoryCodes: [] as string[], serviceModes: [] as string[], areaCodes: [] as string[], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
+const teacherValues = computed(() => {
+  const { resume, ...base } = form;
+  return { ...base, ...resumeFields(resume) };
+});
+const previewTeacher = computed(() => ({
+  ...teacherValues.value, displayName: form.displayName || "尚未填写展示名", id: me.value?.id ?? "",
+  profileVersion: profile.value?.version ?? 0, avatar_url: me.value?.avatar_url,
+  resumePdfUrl: profile.value?.teacher?.resumePdfUrl, resumePdfName: profile.value?.teacher?.resumePdfName,
+}));
 let baseline = "";
 let pendingVisibility: { path: string; version: number; key: string } | null = null;
 const flowStorageKey = "linke-registration-flow";
@@ -94,6 +109,7 @@ function applyLocation() {
   } else if (target !== readScreen()) routeTo(target, { returnTo: returnTarget.value }, true);
   matchId.value = target === "matches" ? query.get("match") || undefined : undefined;
   matchRequestId.value = target === "matches" ? query.get("forRequest") || undefined : undefined;
+  if (target !== "profile") livePreview.value = false;
   screen.value = target; routeRevision.value++;
   void nextTick(restoreScroll);
 }
@@ -126,6 +142,7 @@ const navItems = computed(() => [
   { view: "public", label: "浏览需求", icon: Compass, show: !me.value || isTutor.value, go: showPublic },
   { view: "requests", label: "我的需求", icon: ClipboardList, show: me.value?.businessIdentity === "REQUESTER", go: showRequests },
   { view: "matches", label: "撮合进度", icon: MessagesSquare, show: !!me.value?.businessIdentity, go: () => showMatches() },
+  { view: "profile", label: "我的资料", icon: BookOpen, show: isTutor.value, go: showProfile },
   { view: "review", label: "需求审核", icon: ShieldCheck, show: me.value?.operatorGranted, go: showReview },
 ].filter(item => item.show));
 const categoryNames: Record<string, string> = { DRAWING: "绘画", DANCE: "舞蹈", OTHER_SKILL: "其他课外技能", EXTRACURRICULAR_STUDY: "课外学习" };
@@ -138,7 +155,8 @@ function clearPrivate() {
   pendingReplies.value=null;pendingRead++;
   matchId.value=undefined;matchRequestId.value=undefined;
   me.value = null; profile.value = null; latest.value = null; identity.value = ""; identityConfirmed.value = false;
-  Object.assign(form, { displayName: "", categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
+  livePreview.value = false;
+  Object.assign(form, { resume: resumeDraft(), displayName: "", categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
   baseline = ""; pendingVisibility = null; preview.value = false; stopConfirm.value = false; conflict.value = false;
   credentials.account = ""; credentials.email = ""; credentials.adultConfirmed = false; clearPasswords();
 }
@@ -167,7 +185,7 @@ function updateAvatar(id: string, url: string | null) {
 }
 function loadForm(p: Profile) {
   profile.value = p;
-  Object.assign(form, { displayName: p.displayName, categoryCodes: [...(p.teacher?.categoryCodes ?? [])], serviceModes: [...(p.teacher?.serviceModes ?? [])], areaCodes: [...(p.teacher?.areaCodes ?? [])], introduction: p.teacher?.introduction ?? "", priceMin: p.teacher?.priceMin ?? "", priceMax: p.teacher?.priceMax ?? "", availabilityText: p.teacher?.availabilityText ?? "" });
+  Object.assign(form, { resume: resumeDraft(p.teacher), displayName: p.displayName, categoryCodes: [...(p.teacher?.categoryCodes ?? [])], serviceModes: [...(p.teacher?.serviceModes ?? [])], areaCodes: [...(p.teacher?.areaCodes ?? [])], introduction: p.teacher?.introduction ?? "", priceMin: p.teacher?.priceMin ?? "", priceMax: p.teacher?.priceMax ?? "", availabilityText: p.teacher?.availabilityText ?? "" });
   baseline = JSON.stringify(form); conflict.value = false; latest.value = null; preview.value = false; pendingVisibility = null;
 }
 async function loadAccount() {
@@ -247,7 +265,9 @@ async function save() { await run(async () => {
   if (conflict.value) throw new Error("请先读取并核对最新资料，避免覆盖其他页面的修改。");
   const rangeError = moneyError(form.priceMin, form.priceMax);
   if (isTutor.value && rangeError) throw new Error(rangeError);
-  const body = isTutor.value ? { expectedVersion: profile.value.version, ...form } : { expectedVersion: profile.value.version, displayName: form.displayName };
+  if (isTutor.value && !teacherValues.value.teachGrades.length) throw new Error("请填写至少一个可授年级。");
+  if (isTutor.value && !teacherValues.value.teachSubjects.length) throw new Error("请填写至少一个教授科目。");
+  const body = isTutor.value ? { expectedVersion: profile.value.version, ...teacherValues.value } : { expectedVersion: profile.value.version, displayName: form.displayName };
   const result = await api.request<Profile>(isTutor.value ? "/me/teacher-profile" : "/me/profile", isTutor.value ? "PUT" : "PATCH", body);
   loadForm(result); notice.value = result.teacher?.public ? "资料已保存并更新公开展示。" : "资料已保存。";
   if (isTutor.value && !result.teacher?.public) {
@@ -256,6 +276,26 @@ async function save() { await run(async () => {
   await nextTick();
   window.scrollTo({ top: 0, behavior: "instant" });
 }); }
+async function changeResume(file?: File) {
+  await run(async () => {
+    if (!profile.value?.teacher || conflict.value) throw new Error("请先核对最新资料。");
+    if (file && (!file.name.toLowerCase().endsWith(".pdf") || file.size > 5 * 1024 * 1024))
+      throw new Error("请选择不超过 5 MB 的 PDF 文件。");
+    const body = new FormData();
+    if (file) body.append("file", file);
+    const result = await api.request<{ resumePdfUrl: string | null; resumePdfName: string | null; version: number }>(
+      "/upload/resume?expectedVersion=" + profile.value.version, file ? "POST" : "DELETE", file ? body : undefined);
+    profile.value.version = result.version;
+    Object.assign(profile.value.teacher, result);
+    notice.value = file ? "PDF 简历已上传。" : "PDF 简历已删除。";
+  });
+}
+function selectResume(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (file) void changeResume(file);
+}
 async function readLatest() { await run(async () => {
   const current = await api.request<Me>("/me");
   if (me.value?.id !== current.id || current.businessIdentity !== me.value?.businessIdentity) { clearPrivate(); await loadAccount(); return; }
@@ -490,24 +530,39 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <nav class="mb-6 inline-flex gap-1 rounded-full border border-border bg-card p-1 [&>button]:rounded-full [&>button]:px-4 [&>button]:py-2 [&>button]:text-sm [&>button[aria-current=page]]:bg-blue-50 [&>button[aria-current=page]]:text-primary" aria-label="个人资料栏目"><button :aria-current="screen==='profile'?'page':undefined" :disabled="busy" @click="showProfile">基本资料</button><button :aria-current="screen==='contacts'?'page':undefined" :disabled="busy" @click="showContacts">私密联系方式</button></nav>
           <PrivateContacts v-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
           <template v-else>
-          <div class="mb-5 flex flex-wrap items-center justify-between gap-3 [&_h1]:text-3xl [&_h1]:font-bold [&_p]:mt-2 [&_p]:text-secondary-foreground"><div><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名，就可以邀请老师或发布需求。' }}</p></div><Badge v-if="isTutor" variant="secondary" :class="isPublic && 'bg-emerald-50 text-emerald-800'">{{ isPublic ? '资料已公开' : '仅本人可见' }}</Badge></div>
-          <div v-if="!profile" class="space-y-4 rounded-2xl border border-border bg-card p-6"><p>本人资料尚未成功读取。</p><Button class="h-11 rounded-xl" :disabled="busy" @click="run(loadAccount)">重新读取</Button></div>
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3 [&_h1]:text-3xl [&_h1]:font-bold [&_p]:mt-2 [&_p]:text-secondary-foreground"><div><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? (isPublic ? '修改并保存后，需求方即可看到最新资料。' : '完善教学资料后，可以预览并决定是否公开。') : '填写展示名，就可以邀请老师或发布需求。' }}</p></div><div class="flex flex-wrap items-center gap-3"><button v-if="isTutor && profile" ref="previewButton" type="button" :disabled="busy" class="min-h-11 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-primary" @click="livePreview=true">预览家长看到的样子</button><Badge v-if="isTutor" variant="secondary" :class="isPublic && 'bg-emerald-50 text-emerald-800'">{{ isPublic ? '资料已公开' : '仅本人可见' }}</Badge></div></div>
+          <Skeleton v-if="!profile && busy" class="h-64 w-full rounded-2xl"/>
+          <div v-else-if="!profile" class="space-y-4 rounded-2xl border border-border bg-card p-6"><p>本人资料尚未成功读取。</p><Button class="h-11 rounded-xl" :disabled="busy" @click="run(loadAccount)">重新读取</Button></div>
           <template v-else>
             <div v-if="conflict || latest" class="mb-4 space-y-3 rounded-xl bg-orange-50 p-4 text-sm text-orange-900"><p>请核对最新资料后再保存，当前输入仍保留。</p><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="readLatest">读取最新保存内容</Button><div v-if="latest" class="space-y-2 [&_pre]:whitespace-pre-wrap"><p>最新保存：{{ latest.displayName || '未填展示名' }} · 版本 {{ latest.version }}</p><p v-if="latest.teacher">{{ latest.teacher.introduction || '未填介绍' }}</p><details><summary>查看最新完整内容</summary><pre>{{ JSON.stringify(latest, null, 2) }}</pre></details><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="useLatest">载入最新内容，放弃当前输入</Button><Button variant="secondary" class="h-11 rounded-xl" :disabled="busy" @click="retainInput">已核对，保留输入继续编辑</Button></div></div>
+            <h2 v-if="isTutor" class="mb-3 text-xl font-bold">基本信息与头像</h2>
             <AvatarUploader v-if="me" :key="me.id" :url="me.avatar_url" :name="accountName" :account-id="me.id" :teacher="isTutor" :disabled="busy"
               class="mb-4" @uploading="busy = $event" @uploaded="updateAvatar" @expired="draftSessionExpired"/>
-            <form class="account-fields rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8" @submit.prevent="save"><fieldset :disabled="busy" class="space-y-5"><legend class="sr-only">本人资料</legend>
-              <label for="field-displayName">展示名 <span class="ml-2 text-xs font-normal text-muted-foreground">{{ isTutor && !isPublic ? '公开前必填' : '必填' }}</span><input id="field-displayName" v-model="form.displayName" autocomplete="nickname" :required="!isTutor || isPublic" :aria-invalid="!!fieldErrors.displayName"><small>{{ codePointLength(form.displayName) }}/30个字符；账号名不会自动作为展示名。</small></label>
+            <form class="account-fields" @submit.prevent="save"><fieldset :disabled="busy" class="space-y-5"><legend class="sr-only">本人资料</legend>
+              <section class="resume-section"><label for="field-displayName">展示名 <span class="ml-2 text-xs font-normal text-muted-foreground">{{ isTutor && !isPublic ? '公开前必填' : '必填' }}</span><input id="field-displayName" v-model="form.displayName" autocomplete="nickname" :required="!isTutor || isPublic" :aria-invalid="!!fieldErrors.displayName"><small>{{ codePointLength(form.displayName) }}/30个字符；账号名不会自动作为展示名。</small></label></section>
               <template v-if="isTutor">
+                <TeacherResumeFields v-model="form.resume"/>
+                <section class="resume-section"><h2>教学背景与服务说明</h2>
                 <fieldset id="field-categoryCodes" class="space-y-2"><legend>服务类别 <span class="ml-2 text-xs font-normal text-muted-foreground">公开前必填 · 可多选</span></legend><p v-if="!options.categoryCodes.length" class="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">当前没有开放的服务类别，可先保存其他资料，暂不能公开。</p><label v-for="code in options.categoryCodes" :key="code" class="mr-2 mb-2 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50"><input v-model="form.categoryCodes" type="checkbox" :value="code">{{ categoryNames[code] ?? code }}</label></fieldset>
+                <label for="field-introduction">个人介绍 <span class="ml-2 text-xs font-normal text-muted-foreground">公开前必填</span><textarea id="field-introduction" v-model="form.introduction" rows="6" :required="isPublic" :aria-invalid="!!fieldErrors.introduction" placeholder="方向：小学三至六年级数学，或成人水彩入门。再介绍你的教学方式、教育和经验。"></textarea><small>{{ codePointLength(form.introduction) }}/1000个字符；可分段填写教学背景、教学方式和服务说明。勿填手机号、微信、邮箱或精确住址。</small></label>
+                </section>
+                <section class="resume-section"><h2>试课政策与服务安排</h2>
+                <fieldset id="field-trialPolicy"><legend>首次试课政策</legend><div class="flex flex-wrap gap-2"><label v-for="policy in trialPolicies" :key="policy" class="choice"><input v-model="form.resume.trialPolicy" type="radio" :value="policy">{{ policy }}</label></div></fieldset>
                 <fieldset id="field-serviceModes" class="space-y-2"><legend>服务方式 <span class="ml-2 text-xs font-normal text-muted-foreground">公开前必填 · 可多选</span></legend><label v-for="code in options.serviceModes" :key="code" class="mr-2 mb-2 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50"><input v-model="form.serviceModes" type="checkbox" :value="code">{{ modeNames[code] ?? code }}</label></fieldset>
                 <fieldset id="field-areaCodes" class="space-y-2"><legend>服务区域 <span class="ml-2 text-xs font-normal text-muted-foreground">提供线下服务时必填 · 可多选</span></legend><p class="text-sm leading-6 text-secondary-foreground">深圳市坪山区，仅线上服务可不填；不收精确住址。</p><label v-for="code in options.areaCodes" :key="code" class="mr-2 mb-2 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50"><input v-model="form.areaCodes" type="checkbox" :value="code">{{ areaNames[code] ?? code }}街道</label></fieldset>
-                <label for="field-introduction">个人介绍 <span class="ml-2 text-xs font-normal text-muted-foreground">公开前必填</span><textarea id="field-introduction" v-model="form.introduction" rows="6" :required="isPublic" :aria-invalid="!!fieldErrors.introduction" placeholder="方向：小学三至六年级数学，或成人水彩入门。再介绍你的教学方式、教育和经验。"></textarea><small>{{ codePointLength(form.introduction) }}/1000个字符；建议先写明擅长技能、适教年级和科目，方便需求方选择。勿填手机号、微信、邮箱或精确住址。</small></label>
+
                 <fieldset class="space-y-2"><legend>报价区间 <span class="ml-2 text-xs font-normal text-muted-foreground">选填 · 元/小时</span></legend><div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><label for="field-priceMin">下限<input id="field-priceMin" v-model="form.priceMin" type="text" inputmode="decimal" placeholder="例如 100"></label><span>至</span><label for="field-priceMax">上限<input id="field-priceMax" v-model="form.priceMax" type="text" inputmode="decimal" placeholder="例如 200"></label></div><p class="text-sm leading-6 text-secondary-foreground">两端均不填显示“面议”；填写时须同时填写，最多两位小数。</p></fieldset>
                 <label for="field-availabilityText">可服务时间 <span class="ml-2 text-xs font-normal text-muted-foreground">选填</span><textarea id="field-availabilityText" v-model="form.availabilityText" rows="3" placeholder="例如：周末白天可协商"></textarea><small>{{ codePointLength(form.availabilityText) }}/300个字符；不填显示“时间可协商”。</small></label>
-                <p class="mb-4 rounded-xl bg-slate-100 p-4 text-sm text-secondary-foreground">手机号、微信和邮箱不会随资料公开。发送或接受意向时同意交换，互选后仅向对方展示。</p>
+                <p class="mb-4 rounded-xl bg-slate-100 p-4 text-sm text-secondary-foreground">手机号、微信和邮箱不会随资料公开。发送或接受意向时同意交换，互选后仅向对方展示。</p></section>
+                <section id="field-file" class="resume-section"><h2>PDF 简历附件 <small>选填</small></h2>
+                  <p class="text-sm text-secondary-foreground">上传或删除后立即生效。资料公开时，需求方可下载附件。请先移除联系方式与学生身份信息。</p>
+                  <p v-if="profile.teacher?.resumePdfUrl" class="flex flex-wrap items-center gap-3"><a :href="profile.teacher.resumePdfUrl" target="_blank" rel="noopener" class="break-all text-primary underline">{{ profile.teacher.resumePdfName }}</a>
+                    <Button type="button" variant="ghost" :disabled="conflict" @click="changeResume()">删除附件</Button></p>
+                  <label>{{ profile.teacher?.resumePdfUrl ? '替换' : '选择' }} PDF（最大 5 MB）<input type="file" accept=".pdf,application/pdf" :disabled="conflict" @change="selectResume"></label>
+                </section>
               </template>
               <div class="flex flex-wrap items-center gap-2"><Button type="submit" class="h-11 rounded-xl" :disabled="conflict">{{ busy ? '正在处理…' : isPublic ? '保存并更新公开资料' : '保存资料' }}</Button><Button v-if="isTutor && !isPublic" type="button" variant="secondary" class="h-11 rounded-xl" :disabled="dirty || conflict" @click="preview = true">预览并公开</Button><Button v-if="isTutor && isPublic" type="button" variant="ghost" class="h-11 rounded-xl text-red-700" @click="stopConfirm = true">停止公开</Button><span class="text-sm text-muted-foreground">{{ dirty ? '有尚未保存的修改' : '当前为已保存内容' }}</span></div>
+              <ul v-if="Object.keys(fieldErrors).length" aria-label="填写错误" class="space-y-1 rounded-xl bg-red-50 p-4 text-sm text-red-800"><li v-for="(message, field) in fieldErrors" :key="field"><a :href="'#field-' + field" class="underline">{{ message }}</a></li></ul>
               <p v-if="isPublic" class="text-sm leading-6 text-secondary-foreground">保存成功即更新对外展示，历史意向资料不随之覆盖。</p>
             </fieldset></form>
           </template>
@@ -517,14 +572,13 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
     </main>
     <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
 
+    <DiscoverySheet v-if="isTutor && screen==='profile'" :open="livePreview" title="老师资料" description="预览当前填写的公开资料" back-label="返回编辑" @close="livePreview=false" @restore-focus="$event.preventDefault(); previewButton?.focus()">
+      <div class="min-h-0 overflow-y-auto px-5 pb-8 sm:px-8"><TeacherSummary :teacher="previewTeacher" public-profile/></div>
+    </DiscoverySheet>
     <ConfirmDialog :open="preview" title="公开资料预览" cancel-text="返回编辑" confirm-text="确认公开资料" :busy="busy" @cancel="preview=false" @confirm="visibility(true)">
       <template v-if="profile?.teacher">
-        <p>以下为本人自述，未作资格核验。</p><h3 class="text-xl font-bold text-foreground">{{ profile.displayName || '未填展示名' }}</h3>
-        <p>{{ profile.teacher.categoryCodes.map(c => categoryNames[c] ?? c).join('、') || '未选择服务类别' }} · {{ profile.teacher.serviceModes.map(c => modeNames[c] ?? c).join('、') || '未选择服务方式' }}</p>
-        <p v-if="profile.teacher.areaCodes.length">{{ profile.teacher.areaCodes.map(c => (areaNames[c] ?? c) + '街道').join('、') }}</p>
-        <p class="whitespace-pre-wrap">{{ profile.teacher.introduction || '未填介绍' }}</p>
-        <p class="text-xl font-bold text-foreground">{{ profile.teacher.priceMin ? `¥${profile.teacher.priceMin}—${profile.teacher.priceMax} / 小时` : '面议' }}</p>
-        <p class="whitespace-pre-wrap">{{ profile.teacher.availabilityText || '时间可协商' }}</p><p>公开后，已登录的需求方可查看以上资料。手机号、微信、邮箱不会公开。</p>
+        <TeacherSummary :teacher="previewTeacher" public-profile/>
+        <p>公开后，已登录的需求方可查看以上资料。手机号、微信、邮箱不会公开。</p>
       </template>
       <p v-if="error" class="rounded-xl bg-red-50 p-3 text-red-800" role="alert">{{ error }} {{ Object.values(fieldErrors).join('；') }}</p>
     </ConfirmDialog>
@@ -537,10 +591,13 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
 
 <style scoped>
 @reference "./styles/theme.css";
+.account-fields :deep(.resume-section) { @apply space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6; }
+.account-fields :deep(.resume-section h2) { @apply text-xl font-bold; }
+.account-fields :deep(.choice) { @apply inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50; }
 .account-fields h1 { @apply text-2xl font-bold tracking-tight; }
-.account-fields label:has(input:not([type=checkbox])), .account-fields label:has(textarea) { @apply block text-sm font-semibold; }
-.account-fields input:not([type=checkbox],[type=radio]), .account-fields textarea { @apply field-control mt-2; }
-.account-fields small { @apply text-xs leading-5 font-normal text-muted-foreground; }
+.account-fields :deep(label:has(input:not([type=checkbox],[type=radio]))), .account-fields :deep(label:has(textarea)) { @apply block text-sm font-semibold; }
+.account-fields :deep(input:not([type=checkbox],[type=radio])), .account-fields :deep(textarea) { @apply field-control mt-2; }
+.account-fields :deep(small) { @apply text-xs leading-5 font-normal text-muted-foreground; }
 .account-fields input + small, .account-fields textarea + small { @apply mt-1 block; }
 .account-fields legend { @apply mb-2 text-sm font-semibold; }
 </style>

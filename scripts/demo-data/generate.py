@@ -155,6 +155,22 @@ NEIGHBORHOODS = [
 ]
 STAGES = {'PRIMARY':'小学阶段','JUNIOR':'初中阶段','SENIOR':'高中阶段','ADULT':'成人','OTHER':'学龄前'}
 
+def resume_fields(i, category, specialty, experience):
+    grade = next((g for g in ['初一','初二','初三','高一','高二','高三','小学','初中','高中','幼儿','成人','大学'] if g in specialty), None)
+    if not grade:
+        grade = '成人' if '成人' in experience or '大学' in experience or '办公' in specialty else '小学'
+    subjects = [s for s in ['语文','数学','英语','物理','化学','科学','历史','道法','地理','生物','编程'] if s in specialty]
+    if not subjects:
+        subjects = [{'DRAWING':'绘画','DANCE':'舞蹈'}.get(category, specialty)]
+    major = {'DRAWING':'设计学院 · 视觉传达','DANCE':'人文学院 · 艺术教育'}.get(category,
+            '大数据与互联网学院 · 计算机' if '编程' in experience else '教育学院 · 课程与教学')
+    return dict(collegeMajor=major, gradeLevel='研一' if '研究生' in experience else ['大二','大三','大四'][i % 3],
+                teachGrades=[grade], teachSubjects=subjects, yearsExp=experience.split('，')[-1].removeprefix('有'),
+                teachingStyleTags=['耐心细致', ['擅长基础巩固','习惯培养','善于引导思考'][i % 3]],
+                casesJson=[dict(student_grade=grade,focus=specialty,outcome='从需要逐步提示，到能独立完成本节练习并复述要点。')],
+                trialPolicy=['支持线上免费沟通15分钟','支持首次试课半价','按正常时薪试课','暂不支持试课'][i % 4])
+
+
 def main():
     today = datetime.now(timezone(timedelta(hours=8))).date()
     accounts, requests = [], []
@@ -219,6 +235,7 @@ def main():
             priceMin=None if i % 11 == 0 else str(low),priceMax=None if i % 11 == 0 else str(low+40+i%3*10),
             availabilityText=['周二、周四19:00—21:00；周六上午可协商。','周六9:00—12:00、周日14:00—18:00，提前预约。','工作日晚上及周末下午可协商，每周可安排1—2次。','周三晚上、周六下午相对固定，变更提前沟通。','目前周日9:00—12:00有空，支持先沟通学习目标。','时间可协商；希望确认后维持相对固定安排。'][i%6],
         )
+        public.update(resume_fields(i, category, specialty, experience))
         accounts.append(dict(account=f'lk_demo_t{n:03d}',identity='TUTOR',displayName=f'{surname}老师',teacher=public))
     payload = dict(batch='linke-demo-20261111-v1',generatedOn=str(today),notice='全部为合成测试数据；预算为场景参数，不是市场报价。',accounts=accounts,requests=requests)
     destination = Path(__file__).with_name('catalog.json')
