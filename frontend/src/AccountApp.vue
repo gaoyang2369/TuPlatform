@@ -392,7 +392,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         <Button v-else class="ml-auto shrink-0" :disabled="busy||booting" @click="showLogin">登录 / 注册</Button>
       </div>
     </header>
-    <main :class="['teachers','public'].includes(screen) ? 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8' : 'account-main'" :aria-busy="busy || booting">
+    <main :class="['teachers','public','requests','matches','contacts'].includes(screen) ? 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8' : 'account-main'" :aria-busy="busy || booting">
       <div v-if="booting" data-ui role="status" class="space-y-4 py-8"><span class="sr-only">正在读取账号状态…</span><Skeleton class="h-8 w-44"/><Skeleton class="h-28 w-full rounded-2xl"/></div>
       <template v-else>
         <FeedbackToast v-if="error" :key="'error-' + messageSequence" :message="error" kind="error" :field-errors="fieldErrors" />
@@ -462,8 +462,8 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </Suspense>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
         <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
-        <section v-else-if="['profile','contacts'].includes(screen)" class="profile-page">
-          <nav class="profile-tabs" aria-label="个人资料栏目"><button :aria-current="screen==='profile'?'page':undefined" :disabled="busy" @click="showProfile">基本资料</button><button :aria-current="screen==='contacts'?'page':undefined" :disabled="busy" @click="showContacts">私密联系方式</button></nav>
+        <section v-else-if="['profile','contacts'].includes(screen)" :class="screen==='contacts' ? 'mx-auto max-w-4xl' : 'profile-page'">
+          <nav :data-ui="screen==='contacts' ? '' : undefined" :class="screen==='contacts' ? 'mb-6 inline-flex gap-1 rounded-full border border-border bg-card p-1 [&>button]:rounded-full [&>button]:px-4 [&>button]:py-2 [&>button]:text-sm [&>button[aria-current=page]]:bg-blue-50 [&>button[aria-current=page]]:text-primary' : 'profile-tabs'" aria-label="个人资料栏目"><button :aria-current="screen==='profile'?'page':undefined" :disabled="busy" @click="showProfile">基本资料</button><button :aria-current="screen==='contacts'?'page':undefined" :disabled="busy" @click="showContacts">私密联系方式</button></nav>
           <PrivateContacts v-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
           <template v-else>
           <div class="page-heading"><div><p class="eyebrow">MY PROFILE</p><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? '资料由本人填写，不设人工审核。保存后，需要你主动公开。' : '填写展示名，就可以邀请老师或发布需求。' }}</p></div><span v-if="isTutor" :class="['pill', { published: isPublic }]">{{ isPublic ? '资料已公开' : '仅本人可见' }}</span></div>

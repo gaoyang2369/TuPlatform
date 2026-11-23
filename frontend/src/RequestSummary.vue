@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ArrowRight, CalendarClock, MapPin, Monitor, UserRound } from "@lucide/vue";
+import { ArrowRight, BookOpen, CalendarClock, Clock3, MapPin, Monitor, Users, UserRound } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { moneyText, timeSummary } from "./discovery-display";
 import { categoryNames, areaNames, stageNames, modeNames, weekdayNames, minuteText } from "./request-display";
@@ -32,14 +32,13 @@ const time = computed(() => {
 });
 const facts = computed(() => {
   const freq = props.fields.frequency as {mode?:string;count?:number} | undefined;
+  const frequency = freq?.mode === "NEGOTIABLE" ? "频率可协商" : freq?.mode === "PER_WEEK" ? "每周" + (freq.count ?? "待补充") + "次" : "频率待补充";
   return [
-    ...(study.value ? [["年级", text("grade") || "待补充"], ["科目", text("subject") || "待补充"]] : [["服务对象", audience.value || "待补充"]]),
-    ["服务类别", category.value || "待补充"], ["服务方式", mode.value],
-    ["服务地点", [street.value, text("locationText")].filter(Boolean).join(" · ") || (mode.value !== "线上" ? "待补充" : "")],
-    ["单次时长", (text("durationHours") || "待补充") + " 小时"],
-    ["频率", freq?.mode === "NEGOTIABLE" ? "可协商" : freq?.mode === "PER_WEEK" ? "每周" + (freq.count ?? "待补充") + "次" : "待补充"],
-    ["可约时间", time.value], ["期望开始", text("expectedStartDate")],
-  ].filter(([, value]) => value);
+    { label: study.value ? "年级与科目" : "服务对象", icon: BookOpen, lines: [audience.value || "待补充", category.value] },
+    { label: "授课安排", icon: Clock3, lines: [frequency, text("durationHours") ? text("durationHours") + " 小时/次" : "时长待补充"] },
+    { label: "方式与地点", icon: props.fields.serviceMode === "ONLINE" ? Monitor : Users, lines: [mode.value, street.value, text("locationText")].filter(Boolean) },
+    { label: "可约时间", icon: CalendarClock, lines: [time.value, text("expectedStartDate") && "期望开始 " + text("expectedStartDate")] },
+  ];
 });
 </script>
 <template>
@@ -58,7 +57,7 @@ const facts = computed(() => {
       </div>
       <div class="flex flex-wrap gap-2 text-xs text-secondary-foreground">
         <span v-if="place" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1"><MapPin class="size-3.5 shrink-0"/>{{ place }}</span>
-        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1"><Monitor class="size-3.5"/>{{ mode || '方式留待沟通' }}</span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1"><component :is="fields.serviceMode === 'ONLINE' ? Monitor : Users" class="size-3.5"/>{{ mode || '方式留待沟通' }}</span>
       </div>
       <p class="flex items-start gap-2 text-sm text-secondary-foreground"><CalendarClock class="mt-0.5 size-4 shrink-0"/>{{ timeSummary(fields) }}</p>
       <p v-if="displayName" class="mt-auto flex items-center gap-2 text-xs text-muted-foreground"><UserRound class="size-3.5"/>{{ displayName }}</p>
@@ -66,10 +65,11 @@ const facts = computed(() => {
     </template>
     <template v-else>
       <p v-if="displayName" class="text-sm text-secondary-foreground">发布者：{{ displayName }}</p>
-      <section class="space-y-1.5"><h3 class="text-xs font-semibold text-slate-500">目标与现状</h3><p class="whitespace-pre-line text-[15px] leading-7">{{ fields.goal || '待补充' }}</p></section>
+      <section class="space-y-2"><h3 class="text-xs font-semibold text-slate-500">目标与现状</h3><p v-for="(paragraph, i) in (text('goal') || '待补充').split(/\n+/)" :key="i" class="text-[15px] leading-7">{{ paragraph }}</p></section>
       <dl class="grid grid-cols-2 gap-3">
-        <div v-for="[label, value] in facts" :key="label" class="min-w-0 rounded-xl bg-slate-50 p-3.5">
-          <dt class="text-xs font-semibold text-slate-500">{{ label }}</dt><dd class="mt-1 whitespace-pre-line text-[15px]">{{ value }}</dd>
+        <div v-for="fact in facts" :key="fact.label" class="min-w-0 rounded-xl bg-slate-50 p-3.5">
+          <dt class="flex items-center gap-1.5 text-xs font-semibold text-slate-500"><component :is="fact.icon" class="size-3.5"/>{{ fact.label }}</dt>
+          <dd class="mt-1 whitespace-pre-line text-[15px]">{{ fact.lines.filter(Boolean).join(' · ') || '待补充' }}</dd>
         </div>
       </dl>
       <section v-for="[label, value] in [['时间备注', text('availabilityNote')], ['对老师的期待', text('tutorExpectations')]].filter(([,v]) => v)" :key="label" class="space-y-1.5">

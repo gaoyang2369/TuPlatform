@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, CircleDollarSign, MapPin, Monitor, RefreshCw, RotateCcw, Search } from "@lucide/vue";
+import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, CircleDollarSign, MapPin, Users, RefreshCw, RotateCcw, Search } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,7 +39,7 @@ onBeforeUnmount(() => { alive = false; });
 const districts = computed(() => options.value.districts ?? [{ code: "SZ_PINGSHAN", label: "坪山区" }]);
 const groups = computed(() => [
   { key: "district" as const, label: "区域", icon: MapPin, options: districts.value },
-  { key: "mode" as const, label: "授课方式", shortLabel: "方式", icon: Monitor, options: options.value.serviceModes.map(code => ({code, label: modeNames[code] || code})) },
+  { key: "mode" as const, label: "授课方式", shortLabel: "方式", icon: Users, options: options.value.serviceModes.map(code => ({code, label: modeNames[code] || code})) },
   { key: "budget" as const, label: "预算区间", shortLabel: "预算", icon: CircleDollarSign, options: priceBands.filter(b => b.code !== "negotiable") },
 ]);
 const hasFilters = computed(() => Object.values(requestFilterQuery(filters.value)).some(Boolean));

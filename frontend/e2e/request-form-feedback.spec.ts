@@ -40,9 +40,9 @@ for (const legacy of [false, true]) {
       return;
     }
     await page.getByLabel("需求标题",{exact:false}).fill("周末数学辅导");
-    await page.getByLabel("服务类别",{exact:false}).selectOption("EXTRACURRICULAR_STUDY");await page.getByLabel("服务对象阶段").selectOption("SENIOR");
+    await page.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"课外学习",exact:true}).check();await page.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"高中",exact:true}).check();
     await page.locator("#draft-grade").fill("高二");await page.locator("#draft-subject").fill("数学");await location.fill("坪山区 · 测试花园");
-    await page.getByLabel("目标与现状",{exact:false}).fill("巩固基础，逐步提升。");await page.getByLabel("服务方式",{exact:false}).selectOption("OFFLINE");
+    await page.getByLabel("目标与现状",{exact:false}).fill("巩固基础，逐步提升。");await page.getByRole("group",{name:"服务方式",exact:true}).getByRole("radio",{name:"线下",exact:true}).check();
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/basic-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并下一步",exact:true}).click();
     await expect(page.getByLabel("单次时长（小时）",{exact:true})).toHaveValue("2");
@@ -50,15 +50,15 @@ for (const legacy of [false, true]) {
     await page.getByRole("button",{name:"2 小时",exact:true}).click();
     await expect(page.getByRole("radio",{name:"时间可协商",exact:true})).toBeChecked();await expect(page.getByLabel("开始",{exact:true})).toHaveCount(0);
     await page.getByRole("radio",{name:"选择偏好时段",exact:true}).check();await page.getByRole("button",{name:"周末",exact:true}).click();await page.getByRole("button",{name:"下午",exact:true}).click();
-    await page.getByLabel("预算下限").fill("90");await page.getByLabel("预算上限").fill("120");await page.getByRole("combobox",{name:"频率",exact:true}).selectOption("NEGOTIABLE");
+    await page.getByLabel("预算下限").fill("90");await page.getByLabel("预算上限").fill("120");await page.getByRole("group",{name:"频率",exact:true}).getByRole("radio",{name:"可协商",exact:true}).check();
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/time-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并预览",exact:true}).click();
     await expect(page.getByRole("heading",{name:"周末数学辅导",exact:true})).toBeVisible();
     expect(saved.fields.availabilityPreference).toEqual({mode:"PREFERRED",weekdays:[6,7],periods:["AFTERNOON"]});expect(saved.fields.availableSlots).toEqual([]);expect(saved.fields.grade).toBe("高二");expect(saved.fields.subject).toBe("数学");expect(saved.fields.locationText).toBe("坪山区 · 测试花园");
     const summary=page.locator(".request-summary");await expect(summary).toContainText("周末 · 下午（具体时间可协商）");await expect(summary).toContainText("高二");await expect(summary).toContainText("数学");await expect(summary).toContainText("测试花园");
     await expect(summary.locator("dt").filter({hasText:/^服务对象$/})).toHaveCount(0);
-    await expect(summary.locator("dt").filter({hasText:/^年级$/})).toHaveCount(1);
-    await expect(summary.locator("dt").filter({hasText:/^科目$/})).toHaveCount(1);
+    await expect(summary.locator("dt").filter({hasText:/^年级与科目$/})).toHaveCount(1);
+    await expect(summary.locator("dl > div")).toHaveCount(4);
     for(const label of ["时间备注","期望开始","对老师的期待"]) await expect(summary.locator("dt").filter({hasText:new RegExp(`^${label}$`)})).toHaveCount(0);
     await expect(page.getByText("当前是已保存的草稿，尚未提交审核，也未公开。")).toHaveCount(0);await expect(page.locator(".draft-page > .message.success")).toHaveCount(0);await expect(page.getByRole("button",{name:"保存草稿",exact:true})).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
