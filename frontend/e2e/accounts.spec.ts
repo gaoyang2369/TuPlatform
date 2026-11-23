@@ -15,8 +15,8 @@ function fixture(action: string, argument: string) {
     path.join(root, "backend/src/test/tools/BrowserFixture.java"), action, argument], { encoding: "utf8", env: process.env }));
 }
 function user(role: string): User { const value = fixture("create", role); fixtures.push(value); return value; }
-async function login(page: Page, actor: User) {
-  await page.goto("/?view=profile");
+async function login(page: Page, actor: User, entry = "/?view=profile") {
+  await page.goto(entry);
   await expect(page.getByRole("heading", { name: "登录邻课" })).toBeVisible();
   await page.getByLabel("账号", { exact: true }).fill(actor.account);
   await page.getByLabel("密码", { exact: true }).fill(actor.password);
@@ -52,7 +52,7 @@ test("验证链接只检查，跨浏览器核对密码后登录、确认身份�
   await page.getByLabel("注册密码", { exact: true }).fill(actor.password);
   await page.getByRole("button", { name: "确认验证", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登录邻课" })).toBeVisible();
-  await login(page, actor);
+  await login(page, actor, "/?view=login");
   await expect(page.getByRole("heading", { name: "你希望如何参与？" })).toBeVisible();
   await page.getByRole("radio", { name: /我是需求方/ }).check();
   await page.getByRole("checkbox", { name: /我已理解上述职责/ }).check();
@@ -60,7 +60,7 @@ test("验证链接只检查，跨浏览器核对密码后登录、确认身份�
   await expect(page.getByRole("heading", { name: "本人基本资料", exact: true })).toBeVisible();
   await page.locator("#field-displayName").fill("合成需求方");
   await page.getByRole("button", { name: "保存资料", exact: true }).click();
-  await expect(page.locator(".feedback-toast").getByRole("status")).toHaveText("资料已保存。");
+  await expect(page.locator(".feedback-toast").getByRole("status").locator(".toast-content")).toHaveText("资料已保存。");
   await expect(page.getByRole("heading", { name: "发现老师", exact: true })).toBeVisible();
   await page.reload();
   await page.getByRole("button",{name:"本人资料",exact:true}).click();
@@ -95,7 +95,7 @@ test("老师保存、主动公开、冲突留输入、网络失败恢复及停�
     await expect(second.locator("#field-displayName")).toHaveValue("合成绘画老师");
     await second.locator("#field-displayName").fill("合成老师最新资料");
     await second.getByRole("button", { name: "保存并更新公开资料" }).click();
-    await expect(second.locator(".feedback-toast").getByRole("status")).toHaveText("资料已保存并更新公开展示。");
+    await expect(second.locator(".feedback-toast").getByRole("status").locator(".toast-content")).toHaveText("资料已保存并更新公开展示。");
     await page.locator("#field-displayName").fill("当前页面保留输入");
     await page.getByRole("button", { name: "保存并更新公开资料" }).click();
     await expect(page.getByRole("alert")).toContainText("资料已在其他页面修改");
@@ -108,7 +108,7 @@ test("老师保存、主动公开、冲突留输入、网络失败恢复及停�
   await expect(page.getByRole("alert")).toContainText("暂时无法连接服务");
   await expect(page.locator("#field-displayName")).toHaveValue("当前页面保留输入");
   await page.getByRole("button", { name: "保存并更新公开资料" }).click();
-  await expect(page.locator(".feedback-toast").getByRole("status")).toHaveText("资料已保存并更新公开展示。");
+  await expect(page.locator(".feedback-toast").getByRole("status").locator(".toast-content")).toHaveText("资料已保存并更新公开展示。");
   await page.getByRole("banner").getByRole("button", { name: "本人资料", exact: true }).click();
   await page.getByRole("button", { name: "停止公开", exact: true }).click();
   await page.getByRole("button", { name: "继续公开", exact: true }).click();

@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
+import { motion, useReducedMotion } from "motion-v";
+import { ArrowLeftRight, BookOpen, Compass, ClipboardList, MessagesSquare, ShieldCheck, LogOut, GraduationCap } from "@lucide/vue";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import RequestDrafts from "./RequestDrafts.vue";
 import PublicRequests from "./PublicRequests.vue";
 import OperationsReview from "./OperationsReview.vue";
-import TeacherDiscovery from "./TeacherDiscovery.vue";
 import MatchProgress from "./MatchProgress.vue";
 import PrivateContacts from "./PrivateContacts.vue";
 import FeedbackToast from "./FeedbackToast.vue";
@@ -12,6 +16,8 @@ import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
 import { readScreen, routeTo, writeUrl, listenHistory, restoreScroll, type Screen } from "./navigation.ts";
 import type {Match} from './match-types.ts';
+
+const TeacherDiscovery = defineAsyncComponent(() => import("./TeacherDiscovery.vue"));
 
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
 const screen = ref<Screen>("home");
@@ -120,6 +126,15 @@ const needsIdentity = computed(() => !!me.value && !me.value.businessIdentity &&
 const isTutor = computed(() => me.value?.businessIdentity === "TUTOR");
 const isPublic = computed(() => profile.value?.teacher?.public === true);
 const accountName = computed(() => profile.value?.displayName || me.value?.account || "");
+const reduceMotion = useReducedMotion();
+const roleLabel = computed(() => isTutor.value ? "老师" : me.value?.businessIdentity === "REQUESTER" ? "需求方" : me.value?.operatorGranted ? "运营" : "未选身份");
+const navItems = computed(() => [
+  { view: "teachers", label: me.value ? "发现老师" : "找老师", icon: GraduationCap, show: !me.value || me.value.businessIdentity === "REQUESTER", go: showTeachers },
+  { view: "public", label: "浏览需求", icon: Compass, show: !me.value || isTutor.value, go: showPublic },
+  { view: "requests", label: "我的需求", icon: ClipboardList, show: me.value?.businessIdentity === "REQUESTER", go: showRequests },
+  { view: "matches", label: "撮合进度", icon: MessagesSquare, show: !!me.value?.businessIdentity, go: () => showMatches() },
+  { view: "review", label: "需求审核", icon: ShieldCheck, show: me.value?.operatorGranted, go: showReview },
+].filter(item => item.show));
 const categoryNames: Record<string, string> = { DRAWING: "绘画", DANCE: "舞蹈", OTHER_SKILL: "其他课外技能", EXTRACURRICULAR_STUDY: "课外学习" };
 const modeNames: Record<string, string> = { ONLINE: "线上", OFFLINE: "线下" };
 const areaNames: Record<string, string> = { PS_PINGSHAN: "坪山", PS_KENGZI: "坑梓", PS_LONGTIAN: "龙田", PS_SHIJING: "石井", PS_MALUAN: "马峦", PS_BILING: "碧岭" };
@@ -267,14 +282,15 @@ async function visibility(publish: boolean) { await run(async () => {
   else { profile.value = result; pendingVisibility = null; } // Preserve unsaved edits and the saved baseline when stopping public access.
   preview.value = false; stopConfirm.value = false; notice.value = publish ? "资料已主动公开。展示内容为本人自述，手机号、微信和邮箱不会随资料公开。" : "已停止公开。已有撮合关系不会因此结束。";
 }); }
-async function performLogout() { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); returnTarget.value=""; navigate("home"); notice.value = "已退出登录。"; }); }
-async function logout() {
+async function performLogout(destination: "home" | "login") { await run(async () => { await api.request("/auth/logout", "POST"); clearPrivate(); rememberFlow(""); returnTarget.value=""; navigate(destination); notice.value = "已退出登录。"; }); }
+async function logout(destination: "home" | "login" = "home") {
+  const finish = () => performLogout(destination);
   if (busy.value || booting.value) return;
-  if (screen.value === "requests") { draftsRef.value?.requestLeave(performLogout); return; }
-  if (screen.value === "review") { reviewRef.value?.requestLeave(performLogout); return; }
-  if (screen.value === "contacts") { contactsRef.value?.requestLeave(performLogout); return; }
+  if (screen.value === "requests") { draftsRef.value?.requestLeave(finish); return; }
+  if (screen.value === "review") { reviewRef.value?.requestLeave(finish); return; }
+  if (screen.value === "contacts") { contactsRef.value?.requestLeave(finish); return; }
   if (dirty.value && !window.confirm("当前修改尚未保存，退出会放弃这些输入。确定退出？")) return;
-  await performLogout();
+  await finish();
 }
 function showRequests() {
   if(screen.value!=="requests")leaveCurrent(()=>{resetMessages();navigate("requests");});
@@ -343,22 +359,43 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
 </script>
 
 <template>
-  <div class="account-shell">
-    <header class="site-header">
-      <a class="brand" href="/" aria-label="邻课首页" @click.prevent="leaveCurrent(()=>{resetMessages();navigate('home');})"><span class="brand-mark">邻</span><span>邻课<small>坪山 · 认真相遇</small></span></a>
-      <div v-if="me" class="account-summary"><button class="account-profile-button" aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"><span class="account-avatar" aria-hidden="true">{{ [...accountName][0] || '我' }}</span><span class="account-name">{{ accountName }}<small>{{ me.businessIdentity === 'TUTOR' ? '老师' : me.businessIdentity === 'REQUESTER' ? '需求方' : '未选身份' }}</small></span></button><button class="text-button" :disabled="busy||booting" @click="logout">退出登录</button></div>
-      <button v-else class="text-button" :disabled="busy||booting" @click="showLogin">登录 / 注册</button>
+  <div class="flex min-h-dvh flex-col bg-background">
+    <header data-ui class="sticky top-0 z-30 border-b border-border bg-white/80 text-foreground backdrop-blur-md">
+      <div class="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:h-[72px] sm:gap-6 sm:px-6 lg:gap-10 lg:px-8">
+        <a href="/" aria-label="邻课首页" class="flex shrink-0 items-center gap-2 font-bold" @click.prevent="leaveCurrent(()=>{resetMessages();navigate('home');})">
+          <span class="grid size-9 place-items-center rounded-xl bg-primary text-white"><BookOpen class="size-5" aria-hidden="true"/></span>
+          <span class="hidden text-2xl tracking-tight sm:inline">邻课</span>
+        </a>
+        <nav v-if="!booting && !needsIdentity" aria-label="主要任务" class="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] md:gap-1">
+          <button v-for="tab in navItems" :key="tab.view" type="button" :aria-label="tab.label"
+            :aria-description="tab.view==='matches' && pendingReplies ? `有${pendingReplies}条意向等待你回应` : undefined"
+            :aria-current="screen===tab.view ? 'page' : undefined" :disabled="busy" @click="tab.go()"
+            class="relative inline-flex min-h-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-sm font-medium text-secondary-foreground hover:bg-slate-100 focus-visible:outline-primary aria-[current=page]:text-primary md:flex-row md:gap-1.5 md:px-3.5">
+            <motion.span v-if="screen===tab.view" layout-id="active-task" :transition="{ duration: reduceMotion ? 0 : 0.2 }" class="absolute inset-0 rounded-xl bg-blue-50" />
+            <component :is="tab.icon" class="relative size-[18px]" aria-hidden="true"/>
+            <span class="relative whitespace-nowrap">{{ tab.label }}</span>
+            <small v-if="tab.view==='matches' && pendingReplies" aria-hidden="true" class="absolute top-0 right-0 rounded-full bg-blue-100 px-1.5 text-xs text-primary md:relative"><span class="sr-only md:not-sr-only">待回应 </span>{{ pendingReplies }}</small>
+          </button>
+        </nav>
+        <div v-if="me" class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
+          <button aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"
+            class="flex min-h-11 items-center gap-2 rounded-xl px-1 text-left hover:bg-slate-50 focus-visible:outline-primary aria-[current=page]:bg-blue-50 sm:px-2">
+            <span class="hidden size-9 place-items-center rounded-full bg-blue-100 font-bold text-primary sm:grid">{{ [...accountName][0] || '我' }}</span>
+            <span class="max-w-14 sm:max-w-32"><strong class="block truncate text-sm">{{ accountName }}</strong><span class="block text-xs text-muted-foreground">{{ roleLabel }}</span></span>
+          </button>
+          <Popover><PopoverTrigger as-child><Button variant="ghost" size="icon" aria-label="切换账号" title="切换账号" :disabled="busy||booting"><ArrowLeftRight/></Button></PopoverTrigger>
+            <PopoverContent align="end" class="w-60 space-y-3 rounded-2xl">
+              <p class="text-sm text-secondary-foreground">当前身份为{{ roleLabel }}。可登录另一账号使用其业务身份。</p>
+              <Button class="w-full" :disabled="busy" @click="logout('login')">退出并切换账号</Button>
+            </PopoverContent>
+          </Popover>
+          <button aria-label="退出登录" title="退出登录" :disabled="busy||booting" @click="logout()" class="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-slate-100 focus-visible:outline-primary"><LogOut class="size-4"/></button>
+        </div>
+        <Button v-else class="ml-auto shrink-0" :disabled="busy||booting" @click="showLogin">登录 / 注册</Button>
+      </div>
     </header>
-    <main class="account-main" :aria-busy="busy || booting">
-      <nav v-if="!booting && !needsIdentity" class="account-nav" aria-label="主要任务">
-        <button v-if="!me" class="nav-item" :disabled="busy" @click="showTeachers">找老师</button>
-        <button v-if="!me || me.businessIdentity==='TUTOR'" class="nav-item" :aria-current="screen === 'public' ? 'page' : undefined" :disabled="busy" @click="showPublic">浏览需求</button>
-        <button v-if="me?.businessIdentity==='REQUESTER'" class="nav-item" :aria-current="screen === 'teachers' ? 'page' : undefined" :disabled="busy" @click="showTeachers">发现老师</button>
-        <button v-if="me?.businessIdentity==='REQUESTER'" class="nav-item" :aria-current="screen === 'requests' ? 'page' : undefined" :disabled="busy" @click="showRequests">我的需求</button>
-        <button v-if="me?.businessIdentity" class="nav-item" aria-label="撮合进度" :aria-description="pendingReplies?`有${pendingReplies}条意向等待你回应`:undefined" :aria-current="screen === 'matches' ? 'page' : undefined" :disabled="busy" @click="showMatches()">撮合进度 <small v-if="pendingReplies" class="pending-count" aria-hidden="true">待回应 {{pendingReplies}}</small></button>
-        <button v-if="me?.operatorGranted" class="nav-item" :aria-current="screen === 'review' ? 'page' : undefined" :disabled="busy" @click="showReview">需求审核</button>
-      </nav>
-      <div v-if="booting" class="loading" role="status">正在读取账号状态…</div>
+    <main :class="screen==='teachers' ? 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8' : 'account-main'" :aria-busy="busy || booting">
+      <div v-if="booting" data-ui role="status" class="space-y-4 py-8"><span class="sr-only">正在读取账号状态…</span><Skeleton class="h-8 w-44"/><Skeleton class="h-28 w-full rounded-2xl"/></div>
       <template v-else>
         <FeedbackToast v-if="error" :key="'error-' + messageSequence" :message="error" kind="error" :field-errors="fieldErrors" />
         <FeedbackToast v-else-if="notice" :key="'notice-' + messageSequence" :message="notice" kind="success" />
@@ -418,7 +455,10 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
 
         <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" :key="routeRevision" @expired="draftSessionExpired" @profile="prepareProfile" @matches="showMatches(undefined,$event)" />
         <PublicRequests v-else-if="screen==='public'" :key="routeRevision" :initial-id="publicRequestId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="prepareProfile" @login="showLogin" />
-        <TeacherDiscovery v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'" :key="routeRevision" :initial-id="teacherId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" />
+        <Suspense v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'">
+          <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :initial-id="teacherId" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" @profile="prepareProfile" />
+          <template #fallback><div role="status"><span class="sr-only">正在打开发现老师…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
+        </Suspense>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
         <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
         <section v-else-if="['profile','contacts'].includes(screen)" class="profile-page">
@@ -448,7 +488,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </section>
       </template>
     </main>
-    <footer class="site-footer">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
+    <footer data-ui class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] py-5 text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
 
     <dialog ref="previewDialog" class="native-dialog" aria-labelledby="preview-title" @cancel.prevent="!busy && (preview = false)"><section v-if="preview && profile?.teacher" class="dialog-card"><h2 id="preview-title">公开资料预览</h2><p class="field-help">以下为本人自述，未作资格核验。</p><h3>{{ profile.displayName || '未填展示名' }}</h3><p>{{ profile.teacher.categoryCodes.map(c => categoryNames[c] ?? c).join('、') || '未选择服务类别' }} · {{ profile.teacher.serviceModes.map(c => modeNames[c] ?? c).join('、') || '未选择服务方式' }}</p><p>{{ profile.teacher.areaCodes.map(c => (areaNames[c] ?? c) + '街道').join('、') }}</p><p class="pre-wrap">{{ profile.teacher.introduction || '未填介绍' }}</p><p>{{ profile.teacher.priceMin ? `¥${profile.teacher.priceMin}—${profile.teacher.priceMax} / 小时` : '面议' }}</p><p class="pre-wrap">{{ profile.teacher.availabilityText || '时间可协商' }}</p><p>公开后，已登录的需求方可查看以上资料。手机号、微信、邮箱不会公开。</p><div class="form-actions"><button class="secondary" :disabled="busy" @click="preview = false">返回编辑</button><button class="primary" :disabled="busy" @click="visibility(true)">确认公开资料</button></div><p v-if="error" class="inline-warning" role="alert">{{ error }} {{ Object.values(fieldErrors).join('；') }}</p></section></dialog>
     <dialog ref="stopDialog" class="native-dialog" aria-labelledby="stop-title" @cancel.prevent="!busy && (stopConfirm = false)"><section v-if="stopConfirm" class="dialog-card"><h2 id="stop-title">停止公开资料？</h2><p>将从老师发现中移除，也不能新增投递或被邀请。已有意向、互选及联系方式授权管理继续。</p><p v-if="dirty">未保存输入将留在当前页面，停止公开不会替你保存这些修改。</p><div class="form-actions"><button class="secondary" :disabled="busy" @click="stopConfirm = false">继续公开</button><button class="primary" :disabled="busy" @click="visibility(false)">确认停止公开</button></div><p v-if="error" class="inline-warning" role="alert">{{ error }}</p></section></dialog>

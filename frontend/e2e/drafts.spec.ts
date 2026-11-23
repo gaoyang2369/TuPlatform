@@ -74,7 +74,7 @@ test("两标签页冲突先核对最新内容，保留输入后再保存",async(
 
 test("保存失败不进入下一步，保留输入并可重试",async({page})=>{
   await start(page);await page.getByLabel("需求标题",{exact:false}).fill("网络失败时保留的标题");
-  await page.route("**/api/v1/requests/*/draft",route=>route.abort("failed"),{times:1});
+  await page.route("**/api/v1/requests",route=>route.abort("failed"),{times:1});
   await page.getByRole("button",{name:"保存并下一步"}).click();
   await expect(page.getByRole("alert")).toContainText("暂时无法连接服务");
   await expect(page.getByLabel("需求标题",{exact:false})).toHaveValue("网络失败时保留的标题");

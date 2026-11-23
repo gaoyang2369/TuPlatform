@@ -42,6 +42,47 @@ test('双入口：首页找老师须登录，找需求可直接浏览且手机�
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
+test('切换账号遵守未保存保护并返回登录入口',async({page})=>{
+  const {writes}=await fixture(page,{identity:'REQUESTER',loggedIn:true});
+  await page.goto('/?view=profile');
+  await page.locator('#field-displayName').fill('待保存昵称');
+  const switcher=page.getByRole('button',{name:'切换账号',exact:true});
+  await switcher.click();
+  page.once('dialog',dialog=>dialog.dismiss());
+  await page.getByRole('button',{name:'退出并切换账号'}).click();
+  await expect(page.locator('#field-displayName')).toHaveValue('待保存昵称');
+  expect(writes).not.toContain('/auth/logout');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'退出并切换账号'}).click();
+  await expect(page.getByRole('heading',{name:'登录邻课'})).toBeVisible();
+  expect(writes).toEqual(['/auth/logout']);
+});
+
+test('快速更换筛选后，慢响应不能覆盖最新选择',async({page})=>{
+  await fixture(page,{identity:'REQUESTER',loggedIn:true});
+  let release!:()=>void;
+  const hold=new Promise<void>(resolve=>release=resolve);
+  await page.route('**/api/v1/teachers?*',async route=>{
+    if(new URL(route.request().url()).searchParams.has('categoryCode')){
+      await hold;
+      return route.fulfill({json:{items:[],nextCursor:null}});
+    }
+    return route.fallback();
+  });
+  await page.goto('/?view=teachers');
+  await expect(page.locator('.teacher-card')).toHaveCount(1);
+  const request=page.waitForRequest(req=>req.url().includes('categoryCode=DRAWING'));
+  await page.getByRole('button',{name:'绘画',exact:true}).click();
+  await request;
+  await page.getByRole('button',{name:'全部类别',exact:true}).click();
+  await expect(page.getByRole('button',{name:'查看老师'})).toBeEnabled();
+  const response=page.waitForResponse(res=>res.url().includes('categoryCode=DRAWING'));
+  release();await response;
+  await expect(page.getByRole('button',{name:'全部类别',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.teacher-card')).toHaveCount(1);
+  await expect(page).not.toHaveURL(/category=/);
+});
+
 test('详情登录后回到原需求，刷新仍在详情且不自动投递',async({page})=>{
   const {writes}=await fixture(page);await page.goto('/?view=public&request=request-3');
   await page.getByRole('button',{name:'登录后以老师身份投递'}).click();await page.reload();
@@ -63,13 +104,13 @@ test('筛选与分页在刷新、详情返回、浏览器前进后退中恢复',
 
 test('老师详情可刷新，筛选可重置，直接邀请等待老师资料加载',async({page})=>{
   await fixture(page,{identity:'REQUESTER',loggedIn:true});await page.goto('/');await expect(page.locator('.teacher-card')).toHaveCount(1);
-  await expandFilters(page);await page.getByRole('combobox',{name:'类别',exact:true}).selectOption('DRAWING');await page.getByRole('button',{name:'筛选老师',exact:true}).click();
+  await page.getByRole('button',{name:'绘画',exact:true}).click();await expect(page).toHaveURL(/category=DRAWING/);
   await page.getByRole('button',{name:'查看老师',exact:true}).click();await page.reload();await expect(page.getByRole('heading',{name:'示例老师',exact:true})).toBeVisible();
   let release!:()=>void;const hold=new Promise<void>(resolve=>release=resolve);
   await page.route('**/api/v1/teachers/teacher-1',async route=>{await hold;await route.fallback();});
   await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.getByText('正在读取可用资料…')).toBeVisible();await expect(page.getByText(/还没有可邀请/)).toHaveCount(0);release();
   await expect(page.getByRole('button',{name:'发送邀请',exact:true})).toBeEnabled();await page.getByRole('button',{name:'返回老师列表'}).click();await expect(page.locator('.teacher-card')).toHaveCount(1);
-  await expandFilters(page);await page.getByRole('button',{name:'重置筛选',exact:true}).click();await expect(page).not.toHaveURL(/category=/);
+  await page.getByRole('button',{name:'重置筛选',exact:true}).click();await expect(page).not.toHaveURL(/category=/);
 });
 
 test('未公开老师保存后仍可公开，浏览器后退取消时保留未保存输入',async({page})=>{
