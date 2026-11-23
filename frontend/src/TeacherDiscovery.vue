@@ -138,7 +138,7 @@ onMounted(() => { void loadOptions(); syncRoute(); });
       <h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">发现老师</h1>
       <p class="text-[15px] leading-7 text-secondary-foreground">按教学方向、街道和时薪筛选。以下资料均由老师本人填写并公开。</p>
     </header>
-    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-card p-4 shadow-xs sm:p-5">
       <div role="group" aria-label="教学类别" class="flex gap-2 overflow-x-auto py-1">
         <button v-for="c in categories" :key="c.code" type="button" :aria-pressed="filters.category===c.code"
           @click="apply({ ...filters, category: c.code })"
@@ -150,7 +150,7 @@ onMounted(() => { void loadOptions(); syncRoute(); });
         <Popover v-for="group in groups" :key="group.key">
           <PopoverTrigger as-child>
             <Button variant="outline" :aria-label="group.label" class="h-10 gap-1 rounded-xl border-border bg-white px-2 has-[>svg]:px-2 sm:gap-2 sm:has-[>svg]:px-3">
-              <component :is="group.icon" class="text-primary"/>{{ group.label }}
+              <component :is="group.icon" :class="filters[group.key].length ? 'text-primary' : 'text-muted-foreground'"/>{{ group.label }}
               <span v-if="filters[group.key].length" class="text-xs text-primary">{{ filters[group.key].length }}</span><ChevronDown class="hidden size-3.5 text-muted-foreground sm:block"/>
             </Button>
           </PopoverTrigger>
@@ -180,7 +180,7 @@ onMounted(() => { void loadOptions(); syncRoute(); });
         <button v-if="hasFilters" class="text-sm font-medium text-primary" @click="resetFilters">查看全部老师</button>
       </div>
       <TransitionGroup v-else tag="div" name="results" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <article v-for="t in items" :key="t.id" class="teacher-card min-w-0 rounded-2xl border border-border bg-card p-6 shadow-sm transition motion-safe:hover:-translate-y-0.5 hover:shadow-lg">
+        <article v-for="t in items" :key="t.id" class="teacher-card group min-w-0 rounded-2xl border border-border bg-card p-6 shadow-sm transition motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none">
           <TeacherSummary :teacher="t" compact public-profile :open-disabled="listBusy" @open="open(t.id, $event)"/>
         </article>
       </TransitionGroup>

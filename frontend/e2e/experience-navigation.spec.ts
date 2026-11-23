@@ -46,7 +46,7 @@ test('切换账号遵守未保存保护并返回登录入口',async({page})=>{
   const {writes}=await fixture(page,{identity:'REQUESTER',loggedIn:true});
   await page.goto('/?view=profile');
   await page.locator('#field-displayName').fill('待保存昵称');
-  const switcher=page.getByRole('button',{name:'切换账号',exact:true});
+  const switcher=page.getByRole('button',{name:'切为老师（切换账号）',exact:true});
   await switcher.click();
   page.once('dialog',dialog=>dialog.dismiss());
   await page.getByRole('button',{name:'退出并切换账号'}).click();

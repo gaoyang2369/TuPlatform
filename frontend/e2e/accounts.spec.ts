@@ -136,6 +136,7 @@ test("重置密码撤销旧浏览器会话，退出后不显示上一账号资�
     await expect(page.locator("#field-displayName")).toHaveCount(0);
     await login(page, { ...actor, password: newPassword });
     await expect(page.locator("#field-displayName")).toBeVisible();
+    await page.getByRole("button", { name: /切换账号/ }).click();
     await page.getByRole("button", { name: "退出登录", exact: true }).click();
     await expect(page.getByRole("button", { name: "我想找老师", exact:true })).toBeVisible();
     await expect(page.locator("#field-displayName")).toHaveCount(0);

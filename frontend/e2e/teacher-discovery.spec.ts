@@ -28,14 +28,29 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   const cards=page.locator(".teacher-card"),paging=page.getByRole("navigation",{name:"老师分页"});
   await expect(cards).toHaveCount(10);await expect(paging.getByRole("button",{name:"上一页"})).toBeDisabled();
   await expect(page.getByRole("button",{name:"加载更多老师"})).toHaveCount(0);expect(detailCalls).toHaveLength(0);
-  await expect(cards.first().locator(".teacher-introduction")).toContainText("初一至初三");await expect(cards.first().locator(".teacher-introduction")).toContainText("数学、物理");await expect(cards.first()).not.toContainText("合成教学经历");
+  const intro = cards.first().locator(".teacher-introduction");
+  await expect(intro.getByText("初中数学与物理", { exact: true })).toBeVisible();
+  await expect(intro.getByText("初一至初三 · 数学 / 物理", { exact: true })).toBeVisible();
+  await expect(cards.first()).not.toContainText("合成教学经历");
   await expect(cards.nth(1)).toContainText("小学三至六年级");await expect(cards.nth(2)).toContainText("面议");
-  const desktop = page.viewportSize()!.width >= 1024;
-  expect(await cards.first().evaluate(el => getComputedStyle(el.parentElement!).gridTemplateColumns.split(" ").length)).toBe(desktop ? 3 : 1);
+  const width = page.viewportSize()!.width;
+  const nav = page.getByRole("navigation", {name:"主要任务"});
+  const logo = page.getByRole("link", {name:"邻课首页"});
+  const navBounds = (await nav.boundingBox())!, logoBounds = (await logo.boundingBox())!;
+  expect(navBounds.y >= logoBounds.y + logoBounds.height).toBe(width < 768);
+  await expect(nav.getByRole("button", {name:"发现老师"})).toHaveAttribute("aria-current", "page");
+  await expect(cards.first().getByText("¥100–150", {exact:true})).toHaveCSS("color", "rgb(15, 23, 42)");
+  expect(await cards.first().evaluate(el => getComputedStyle(el.parentElement!).gridTemplateColumns.split(" ").length)).toBe(width >= 1024 ? 3 : width >= 768 ? 2 : 1);
   await expect(cards.first().getByText("邮箱已验证",{exact:true})).toBeVisible();
   await expect(page.getByRole("combobox")).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/teacher-discovery/cards-${info.project.name}.png`),fullPage:false});
+  if (await page.evaluate(() => matchMedia("(hover: hover)").matches)) {
+    const button = cards.first().getByRole("button", {name:"查看老师"});
+    await cards.first().getByRole("heading").hover();
+    await expect(button).toHaveCSS("background-color", "rgb(37, 99, 235)");
+    await expect(button).toHaveCSS("color", "rgb(255, 255, 255)");
+  }
   failNext=true;await paging.getByRole("button",{name:"下一页"}).click();await expect(page.getByRole("alert")).toContainText("暂时无法读取");await expect(paging).toContainText("第 1 页");await expect(cards.first()).toContainText("合成老师 01");
   await page.getByRole("button",{name:"重新读取",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);await expect(cards.first()).toContainText("合成老师 11");
   await paging.getByRole("button",{name:"下一页"}).click();await expect(cards).toHaveCount(3);await expect(paging).toContainText("第 3 页");await expect(paging.getByRole("button",{name:"下一页"})).toBeDisabled();

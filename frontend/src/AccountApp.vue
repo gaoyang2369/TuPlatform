@@ -128,6 +128,7 @@ const isPublic = computed(() => profile.value?.teacher?.public === true);
 const accountName = computed(() => profile.value?.displayName || me.value?.account || "");
 const reduceMotion = useReducedMotion();
 const roleLabel = computed(() => isTutor.value ? "老师" : me.value?.businessIdentity === "REQUESTER" ? "需求方" : me.value?.operatorGranted ? "运营" : "未选身份");
+const switchLabel = computed(() => isTutor.value ? "切为需求方" : me.value?.businessIdentity === "REQUESTER" ? "切为老师" : "切换账号");
 const navItems = computed(() => [
   { view: "teachers", label: me.value ? "发现老师" : "找老师", icon: GraduationCap, show: !me.value || me.value.businessIdentity === "REQUESTER", go: showTeachers },
   { view: "public", label: "浏览需求", icon: Compass, show: !me.value || isTutor.value, go: showPublic },
@@ -361,35 +362,36 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
 <template>
   <div class="flex min-h-dvh flex-col bg-background">
     <header data-ui class="sticky top-0 z-30 border-b border-border bg-white/80 text-foreground backdrop-blur-md">
-      <div class="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:h-[72px] sm:gap-6 sm:px-6 lg:gap-10 lg:px-8">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 md:h-[72px] md:flex-nowrap md:px-6 lg:gap-x-8 lg:px-8">
         <a href="/" aria-label="邻课首页" class="flex shrink-0 items-center gap-2 font-bold" @click.prevent="leaveCurrent(()=>{resetMessages();navigate('home');})">
           <span class="grid size-9 place-items-center rounded-xl bg-primary text-white"><BookOpen class="size-5" aria-hidden="true"/></span>
-          <span class="hidden text-2xl tracking-tight sm:inline">邻课</span>
+          <span class="text-2xl tracking-tight">邻课</span>
         </a>
-        <nav v-if="!booting && !needsIdentity" aria-label="主要任务" class="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] md:gap-1">
+        <nav v-if="!booting && !needsIdentity" aria-label="主要任务" class="order-last flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-2xl bg-slate-100 px-1 py-0.5 [scrollbar-width:none] md:order-none md:w-auto md:bg-transparent md:p-0">
           <button v-for="tab in navItems" :key="tab.view" type="button" :aria-label="tab.label"
             :aria-description="tab.view==='matches' && pendingReplies ? `有${pendingReplies}条意向等待你回应` : undefined"
             :aria-current="screen===tab.view ? 'page' : undefined" :disabled="busy" @click="tab.go()"
-            class="relative inline-flex min-h-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-sm font-medium text-secondary-foreground hover:bg-slate-100 focus-visible:outline-primary aria-[current=page]:text-primary md:flex-row md:gap-1.5 md:px-3.5">
-            <motion.span v-if="screen===tab.view" layout-id="active-task" :transition="{ duration: reduceMotion ? 0 : 0.2 }" class="absolute inset-0 rounded-xl bg-blue-50" />
-            <component :is="tab.icon" class="relative size-[18px]" aria-hidden="true"/>
+            class="relative inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl px-1 text-sm font-medium text-secondary-foreground hover:bg-slate-100 focus-visible:outline-primary aria-[current=page]:text-primary md:flex-none md:gap-1.5 md:px-2 lg:px-3.5">
+            <motion.span v-if="screen===tab.view" layout-id="active-task" :transition="{ duration: reduceMotion ? 0 : 0.2 }" class="absolute inset-0 rounded-xl bg-white shadow-xs md:bg-blue-50 md:shadow-none" />
+            <component :is="tab.icon" class="relative hidden size-[18px] min-[360px]:block" aria-hidden="true"/>
             <span class="relative whitespace-nowrap">{{ tab.label }}</span>
-            <small v-if="tab.view==='matches' && pendingReplies" aria-hidden="true" class="absolute top-0 right-0 rounded-full bg-blue-100 px-1.5 text-xs text-primary md:relative"><span class="sr-only md:not-sr-only">待回应 </span>{{ pendingReplies }}</small>
+            <small v-if="tab.view==='matches' && pendingReplies" aria-hidden="true" class="relative rounded-full bg-blue-100 px-1.5 text-xs text-primary"><span class="sr-only lg:not-sr-only">待回应 </span>{{ pendingReplies }}</small>
           </button>
         </nav>
-        <div v-if="me" class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
+        <div v-if="me" class="ml-auto flex shrink-0 items-center gap-2">
           <button aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"
             class="flex min-h-11 items-center gap-2 rounded-xl px-1 text-left hover:bg-slate-50 focus-visible:outline-primary aria-[current=page]:bg-blue-50 sm:px-2">
-            <span class="hidden size-9 place-items-center rounded-full bg-blue-100 font-bold text-primary sm:grid">{{ [...accountName][0] || '我' }}</span>
-            <span class="max-w-14 sm:max-w-32"><strong class="block truncate text-sm">{{ accountName }}</strong><span class="block text-xs text-muted-foreground">{{ roleLabel }}</span></span>
+            <span class="grid size-9 place-items-center rounded-full bg-slate-100 font-bold text-secondary-foreground">{{ [...accountName][0] || '我' }}</span>
+            <span><strong class="hidden max-w-32 truncate text-sm md:block">{{ accountName }}</strong><span class="block text-xs text-secondary-foreground">{{ roleLabel }}</span></span>
           </button>
-          <Popover><PopoverTrigger as-child><Button variant="ghost" size="icon" aria-label="切换账号" title="切换账号" :disabled="busy||booting"><ArrowLeftRight/></Button></PopoverTrigger>
+          <Popover><PopoverTrigger as-child><Button variant="secondary" :aria-label="switchLabel === '切换账号' ? switchLabel : switchLabel + '（切换账号）'" title="切换账号" class="h-11 gap-1.5 rounded-full bg-slate-100 text-secondary-foreground" :disabled="busy||booting"><ArrowLeftRight/><span>{{ switchLabel }}</span></Button></PopoverTrigger>
             <PopoverContent align="end" class="w-60 space-y-3 rounded-2xl">
+              <strong class="block text-sm [overflow-wrap:anywhere]">{{ accountName }}</strong>
               <p class="text-sm text-secondary-foreground">当前身份为{{ roleLabel }}。可登录另一账号使用其业务身份。</p>
               <Button class="w-full" :disabled="busy" @click="logout('login')">退出并切换账号</Button>
+              <Button variant="ghost" class="w-full" :disabled="busy" @click="logout()"><LogOut/>退出登录</Button>
             </PopoverContent>
           </Popover>
-          <button aria-label="退出登录" title="退出登录" :disabled="busy||booting" @click="logout()" class="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-slate-100 focus-visible:outline-primary"><LogOut class="size-4"/></button>
         </div>
         <Button v-else class="ml-auto shrink-0" :disabled="busy||booting" @click="showLogin">登录 / 注册</Button>
       </div>
@@ -488,7 +490,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </section>
       </template>
     </main>
-    <footer data-ui class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] py-5 text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
+    <footer data-ui class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
 
     <dialog ref="previewDialog" class="native-dialog" aria-labelledby="preview-title" @cancel.prevent="!busy && (preview = false)"><section v-if="preview && profile?.teacher" class="dialog-card"><h2 id="preview-title">公开资料预览</h2><p class="field-help">以下为本人自述，未作资格核验。</p><h3>{{ profile.displayName || '未填展示名' }}</h3><p>{{ profile.teacher.categoryCodes.map(c => categoryNames[c] ?? c).join('、') || '未选择服务类别' }} · {{ profile.teacher.serviceModes.map(c => modeNames[c] ?? c).join('、') || '未选择服务方式' }}</p><p>{{ profile.teacher.areaCodes.map(c => (areaNames[c] ?? c) + '街道').join('、') }}</p><p class="pre-wrap">{{ profile.teacher.introduction || '未填介绍' }}</p><p>{{ profile.teacher.priceMin ? `¥${profile.teacher.priceMin}—${profile.teacher.priceMax} / 小时` : '面议' }}</p><p class="pre-wrap">{{ profile.teacher.availabilityText || '时间可协商' }}</p><p>公开后，已登录的需求方可查看以上资料。手机号、微信、邮箱不会公开。</p><div class="form-actions"><button class="secondary" :disabled="busy" @click="preview = false">返回编辑</button><button class="primary" :disabled="busy" @click="visibility(true)">确认公开资料</button></div><p v-if="error" class="inline-warning" role="alert">{{ error }} {{ Object.values(fieldErrors).join('；') }}</p></section></dialog>
     <dialog ref="stopDialog" class="native-dialog" aria-labelledby="stop-title" @cancel.prevent="!busy && (stopConfirm = false)"><section v-if="stopConfirm" class="dialog-card"><h2 id="stop-title">停止公开资料？</h2><p>将从老师发现中移除，也不能新增投递或被邀请。已有意向、互选及联系方式授权管理继续。</p><p v-if="dirty">未保存输入将留在当前页面，停止公开不会替你保存这些修改。</p><div class="form-actions"><button class="secondary" :disabled="busy" @click="stopConfirm = false">继续公开</button><button class="primary" :disabled="busy" @click="visibility(false)">确认停止公开</button></div><p v-if="error" class="inline-warning" role="alert">{{ error }}</p></section></dialog>
