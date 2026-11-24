@@ -25,3 +25,17 @@ class MatchController {
     @PostMapping("/matches/{id}/withdraw-intent") MatchView withdraw(@PathVariable UUID id,@RequestBody RespondMatch body,
         @RequestHeader(value="Idempotency-Key",required=false) String key,HttpServletRequest req) { return matches.respond(AuthController.session(req),id,body,key,"WITHDRAW"); }
 }
+
+@RestController
+@RequestMapping({"/api/matches", "/api/v1/matches"})
+class MatchLifecycleController {
+    private final MatchService matches;
+
+    MatchLifecycleController(MatchService matches) { this.matches = matches; }
+
+    @PostMapping("/{id}/{action:request-cooperation|confirm-cooperation|close-no-deal|request-completion|confirm-completion|continue-cooperation}")
+    MatchView progress(@PathVariable UUID id, @PathVariable String action, @RequestBody RespondMatch body,
+            @RequestHeader(value="Idempotency-Key", required=false) String key, HttpServletRequest request) {
+        return matches.respond(AuthController.session(request), id, body, key, action);
+    }
+}

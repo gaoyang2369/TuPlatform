@@ -22,7 +22,9 @@ record MatchView(UUID id, UUID requestId, long version, UUID roundId, String sta
     String myRole, boolean waitingForMe, boolean requestExpired, boolean teacherPublic,
     boolean canAccept, boolean canReject, boolean canWithdraw, boolean canInitiateAgain,
     Map<String,Object> submissionSnapshot, Map<String,Object> teacherSnapshot,
-    boolean submissionChanged, boolean teacherProfileChanged, @JsonProperty("avatar_url") String avatarUrl) {
+    boolean submissionChanged, boolean teacherProfileChanged, @JsonProperty("avatar_url") String avatarUrl,
+    boolean contactsExchanged, UUID cooperationRequestedBy, UUID completionRequestedBy,
+    java.time.Instant completedAt, java.time.Instant reviewDeadlineAt, boolean reviewEligible) {
     MatchView {
         // Applies to stored rounds and historical idempotency receipts as well as fresh projections.
         submissionSnapshot = new java.util.LinkedHashMap<>(submissionSnapshot);

@@ -92,7 +92,7 @@ class ContactService {
         var g=state(m);boolean requester=actor.equals(m.get("requester_id"));String mine=requester?"requester":"tutor",other=requester?"tutor":"requester";
         Contacts r=stored((UUID)m.get("requester_id")),t=stored((UUID)m.get("tutor_id"));
         boolean my=valid(g,mine,requester?r:t),their=valid(g,other,requester?t:r);
-        boolean visible="MUTUAL".equals(m.get("state"))&&my&&their;
+        boolean visible=MatchRules.allowsContactSharing((String)m.get("state"))&&my&&their;
         var result=new LinkedHashMap<String,Object>();result.put("roundId",m.get("current_round_id"));result.put("version",g.get("version"));
         result.put("myConsent",my);result.put("otherConsent",their);result.put("mySelectedFields",selected(g,mine));
         result.put("requiresReconfirmation",Boolean.TRUE.equals(g.get(mine+"_reconfirm")));result.put("otherRequiresReconfirmation",Boolean.TRUE.equals(g.get(other+"_reconfirm")));
@@ -123,7 +123,7 @@ class ContactService {
     private void check(Map<String,Object> m,Map<String,Object> g,UUID round,Long version) {
         if(round==null||version==null)throw ApiError.invalid("expectedGrantVersion","请先读取并核对本轮授权进度");
         if(!round.equals(m.get("current_round_id"))||version.longValue()!=((Number)g.get("version")).longValue())throw conflict();
-        if(!"MUTUAL".equals(m.get("state")))throw new ApiError(422,"NOT_MUTUAL","仅已互选双方可以管理本轮联系方式授权");
+        if(!MatchRules.allowsContactSharing((String)m.get("state")))throw new ApiError(422,"NOT_MUTUAL","仅已互选双方可以管理本轮联系方式授权");
     }
     public Map<String,Object> agree(String session,UUID id,AgreeContacts body,String key) {
         Account a=actor(session);var m=locked(session,a,id);

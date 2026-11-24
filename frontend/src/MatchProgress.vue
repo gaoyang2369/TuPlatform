@@ -2,13 +2,14 @@
 import {computed,nextTick,onMounted,ref} from "vue";
 import {api,ApiFailure} from "./account-api.ts";
 import type {Me} from "./account-api.ts";
-import {matchLabel} from "./match-types.ts";
+import {matchLabel, progressActions, type ProgressAction} from "./match-types.ts";
 import type {Match} from "./match-types.ts";
 import { ArrowLeft, ArrowRight, RefreshCw, MessagesSquare } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from "./UserAvatar.vue";
+import MatchLifecyclePanel from "./MatchLifecyclePanel.vue";
 import MatchStepper from "./MatchStepper.vue";
 import RequestSummary from "./RequestSummary.vue";
 import TeacherSummary from "./TeacherSummary.vue";
@@ -28,8 +29,8 @@ const shared = ref(false);
 const selectedId = ref(props.initialId);
 let pending:{path:string;body:unknown;key:string}|null=null;
 const confirmAction=ref(''),contacts=ref<Contacts|null>(null);
-const actionNames:Record<string,string>={accept:'接受意向',reject:'婉拒意向','withdraw-intent':'撤回意向'};
-const filters=[{value:'',label:'全部'},{value:'WAITING',label:'待回应'},{value:'MUTUAL',label:'已互选'},{value:'REJECTED',label:'已拒绝'},{value:'WITHDRAWN',label:'已撤回'}];
+const actionNames:Record<string,string>={accept:'接受意向',reject:'婉拒意向','withdraw-intent':'撤回意向',...Object.fromEntries(Object.entries(progressActions).map(([key,action])=>[key,action.label]))};
+const filters=[{value:'',label:'全部'},{value:'WAITING',label:'待回应'},{value:'MUTUAL',label:'已互选'},{value:'in_cooperation',label:'合作中'},{value:'completed',label:'已完结'},{value:'closed_no_deal',label:'暂未合作'},{value:'REJECTED',label:'已拒绝'},{value:'WITHDRAWN',label:'已撤回'}];
 function partner(m:Match){return m.myRole==='REQUESTER'?m.teacherSnapshot.displayName:m.submissionSnapshot.publisherDisplayName;}
 function source(m:Match){return m.requestId?m.submissionSnapshot.title:'直接邀请';}
 async function ask(action:string,event:MouseEvent){const trigger=event.currentTarget as HTMLElement;await run(async()=>{contacts.value=null;if(action==='accept')contacts.value=await api.request<Contacts>('/me/contacts');});if(error.value)return;await nextTick();trigger.focus();confirmAction.value=action;}
@@ -70,7 +71,8 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
     <div class="flex items-center gap-3"><UserAvatar :url="detail.avatar_url" :name="partner(detail)" class="size-11 rounded-xl text-xl"/><div><p class="text-sm text-muted-foreground">{{source(detail)}}</p><h2 class="text-xl font-bold">{{partner(detail)}}</h2></div><Badge variant="secondary" class="status-pill ml-auto" :class="detail.waitingForMe ? 'bg-orange-50 text-orange-800' : ''">{{matchLabel(detail)}}</Badge></div>
     <MatchStepper :state="detail.state" :shared="shared"/>
     <div v-if="detail.state==='WAITING'" class="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4"><div><h3 class="font-semibold">{{detail.waitingForMe?'期待你的回应':'意向已送达'}}</h3><p class="mt-1 text-sm text-secondary-foreground">{{detail.waitingForMe?'合适的话，接受后就可以联系沟通。':'对方接受后，即可查看彼此的联系方式。'}}</p></div><div class="flex flex-wrap items-center gap-2"><Button v-if="detail.canAccept" :disabled="busy||unknown||conflict" @click="ask('accept',$event)">接受意向</Button><Button v-if="detail.canReject" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('reject',$event)">婉拒</Button><Button v-if="detail.canWithdraw" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('withdraw-intent',$event)">撤回意向</Button></div></div>
-    <ContactConsent :with-request-address="detail.myRole==='TUTOR' && !!detail.requestId" v-if="detail.state==='MUTUAL'" :key="detail.roundId" @visibility="shared=$event" :match-id="detail.id" :round-id="detail.roundId" @expired="emit('expired')" @contacts="emit('contacts')"/>
+    <MatchLifecyclePanel :match="detail" :account-id="me.id" :shared="shared" :disabled="busy||unknown||conflict" @action="ask"/>
+    <ContactConsent :with-request-address="detail.myRole==='TUTOR' && !!detail.requestId" v-if="['MUTUAL','in_cooperation','completed'].includes(detail.state)" :key="detail.roundId" @visibility="shared=$event" :match-id="detail.id" :round-id="detail.roundId" @expired="emit('expired')" @contacts="emit('contacts')"/>
     <section v-if="!detail.requestId&&detail.submissionSnapshot.introduction" class="invitation-summary space-y-2"><h3 class="font-semibold">邀请留言</h3><p class="whitespace-pre-wrap text-[15px] leading-7">{{detail.submissionSnapshot.introduction}}</p></section>
     <p v-if="detail.requestExpired||!detail.teacherPublic||detail.submissionChanged||detail.teacherProfileChanged" class="record-note rounded-xl bg-slate-50 p-3 text-sm text-secondary-foreground">{{detail.requestExpired?'原需求已到期。':''}}{{!detail.teacherPublic?'老师已停止公开。':''}}{{detail.submissionChanged||detail.teacherProfileChanged?'资料已有更新。':''}}本次联系记录保留。</p>
     <details class="rounded-xl bg-slate-50 p-4 text-sm"><summary>查看发起时的{{detail.requestId?'需求与老师资料':'老师资料'}}</summary><div class="mt-4 space-y-4 rounded-xl bg-card p-4"><template v-if="detail.requestId"><h3>发起时的需求</h3><RequestSummary :fields="detail.submissionSnapshot" :display-name="detail.submissionSnapshot.publisherDisplayName"/></template><h3>发起时的老师资料</h3><TeacherSummary :teacher="detail.teacherSnapshot"/></div></details>
@@ -79,8 +81,8 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
   </article>
   <template v-else-if="!selectedId">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap gap-1 rounded-2xl border border-border bg-card p-1.5" role="group" aria-label="筛选进度">
-        <Button v-for="f in filters" :key="f.value" variant="ghost" class="rounded-full px-3 aria-pressed:bg-blue-50 aria-pressed:text-primary" :aria-pressed="state===f.value" :disabled="busy" @click="filter(f.value)">{{ f.label }}</Button>
+      <div class="flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-border bg-card p-1.5" role="group" aria-label="筛选进度">
+        <Button v-for="f in filters" :key="f.value" variant="ghost" class="shrink-0 rounded-full px-3 aria-pressed:bg-blue-50 aria-pressed:text-primary" :aria-pressed="state===f.value" :disabled="busy" @click="filter(f.value)">{{ f.label }}</Button>
       </div>
       <span v-if="waitingForMe.length" class="reply-count rounded-full bg-orange-50 px-3 py-1 text-sm text-orange-800" role="status">{{waitingForMe.length}} 条待你回应{{cursor?'（已加载）':''}}</span>
     </div>
@@ -94,11 +96,11 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
           <div class="min-w-0 flex-1"><h2 class="text-xl font-bold">{{ partner(m) }}</h2><p class="text-sm text-secondary-foreground">{{ source(m) }}</p></div>
           <Badge variant="secondary" :class="m.waitingForMe && 'bg-orange-50 text-orange-800'">{{ matchLabel(m) }}</Badge>
         </div>
-        <MatchStepper :state="m.state"/>
+        <MatchStepper :state="m.state" :shared="m.contactsExchanged"/>
         <Button :variant="m.waitingForMe ? 'default' : 'secondary'" class="h-10 justify-between rounded-xl" :disabled="busy" :aria-label="`查看${partner(m)}的撮合进度`" @click="open(m.id)">{{ m.waitingForMe ? '去回应' : m.state==='MUTUAL' ? '去联系' : '查看' }}<ArrowRight/></Button>
       </article>
     </div>
     <Button v-if="cursor" variant="secondary" :disabled="busy" @click="run(()=>list(true))">加载更多进度</Button>
   </template><div v-else-if="busy" role="status" class="space-y-3"><p>正在读取联系记录…</p><Skeleton class="h-48 w-full rounded-2xl"/></div>
-  <ConfirmDialog :open="!!confirmAction" :title="`${actionNames[confirmAction]||''}？`" :confirm-text="actionNames[confirmAction]" :busy="busy" @cancel="confirmAction='';contacts=null" @confirm="respond(confirmAction)"><template v-if="confirmAction==='accept'"><p>接受后，与{{detail?partner(detail):'对方'}}开始沟通。</p><ContactExchangeNotice v-if="contacts" :contacts="contacts" action="接受意向"/></template><p v-else-if="confirmAction==='reject'">婉拒后，本次意向将结束。</p><p v-else-if="confirmAction==='withdraw-intent'">撤回后，对方将无法接受本次意向。</p></ConfirmDialog>
+  <ConfirmDialog :open="!!confirmAction" :title="`${actionNames[confirmAction]||''}？`" :confirm-text="actionNames[confirmAction]" :busy="busy" @cancel="confirmAction='';contacts=null" @confirm="respond(confirmAction)"><template v-if="confirmAction==='accept'"><p>接受后，与{{detail?partner(detail):'对方'}}开始沟通。</p><ContactExchangeNotice v-if="contacts" :contacts="contacts" action="接受意向"/></template><p v-else-if="confirmAction==='reject'">婉拒后，本次意向将结束。</p><p v-else-if="confirmAction==='withdraw-intent'">撤回后，对方将无法接受本次意向。</p><p v-else>{{ progressActions[confirmAction as ProgressAction]?.description }}</p></ConfirmDialog>
 </section></template>

@@ -33,6 +33,10 @@ class NotificationService {
             "?view=matches&match=" + match);
     }
 
+    void matchProgress(UUID recipient, UUID event, UUID match, String type, String title, String content) {
+        enqueue(recipient, type, event, title, content, "?view=matches&match=" + match);
+    }
+
     void requestReviewed(UUID owner, UUID submission, UUID request, String title, String rejection) {
         boolean approved = rejection == null;
         enqueue(owner, "request_reviewed", submission, approved ? "你的需求已通过审核" : "你的需求需要修改",

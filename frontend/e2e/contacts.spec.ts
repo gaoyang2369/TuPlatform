@@ -66,7 +66,7 @@ async function stop(page:Page,cancel=false){await page.getByText('管理我的�
 function hidden(g:Record<string,unknown>){expect(g.canViewContacts).toBe(false);expect(g).not.toHaveProperty('mySharedContacts');expect(g).not.toHaveProperty('otherSharedContacts');}
 test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\?.*)?$/))throw new Error('Dedicated _test database required');mkdirSync(path.join(root,'.tools/match-simplification'),{recursive:true});});
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture('cleanup',actor.id);});
-test('无需发布需求，发送和接受即同意交换，互选前隐藏、互选后直接联系',async({page,browser},info)=>{
+test('直接邀请双方从交换联系方式到合作完结解锁互评',async({page,browser},info)=>{
   const tc=await browser.newContext({viewport:info.project.use.viewport,isMobile:info.project.use.isMobile,hasTouch:info.project.use.hasTouch});
   try{
     const tp=await tc.newPage(),owner=user('REQUESTER'),tutor=user('TUTOR');let native=0;for(const p of [page,tp])p.on('dialog',async d=>{native++;await d.dismiss();});
@@ -82,6 +82,35 @@ test('无需发布需求，发送和接受即同意交换，互选前隐藏、�
     await expect(tp.getByTestId('shared-contacts')).toContainText('direct_owner');await refresh(page);await expect(page.getByTestId('shared-contacts')).toContainText('direct_teacher');
     for(const p of [page,tp]){await expect(p.getByRole('button',{name:'同意交换联系方式'})).toHaveCount(0);await expect(p.getByRole('checkbox')).toHaveCount(0);expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}expect(native).toBe(0);
     await page.screenshot({path:path.join(root,`.tools/match-simplification/real-mutual-${info.project.name}.png`),fullPage:true});
+    async function action(p: Page, label: string) {
+      await p.getByRole('button', { name: label, exact: true }).click();
+      await p.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
+    }
+    await action(page, '已约试课 / 开始合作');
+    await expect(page.getByRole('heading', { name: '等待确认合作' })).toBeVisible();
+    await refresh(tp);
+    await action(tp, '确认对方发起的合作');
+    await expect(tp.locator('.status-pill')).toHaveText('合作中');
+    await action(tp, '标记阶段完结');
+    await expect(tp.getByText(/已发起完结确认，等待对方确认/)).toBeVisible();
+    await refresh(page);
+    await action(page, '确认阶段完结');
+    await expect(page.getByRole('heading', { name: '互评资格已解锁' })).toBeVisible();
+    const completed = await (await page.request.get('/api/v1/matches/' + m.id)).json();
+    expect(completed.reviewEligible).toBe(true);
+    expect(Date.parse(completed.reviewDeadlineAt) - Date.parse(completed.completedAt)).toBe(14 * 86400000);
+    await page.screenshot({path:path.join(root,`.tools/match-simplification/completed-${info.project.name}.png`),fullPage:true});
+    for (const participant of [page, tp]) {
+      await refresh(participant);
+      await expect(participant.getByRole('heading', { name: '互评资格已解锁' })).toBeVisible();
+      const stages = participant.getByLabel('撮合阶段');
+      await expect(stages.locator('li')).toHaveCount(6);
+      await expect(stages.locator('[aria-current="step"]')).toContainText('完结互评');
+      expect(await participant.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await participant.getByRole('button', { name: '返回列表' }).click();
+      await participant.getByRole('button', { name: '已完结', exact: true }).click();
+      await expect(participant.locator('.match-row')).toHaveCount(1);
+    }
   }finally{await tc.close();}
 });
 test('完整投递闭环：发布审核、接受后联系，停止分享可取消和确认',async({page,browser},info)=>{

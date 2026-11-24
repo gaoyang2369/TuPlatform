@@ -2,7 +2,13 @@ package cn.linke;
 
 final class MatchRules {
     private MatchRules() {}
-    static boolean active(String state) { return "WAITING".equals(state)||"MUTUAL".equals(state); }
+    static boolean active(String state) {
+        return "WAITING".equals(state) || "MUTUAL".equals(state) || "in_cooperation".equals(state);
+    }
+
+    static boolean allowsContactSharing(String state) {
+        return "MUTUAL".equals(state) || "in_cooperation".equals(state) || "completed".equals(state);
+    }
     static void response(String state, boolean initiator, String action) {
         if (!"WAITING".equals(state)) throw new ApiError(409,"MATCH_STATE_CHANGED","本次意向已变化，请读取最新进度后核对");
         if (!java.util.Set.of("ACCEPT","REJECT","WITHDRAW").contains(action)) throw ApiError.invalid("action","请选择有效操作");

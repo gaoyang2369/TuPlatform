@@ -15,7 +15,9 @@ class MatchService {
     private final JdbcTemplate db; private final AuthService auth; private final ProfileService profiles;
     private final RequestPublicationService publication; private final ObjectMapper json; private final Secrets secrets; private final ContactService contacts;
     private final NotificationService notifications;
-    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts, NotificationService notifications) {
+    private final MatchLifecycle lifecycle;
+    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts, NotificationService notifications, MatchLifecycle lifecycle) {
+        this.lifecycle = lifecycle;
         this.notifications = notifications;
         this.db=db;this.auth=auth;this.profiles=profiles;this.publication=publication;this.json=json;this.secrets=secrets;this.contacts=contacts;
     }
@@ -33,6 +35,8 @@ class MatchService {
         actor(session); // Recheck a revocable session after waiting for the locks.
     }
     private static final String READ="SELECT m.*,n.state,n.initiator_id,n.initiator_role,n.submission_id,n.teacher_profile_version,n.submission_snapshot,n.teacher_snapshot,"+
+        "n.contacts_exchanged_at,n.cooperation_requested_by,n.completion_requested_by,n.completed_at,n.review_deadline_at,"+
+        "(n.state='completed' AND n.review_deadline_at>clock_timestamp()) AS review_eligible,"+
         "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id, p.avatar_url AS tutor_avatar, owner.avatar_url AS requester_avatar "+
         "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id LEFT JOIN request_submissions s ON s.id=n.submission_id "+
         "LEFT JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id JOIN profiles owner ON owner.account_id=m.requester_id ";
@@ -45,7 +49,7 @@ class MatchService {
         return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM match_rounds WHERE match_id=? AND submission_id IS NOT DISTINCT FROM ? AND initiator_id=? AND state='REJECTED')",Boolean.class,match,submission,actor));
     }
     private boolean canStart(Map<String,Object> r,UUID actor) {
-        if(MatchRules.active((String)r.get("state"))||!Boolean.TRUE.equals(r.get("teacher_public")))return false;
+        if(keepsRound(r)||!Boolean.TRUE.equals(r.get("teacher_public")))return false;
         if(r.get("request_id")==null)return actor.equals(r.get("requester_id"))&&!blocked((UUID)r.get("id"),null,actor);
         try { var current=publication.publicDetail((UUID)r.get("request_id"));return !blocked((UUID)r.get("id"),(UUID)current.get("submissionId"),actor); }
         catch(ApiError e){return false;}
@@ -57,12 +61,18 @@ class MatchService {
             (String)r.get("initiator_role"),role,waiting&&!initiator,Boolean.TRUE.equals(r.get("request_expired")),Boolean.TRUE.equals(r.get("teacher_public")),
             waiting&&!initiator,waiting&&!initiator,waiting&&initiator,canStart(r,actor),object(r.get("submission_snapshot")),object(r.get("teacher_snapshot")),
             !Objects.equals(r.get("submission_id"),r.get("latest_submission_id")),((Number)r.get("teacher_profile_version")).longValue()!=((Number)r.get("current_teacher_version")).longValue(),
-            (String) r.get("REQUESTER".equals(role) ? "tutor_avatar" : "requester_avatar"));
+            (String) r.get("REQUESTER".equals(role) ? "tutor_avatar" : "requester_avatar"), r.get("contacts_exchanged_at") != null,
+            (UUID)r.get("cooperation_requested_by"), (UUID)r.get("completion_requested_by"),
+            instant(r, "completed_at"), instant(r, "review_deadline_at"), Boolean.TRUE.equals(r.get("review_eligible")));
+    }
+    private static java.time.Instant instant(Map<String,Object> row, String column) {
+        var timestamp = (java.sql.Timestamp) row.get(column);
+        return timestamp == null ? null : timestamp.toInstant();
     }
     public MatchView detail(String session,UUID id) { Account a=actor(session);return view(own(a.id(),id),a.id()); }
     public MatchDetail privateDetail(String session, UUID id) {
         MatchView match = detail(session, id);
-        if (!"TUTOR".equals(match.myRole()) || !"MUTUAL".equals(match.state()) || match.requestId() == null)
+        if (!"TUTOR".equals(match.myRole()) || !MatchRules.allowsContactSharing(match.state()) || match.requestId() == null)
             return new MatchDetail(match, null);
         return new MatchDetail(match, contacts.sharedRequestAddress(session, id, match.roundId()));
     }
@@ -70,7 +80,7 @@ class MatchService {
         Account a=actor(session);UUID after=ProfileService.pageCursor(cursor);
         List<Object> args=new ArrayList<>(List.of(a.id(),a.id(),after));
         String filter="(m.requester_id=? OR m.tutor_id=?) AND m.id<?";
-        if(state!=null&&!state.isBlank()) {if(!Set.of("WAITING","MUTUAL","REJECTED","WITHDRAWN").contains(state))throw ApiError.invalid("state","请选择有效进度");filter+=" AND n.state=?";args.add(state);}
+        if(state!=null&&!state.isBlank()) {if(!Set.of("WAITING","MUTUAL","REJECTED","WITHDRAWN","in_cooperation","completed","closed_no_deal").contains(state))throw ApiError.invalid("state","请选择有效进度");filter+=" AND n.state=?";args.add(state);}
         if(requestId!=null) {filter+=" AND m.request_id=?";args.add(requestId);}
         var rows=db.queryForList(READ+"WHERE "+filter+" ORDER BY m.id DESC LIMIT 21",args.toArray());
         var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(20).map(r->view(r,a.id())).toList());
@@ -85,6 +95,9 @@ class MatchService {
     }
     private <T> T remember(UUID actor,String action,String key,UUID match,Object body,T value) {
         db.update("INSERT INTO match_action_receipts(actor_id,action,idempotency_key,match_id,fingerprint,result) VALUES(?,?,?,?,?,CAST(? AS jsonb))",actor,action,key,match,secrets.digest(encode(body)),encode(value));return value;
+    }
+    private boolean keepsRound(Map<String,Object> row) {
+        return MatchRules.active((String)row.get("state")) || Boolean.TRUE.equals(row.get("review_eligible"));
     }
     public MatchStartResult start(String session,StartMatch body,String key) {
         Account a=actor(session);
@@ -102,14 +115,14 @@ class MatchService {
         lockParticipants(session,requester,tutor);
         db.queryForList("SELECT id FROM service_requests WHERE id=? FOR UPDATE",body.requestId());
         MatchStartResult replay=replay(a.id(),"START",key,body,MatchStartResult.class);if(replay!=null)return replay;
-        var direct=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.request_id IS NULL AND m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL') FOR UPDATE OF m",requester,tutor);
+        var direct=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.request_id IS NULL AND m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL','in_cooperation') FOR UPDATE OF m",requester,tutor);
         if(!direct.isEmpty()){
             UUID existing=(UUID)direct.getFirst().get("id");
             return remember(a.id(),"START",key,existing,body,new MatchStartResult(detail(session,existing),"EXISTING"));
         }
         var previous=db.queryForList("SELECT id FROM match_relationships WHERE request_id=? AND tutor_id=? FOR UPDATE",body.requestId(),tutor);
         UUID match=previous.isEmpty()?UUID.randomUUID():(UUID)previous.getFirst().get("id");
-        if(!previous.isEmpty()&&MatchRules.active((String)own(a.id(),match).get("state")))
+        if(!previous.isEmpty()&&keepsRound(own(a.id(),match)))
             return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"EXISTING"));
         var submission=db.queryForList("SELECT r.status,s.status AS submission_status,s.expires_at<=clock_timestamp() AS expired FROM service_requests r LEFT JOIN request_submissions s ON s.id=r.latest_submission_id WHERE r.id=?",body.requestId());
         // An unrelated tutor cannot use a start error to discover a private draft/submission.
@@ -143,14 +156,14 @@ class MatchService {
         UUID tutor=body.tutorUserId();
         lockParticipants(session,a.id(),tutor);
         MatchStartResult replay=replay(a.id(),"START",key,body,MatchStartResult.class);if(replay!=null)return replay;
-        var active=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL') ORDER BY m.created_at,m.id LIMIT 1 FOR UPDATE OF m",a.id(),tutor);
+        var active=db.queryForList("SELECT m.id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.requester_id=? AND m.tutor_id=? AND n.state IN ('WAITING','MUTUAL','in_cooperation') ORDER BY m.created_at,m.id LIMIT 1 FOR UPDATE OF m",a.id(),tutor);
         if(!active.isEmpty()){
             UUID existing=(UUID)active.getFirst().get("id");
             return remember(a.id(),"START",key,existing,body,new MatchStartResult(detail(session,existing),"EXISTING"));
         }
         var previous=db.queryForList("SELECT id FROM match_relationships WHERE request_id IS NULL AND requester_id=? AND tutor_id=? FOR UPDATE",a.id(),tutor);
         UUID match=previous.isEmpty()?UUID.randomUUID():(UUID)previous.getFirst().get("id");
-        if(!previous.isEmpty()&&MatchRules.active((String)own(a.id(),match).get("state")))
+        if(!previous.isEmpty()&&keepsRound(own(a.id(),match)))
             return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"EXISTING"));
         Map<String,Object> teacher=profiles.matchTeacher(tutor,body.expectedTeacherProfileVersion());
         if(!previous.isEmpty()&&blocked(match,null,a.id()))throw new ApiError(422,"REAPPLY_BLOCKED","老师已婉拒本次邀请，请尊重对方选择，不能重复邀请");
@@ -175,7 +188,14 @@ class MatchService {
         MatchView replay=replay(a.id(),action,key,fingerprint,MatchView.class);if(replay!=null)return replay;
         var current=own(a.id(),id);
         if(body.roundId()==null||body.expectedVersion()==null)throw ApiError.invalid("expectedVersion","请读取当前轮次与进度");
-        if(!body.roundId().equals(current.get("current_round_id"))||body.expectedVersion().longValue()!=((Number)current.get("version")).longValue())throw new ApiError(409,"VERSION_CONFLICT","意向已变化，请读取最新进度后核对");
+        long version = ((Number)current.get("version")).longValue();
+        boolean crossedRequest = "request-cooperation".equals(action) && current.get("cooperation_requested_by") != null
+            && !a.id().equals(current.get("cooperation_requested_by")) && body.expectedVersion() == version - 1;
+        if(!body.roundId().equals(current.get("current_round_id")) || (body.expectedVersion() != version && !crossedRequest))throw new ApiError(409,"VERSION_CONFLICT","意向已变化，请读取最新进度后核对");
+        if (!Set.of("ACCEPT","REJECT","WITHDRAW").contains(action)) {
+            lifecycle.act(current, a.id(), action);
+            return remember(a.id(),action,key,id,fingerprint,detail(session,id));
+        }
         MatchRules.response((String)current.get("state"),a.id().equals(current.get("initiator_id")),action);
         String state=switch(action){case "ACCEPT"->"MUTUAL";case "REJECT"->"REJECTED";default->"WITHDRAWN";};
         db.update("UPDATE match_rounds SET state=?,responded_by=?,responded_at=clock_timestamp() WHERE id=?",state,a.id(),body.roundId());

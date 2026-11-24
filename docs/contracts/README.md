@@ -38,10 +38,23 @@
 | 本人需求 `MyRequest` | `id,status,version,draft?,latestSubmission?,reviewFeedback?,activeMatchCounts`；本人可读当时提交、声明和审核反馈；无用户填写/查看的具体截止日 |
 | 公开需求 `PublicRequest` | `id, submissionId, publisherDisplayName, title, categoryCode, audienceStageCode, areaCode, goal, serviceMode?, budgetMin,budgetMax,durationHours,frequency,availableSlots,availabilityNote?,expectedStartDate?,tutorExpectations?`；不含联系方式、邮箱、精确地址、发布声明、具体截止日或内部审核信息 |
 | 公开老师 `PublicTeacher` | 基本资料、教学简历、`is_school_verified, is_skill_verified`。两项布尔值取自已通过的申请。公开投影不含证件路径、申请记录、驳回原因、联系方式或邮箱 |
-| 撮合 `Match` | `id,requestId,version,roundId,state:WAITING或MUTUAL或REJECTED或WITHDRAWN,initiatorRole,myRole,waitingForMe,requestExpired,teacherPublic,canAccept,canReject,canWithdraw,canInitiateAgain,submissionSnapshot,teacherSnapshot`；快照仅含本次沟通所需需求/老师业务字段，不含发布声明、具体截止日、审核内部信息或私密联系方式 |
+| 撮合 `Match` | `id,requestId,version,roundId,state,contactsExchanged,cooperationRequestedBy,completionRequestedBy,completedAt,reviewDeadlineAt,reviewEligible,initiatorRole,myRole,waitingForMe,requestExpired,teacherPublic,canAccept,canReject,canWithdraw,canInitiateAgain,submissionSnapshot,teacherSnapshot`；快照仅含本次沟通所需需求/老师业务字段，不含发布声明、具体截止日、审核内部信息或私密联系方式 |
 | 授权进度 `Grant` | `version,myConsent,otherConsent,mySelectedFields[],requiresReconfirmation,canViewContacts`；仅双方当前有效同意且选中值仍匹配时，另返回`mySharedContacts`和`otherSharedContacts`，其中仅含选中手机号/微信；其余状态完全省略这两个值对象 |
 
 金额用十进制字符串，不用浮点数、科学记数法、千分位或货币符号；预算与老师报价至多两位小数，时长用如`"0.5"`、`"1"`的小时字符串。数据库金额可沿用`numeric(14,2)`作为技术容量；超出可存储范围明确422提示，不舍入、不截断，也不将容量解释为指导价或999元上限。日期为`YYYY-MM-DD`，提交当天按Asia/Shanghai校验。
+
+## 合作与完结接口
+
+参与者可向 `/api/matches/{id}/{action}` 或 `/api/v1/matches/{id}/{action}` 发送 POST。请求体为 `{roundId, expectedVersion}`，沿用 CSRF、账号前置条件及幂等键，返回本轮 Match。列表的 `state` 支持原有四种状态及 `in_cooperation`、`completed`、`closed_no_deal`。
+
+| action | 生效条件与结果 |
+| --- | --- |
+| `request-cooperation` | 本轮已交换联系方式。记录本人请求；对方已发起时直接进入合作中 |
+| `confirm-cooperation` | 对方已发起合作请求。确认进入合作中 |
+| `close-no-deal` | 本轮处于交换联系方式阶段。结束本轮，关闭分享 |
+| `request-completion` | 合作中且无待确认完结请求。记录请求，通知对方 |
+| `confirm-completion` | 对方已发起完结请求。写入完结时间与 14 天互评截止时间 |
+| `continue-cooperation` | 对方已发起完结请求。取消本次请求，保留合作状态 |
 
 ## 试点老师认证接口
 

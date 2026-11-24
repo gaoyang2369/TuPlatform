@@ -14,7 +14,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class, ContactController.class, RequestDraftController.class}, properties = {"app.secure-cookies=false"},
+@WebMvcTest(controllers = {AuthController.class, ProfileController.class, MatchController.class, MatchLifecycleController.class, ContactController.class, RequestDraftController.class}, properties = {"app.secure-cookies=false"},
     excludeAutoConfiguration = org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class)
 @Import({SecurityConfig.class, AccountContextConfig.class})
 class SecurityContractTest {
@@ -66,6 +66,13 @@ class SecurityContractTest {
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SESSION_CHANGED"));
         mvc.perform(post("/api/v1/matches/"+UUID.randomUUID()+"/accept").with(csrf()).header("X-Account-Id",UUID.randomUUID().toString()).contentType("application/json").content("{}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SESSION_CHANGED"));
+        for (String prefix : new String[]{"/api", "/api/v1"}) {
+            String path = prefix + "/matches/" + UUID.randomUUID() + "/request-cooperation";
+            mvc.perform(post(path).contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+            mvc.perform(post(path).with(csrf()).contentType("application/json").content("{}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SESSION_CHANGED"));
+        }
         verifyNoInteractions(matches);
     }
     @Test void teacherDiscoveryAndMatchDetailsRejectAnonymousAndSwitchedAccount() throws Exception {

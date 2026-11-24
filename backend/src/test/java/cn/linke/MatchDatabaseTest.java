@@ -242,6 +242,98 @@ class MatchDatabaseTest {
             assertEquals(true,contacts.grant(s.owner().session(),m.id()).get("canViewContacts"));
         }
     }
+    @Autowired MatchLifecycle lifecycle;
+
+    private MatchView exchanged(User owner, User tutor) {
+        contacts.save(owner.session(),new SaveContacts(0L,null,"synthetic_owner"));
+        contacts.save(tutor.session(),new SaveContacts(0L,null,"synthetic_tutor"));
+        var m=matches.start(owner.session(),new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),publish(tutor),
+            "",new ContactExchange(true,1L)),key()).match();
+        return matches.respond(tutor.session(),m.id(),new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L)),key(),"ACCEPT");
+    }
+
+    @Test void onlyExchangedParticipantsCanConfirmAndUnlockReviews() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=exchanged(owner,tutor);
+        assertTrue(m.contactsExchanged());
+        assertEquals(404,assertThrows(ApiError.class,()->act(user("TUTOR"),m,"request-cooperation")).status);
+        String requestKey=key();
+        var pending=matches.respond(owner.session(),m.id(),response(m),requestKey,"request-cooperation");
+        assertEquals(pending,matches.respond(owner.session(),m.id(),response(m),requestKey,"request-cooperation"));
+        assertEquals(owner.id(),pending.cooperationRequestedBy());
+        assertEquals(List.of(tutor.id()),db.queryForList(
+            "SELECT user_id FROM notifications WHERE target_url LIKE ? AND event_type='cooperation_requested'",
+            UUID.class,"%match="+m.id()));
+        assertThrows(ApiError.class,()->act(owner,pending,"confirm-cooperation"));
+        // Both acted on the same exchanged version. The opposite request confirms.
+        var working=act(tutor,m,"request-cooperation");
+        assertEquals("in_cooperation",working.state());
+        assertEquals(true,contacts.grant(tutor.session(),m.id()).get("canViewContacts"));
+        var finishing=act(tutor,working,"request-completion");
+        assertEquals(List.of(owner.id()),db.queryForList(
+            "SELECT user_id FROM notifications WHERE target_url LIKE ? AND event_type='completion_requested'",
+            UUID.class,"%match="+m.id()));
+        assertThrows(ApiError.class,()->act(tutor,finishing,"confirm-completion"));
+        var disputed=act(owner,finishing,"continue-cooperation");
+        assertNull(disputed.completionRequestedBy());
+        assertEquals("in_cooperation",disputed.state());
+        var again=act(owner,disputed,"request-completion");
+        String receipt=key();
+        var complete=matches.respond(tutor.session(),m.id(),response(again),receipt,"confirm-completion");
+        assertEquals(complete,matches.respond(tutor.session(),m.id(),response(again),receipt,"confirm-completion"));
+        assertEquals("completed",complete.state());
+        assertTrue(complete.reviewEligible());
+        assertEquals(complete.completedAt().plus(java.time.Duration.ofDays(14)),complete.reviewDeadlineAt());
+        assertEquals(2,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type='match_completed'",Integer.class,m.roundId()));
+        db.update("UPDATE match_rounds SET completed_at=now()-interval '15 days',review_deadline_at=now()-interval '1 day' WHERE id=?",m.roundId());
+        assertFalse(matches.detail(owner.session(),m.id()).reviewEligible());
+        var grant=contacts.grant(tutor.session(),m.id());
+        contacts.withdraw(tutor.session(),m.id(),new WithdrawContacts(m.roundId(),((Number)grant.get("version")).longValue()),key());
+        assertEquals(false,contacts.grant(owner.session(),m.id()).get("canViewContacts"));
+    }
+
+    @Test void scheduledFollowUpIsOncePerRoundAndAdvancesOnlyDueRequests() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=exchanged(owner,tutor);
+        lifecycle.followUp();
+        assertNull(db.queryForObject("SELECT followup_reminded_at FROM match_rounds WHERE id=?",java.sql.Timestamp.class,m.roundId()));
+        db.update("UPDATE match_rounds SET contacts_exchanged_at=now()-interval '5 days' WHERE id=?",m.roundId());
+        lifecycle.followUp(); lifecycle.followUp();
+        assertEquals(2,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type='match_followup'",Integer.class,m.roundId()));
+        assertNotNull(db.queryForObject("SELECT followup_reminded_at FROM match_rounds WHERE id=?",java.sql.Timestamp.class,m.roundId()));
+        act(tutor,m,"request-cooperation");
+        lifecycle.followUp();
+        assertEquals("MUTUAL",matches.detail(owner.session(),m.id()).state());
+        db.update("UPDATE match_rounds SET cooperation_requested_at=now()-interval '3 days' WHERE id=?",m.roundId());
+        lifecycle.followUp();
+        var working=matches.detail(owner.session(),m.id());
+        assertEquals("in_cooperation",working.state());
+        act(owner,working,"request-completion");
+        lifecycle.followUp();
+        assertNull(matches.detail(tutor.session(),m.id()).completedAt());
+        db.update("UPDATE match_rounds SET completion_requested_at=now()-interval '3 days' WHERE id=?",m.roundId());
+        lifecycle.followUp(); lifecycle.followUp();
+        assertEquals("completed",matches.detail(tutor.session(),m.id()).state());
+        assertEquals(2,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type='match_completed'",Integer.class,m.roundId()));
+    }
+
+    @Test void revokedExchangeCancelsPendingCooperationAndNoDealNeverUnlocksReviews() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=exchanged(owner,tutor);
+        act(tutor,m,"request-cooperation");
+        var grant=contacts.grant(owner.session(),m.id());
+        var revoked=contacts.withdraw(owner.session(),m.id(),new WithdrawContacts(m.roundId(),((Number)grant.get("version")).longValue()),key());
+        var hidden=matches.detail(tutor.session(),m.id());
+        assertFalse(hidden.contactsExchanged()); assertNull(hidden.cooperationRequestedBy());
+        assertThrows(ApiError.class,()->act(owner,hidden,"request-cooperation"));
+        contacts.agree(owner.session(),m.id(),new AgreeContacts(m.roundId(),((Number)revoked.get("version")).longValue(),
+            List.of("WECHAT"),contacts.get(owner.session()).fieldVersions(),true),key());
+        var closed=act(owner,act(tutor,hidden,"request-cooperation"),"close-no-deal");
+        assertEquals("closed_no_deal",closed.state()); assertNull(closed.reviewDeadlineAt());
+        assertEquals(false,contacts.grant(tutor.session(),m.id()).get("canViewContacts"));
+        assertThrows(ApiError.class,()->act(tutor,closed,"request-completion"));
+    }
+
     @AfterEach void cleanup(){
         for(UUID id:accounts)db.update("DELETE FROM match_relationships WHERE requester_id=? OR tutor_id=?",id,id);
         for(UUID id:accounts)db.update("DELETE FROM service_requests WHERE owner_id=?",id);
