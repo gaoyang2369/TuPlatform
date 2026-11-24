@@ -39,7 +39,8 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
     await login(parentContext.request, "REQUESTER");
     await login(operatorContext.request, "OPERATOR");
     const saved = await write(page.request, "/me/teacher-profile", { ...sampleResume, expectedVersion: 0,
-      displayName: "合成核验老师", categoryCodes: ["DRAWING"], serviceModes: ["ONLINE"], areaCodes: [],
+      displayName: "合成核验老师", categoryCodes: ["DRAWING"], serviceModes: ["OFFLINE"], areaCodes: ["PS_PINGSHAN"],
+      teachGrades: ["初一", "初二"], teachSubjects: ["数学", "绘画"],
       introduction: "水彩入门", priceMin: null, priceMax: null, availabilityText: "周末" }, tutor, "PUT");
     await write(page.request, "/me/teacher-profile/publish", {expectedVersion: saved.version}, tutor);
 
@@ -111,6 +112,41 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
     await expect(drawer.getByRole("link", {name: /证件|材料/})).toHaveCount(0);
     expect(await parent.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     expect((await parent.request.get(proof)).status()).toBe(404);
+    await parent.getByRole("button", {name:"返回老师列表"}).click();
+    const study = parent.getByRole("button", {name:"年级与科目"});
+    await study.click();
+    await parent.getByLabel("年级", {exact:true}).fill("初二");
+    await parent.getByLabel("科目", {exact:true}).fill("数学");
+    await parent.keyboard.press("Escape");
+    await parent.getByRole("button", {name:"坪山街道"}).click();
+    await parent.getByRole("checkbox", {name:"坪山街道"}).check();
+    await parent.keyboard.press("Escape");
+    await parent.getByRole("button", {name:"支持试课"}).click();
+    const verified = parent.getByRole("button", {name:"仅看已核验"});
+    await verified.click();
+    await expect(parent).toHaveURL(url => url.searchParams.get("grade") === "初二"
+      && url.searchParams.get("subject") === "数学" && url.searchParams.get("area") === "PS_PINGSHAN"
+      && url.searchParams.get("trial_only") === "true" && url.searchParams.get("verified_only") === "true");
+    await parent.reload();
+    await expect(card).toBeVisible();
+    await expect(verified).toHaveAttribute("aria-pressed", "true");
+
+    await study.click();
+    await parent.getByLabel("科目", {exact:true}).fill("合成无匹配科目");
+    await parent.keyboard.press("Escape");
+    await expect(parent.getByText("当前条件下暂未找到完全匹配的老师")).toBeVisible();
+    const emptyUrl = parent.url();
+    await parent.getByRole("button", {name:"清除筛选条件"}).click();
+    await expect(card).toBeVisible();
+    await expect(parent.getByRole("button", {name:"重置筛选"})).toHaveCount(0);
+    await parent.goto(emptyUrl);
+    await parent.getByRole("button", {name:"发布我的需求，让本校老师主动联系你"}).click();
+    await expect(parent.getByRole("heading", {name:"填写需求草稿"})).toBeVisible();
+    await parent.getByRole("button", {name:"返回我的需求"}).click();
+    await expect(parent.getByText(/暂时没有已保存的需求/)).toBeVisible();
+    await parent.goBack();
+    await expect(parent).toHaveURL(emptyUrl);
+    await expect(parent.getByText("当前条件下暂未找到完全匹配的老师")).toBeVisible();
   } finally {
     await parentContext.close();
     await operatorContext.close();

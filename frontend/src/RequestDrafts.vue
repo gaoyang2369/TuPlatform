@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
+import { updateQuery } from "./navigation";
 import { ArrowRight, Clock3, FilePenLine, Plus } from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,11 @@ async function list(append=false) {
   const [data,config]=await Promise.all([api.request<{items:Saved[];nextCursor:string|null}>("/me/requests"+(append&&nextCursor.value?"?cursor="+encodeURIComponent(nextCursor.value):"")),api.request<Options>("/publishing-options")]);
   options.value=config; items.value=append?[...items.value,...data.items]:data.items; nextCursor.value=data.nextCursor; view.value="list";
 }
-async function create() { await run(()=>{
+async function create() { await run(async()=>{
+  if (new URLSearchParams(location.search).get("create") === "1") {
+    options.value = await api.request<Options>("/publishing-options");
+    updateQuery({ create: undefined }, true);
+  }
   pendingCreation=null;
   load({id:"",status:"DRAFT",version:0,fields:{},lastSavedAt:"",retentionReminder:false,latestSubmission:null});
   step.value=1;reached.value=1;view.value="edit";
@@ -189,7 +194,11 @@ async function revise() {await run(async()=>{
 });}
 async function refresh() {await run(async()=>{if(current.value?.id)load(await api.request<Saved>(`/requests/${current.value.id}`));});}
 function beforeUnload(event:BeforeUnloadEvent){if(dirty.value){event.preventDefault();event.returnValue="";}}
-onMounted(()=>{window.addEventListener("beforeunload",beforeUnload);void run(()=>list());});
+onMounted(()=>{
+  window.addEventListener("beforeunload",beforeUnload);
+  if (new URLSearchParams(location.search).get("create") === "1") void create();
+  else void run(()=>list());
+});
 onBeforeUnmount(()=>window.removeEventListener("beforeunload",beforeUnload));
 defineExpose({requestLeave});
 </script>

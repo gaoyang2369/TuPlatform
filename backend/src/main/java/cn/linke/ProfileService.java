@@ -3,6 +3,7 @@ package cn.linke;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -116,7 +117,7 @@ class ProfileService {
         result.put("resumePdfName", row.get("resume_pdf_name"));
     }
     static final Set<String> STYLES = Set.of("耐心细致", "擅长基础巩固", "习惯培养", "善于引导思考", "备课认真");
-    static final Set<String> POLICIES = Set.of("支持线上免费沟通15分钟", "支持首次试课半价", "按正常时薪试课", "暂不支持试课");
+    private static final Set<String> TRIAL_OFFERS = Set.of("支持线上免费沟通15分钟", "支持首次试课半价", "按正常时薪试课");
     static void validateResume(TeacherBody body) {
         Rules.text("schoolName", body.schoolName(), 100, false);
         Rules.text("collegeMajor", body.collegeMajor(), 100, false);
@@ -126,7 +127,7 @@ class ProfileService {
         requiredLabels("teachSubjects", body.teachSubjects());
         if (Rules.choices("teachingStyleTags", body.teachingStyleTags(), STYLES, false).size() > 3)
             throw ApiError.invalid("teachingStyleTags", "最多选择三个教学风格标签");
-        if (body.trialPolicy() == null || !POLICIES.contains(body.trialPolicy()))
+        if (body.trialPolicy() == null || !("暂不支持试课".equals(body.trialPolicy()) || TRIAL_OFFERS.contains(body.trialPolicy())))
             throw ApiError.invalid("trialPolicy", "请选择首次试课政策");
         if (body.casesJson() == null || body.casesJson().isEmpty() || body.casesJson().size() > 3)
             throw ApiError.invalid("casesJson", "请填写一至三条辅导案例");
@@ -190,19 +191,51 @@ class ProfileService {
         try { return UUID.fromString(cursor); }
         catch (IllegalArgumentException e) { throw ApiError.invalid("cursor","列表位置已失效，请重新读取"); }
     }
-    public Map<String,Object> publicTeachers(String session,String cursor,String category,String area,String mode) {
-        auth.business(session,"REQUESTER");
-        String condition="a.email_verified AND a.business_identity='TUTOR' AND p.is_public AND a.id<?";
-        var args=new java.util.ArrayList<Object>();args.add(pageCursor(cursor));
-        String[][] filters={{"category_codes",category},{"area_codes",area},{"service_modes",mode}};
-        for (var filter:filters) if(filter[1]!=null&&!filter[1].isBlank()) {
-            var allowed=switch(filter[0]){case "category_codes"->Rules.CATEGORIES;case "area_codes"->Rules.AREAS;default->Rules.MODES;};
-            if(!allowed.contains(filter[1]))throw ApiError.invalid("filter","请选择有效的筛选条件");
-            condition+=" AND p."+filter[0]+" @> CAST(? AS jsonb)";args.add(encode(List.of(filter[1])));
+    public Map<String,Object> publicTeachers(String session, String cursor, String category, String area, String mode,
+            String grade, String subject, boolean trialOnly, boolean verifiedOnly) {
+        auth.business(session, "REQUESTER");
+        var query = new StringBuilder(TEACHER_QUERY).append("a.email_verified AND a.business_identity='TUTOR' AND p.is_public");
+        var args = new ArrayList<Object>();
+        addTeacherFilter(query, args, "category_codes", category, Rules.CATEGORIES);
+        addTeacherFilter(query, args, "area_codes", area, Rules.AREAS);
+        addTeacherFilter(query, args, "service_modes", mode, Rules.MODES);
+        addTeacherFilter(query, args, "teach_grades", Rules.text("grade", grade, 40, false).strip(), null);
+        addTeacherFilter(query, args, "teach_subjects", Rules.text("subject", subject, 40, false).strip(), null);
+        if (trialOnly) {
+            query.append(" AND p.trial_policy = ANY (?)");
+            args.add(TRIAL_OFFERS.toArray(String[]::new));
         }
-        var rows=db.queryForList(TEACHER_QUERY+condition+" ORDER BY a.id DESC LIMIT 11",args.toArray());
-        var result=new LinkedHashMap<String,Object>();result.put("items",rows.stream().limit(10).map(this::teacherProjection).toList());
-        result.put("nextCursor",rows.size()>10?rows.get(9).get("id").toString():null);return result;
+
+        String priority = "(is_school_verified AND NULLIF(avatar_url,'') IS NOT NULL)";
+        String sql = "SELECT visible.*, " + priority + " AS featured FROM (" + query + ") visible WHERE " +
+                (verifiedOnly ? "is_school_verified" : "TRUE");
+        // A plain UUID continues the ordinary tier, including URLs from before featured profiles were introduced.
+        String prefix = "featured:";
+        if (cursor != null && !cursor.isBlank()) {
+            boolean featured = cursor.startsWith(prefix);
+            String id = featured ? cursor.substring(prefix.length()) : cursor;
+            if (id.isBlank()) throw ApiError.invalid("cursor", "列表位置已失效，请重新读取");
+            sql += " AND (" + priority + ", id) < (?, ?)";
+            args.add(featured);
+            args.add(pageCursor(id));
+        }
+        var rows = db.queryForList(sql + " ORDER BY featured DESC, id DESC LIMIT 11", args.toArray());
+        var result = new LinkedHashMap<String,Object>();
+        result.put("items", rows.stream().limit(10).map(this::teacherProjection).toList());
+        String nextCursor = null;
+        if (rows.size() > 10) {
+            var last = rows.get(9);
+            nextCursor = (Boolean.TRUE.equals(last.get("featured")) ? prefix : "") + last.get("id");
+        }
+        result.put("nextCursor", nextCursor);
+        return result;
+    }
+
+    private void addTeacherFilter(StringBuilder query, List<Object> args, String column, String value, Set<String> allowed) {
+        if (value == null || value.isBlank()) return;
+        if (allowed != null && !allowed.contains(value)) throw ApiError.invalid("filter", "请选择有效的筛选条件");
+        query.append(" AND p.").append(column).append(" @> CAST(? AS jsonb)");
+        args.add(encode(List.of(value)));
     }
     Map<String,Object> matchTeacher(UUID id,long expectedVersion) {
         var teacher=teacherProjectionForMatch(id);

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, CircleDollarSign, MapPin, Users, RefreshCw, RotateCcw, Search } from "@lucide/vue";
+import { ArrowLeft, ArrowRight, CircleDollarSign, MapPin, Users, RefreshCw, RotateCcw, Search } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import DiscoveryStudyFilter from "./DiscoveryStudyFilter.vue";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, type Me } from "./account-api";
 import type { PublicRequest } from "./match-types";
@@ -44,8 +44,6 @@ const groups = computed(() => [
 ]);
 const hasFilters = computed(() => Object.values(requestFilterQuery(filters.value)).some(Boolean));
 const studyEnabled = computed(() => !filters.value.category || filters.value.category === "EXTRACURRICULAR_STUDY");
-const grades = ["一年级","二年级","三年级","四年级","五年级","六年级","初一","初二","初三","高一","高二","高三","成人学习","其他阶段"];
-const subjects = ["语文","数学","英语","物理","化学","生物","历史","地理","道德与法治"];
 function categoryChanged(category: string) {
   const study = !category || category === "EXTRACURRICULAR_STUDY";
   apply({ ...filters.value, category, grade: study ? filters.value.grade : "", subject: study ? filters.value.subject : "" });
@@ -54,10 +52,6 @@ function toggle(key: "district" | "mode" | "budget", code: string) {
   const values = filters.value[key];
   apply({ ...filters.value, [key]: values.includes(code) ? values.filter(v => v !== code) : [...values, code] });
 }
-function studyField(key: "grade" | "subject") {
-  return computed({ get: () => filters.value[key], set: (value: string) => apply({ ...filters.value, [key]: value }) });
-}
-const grade = studyField("grade"), subject = studyField("subject");
 function resetFilters() { apply(readRequestFilters(new URLSearchParams())); }
 function districtLabel(item: PublicRequest) {
   return districts.value.find(d => d.code === (item.districtCode || "SZ_PINGSHAN"))?.label || "坪山区";
@@ -75,15 +69,8 @@ function districtLabel(item: PublicRequest) {
       <DiscoveryCategories :codes="options.categories" :active="filters.category" @select="categoryChanged"/>
       <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <DiscoveryFilter v-for="group in groups" :key="group.key" :label="group.label" :short-label="group.shortLabel" :icon="group.icon" :options="group.options" :selected="filters[group.key]" @toggle="toggle(group.key, $event)"/>
-        <Popover>
-          <PopoverTrigger as-child><Button variant="outline" aria-label="年级与科目" :disabled="!studyEnabled" class="h-10 gap-1 rounded-xl bg-white has-[>svg]:px-2 sm:has-[>svg]:px-3"><BookOpen class="text-muted-foreground"/>年级科目<span v-if="grade || subject" class="text-xs text-primary">{{ Number(!!grade) + Number(!!subject) }}</span><ChevronDown class="hidden size-3.5 sm:block"/></Button></PopoverTrigger>
-          <PopoverContent align="end" class="w-64 space-y-3 rounded-2xl">
-            <label class="block text-sm font-medium">年级<input v-model="grade" list="filter-grades" maxlength="20" placeholder="不限年级" class="mt-1 block w-full rounded-lg border border-border p-2"/></label>
-            <datalist id="filter-grades"><option v-for="value in grades" :key="value" :value="value"/></datalist>
-            <label class="block text-sm font-medium">科目<input v-model="subject" list="filter-subjects" maxlength="40" placeholder="不限科目" class="mt-1 block w-full rounded-lg border border-border p-2"/></label>
-            <datalist id="filter-subjects"><option v-for="value in subjects" :key="value" :value="value"/></datalist>
-          </PopoverContent>
-        </Popover>
+        <DiscoveryStudyFilter :disabled="!studyEnabled" :grade="filters.grade" :subject="filters.subject"
+          @update:grade="apply({ ...filters, grade: $event })" @update:subject="apply({ ...filters, subject: $event })"/>
         <button v-if="hasFilters" class="inline-flex min-h-10 items-center gap-1.5 px-2 text-sm text-primary" @click="resetFilters"><RotateCcw class="size-4"/>重置筛选</button>
       </div>
       <p v-if="optionsError" role="alert" class="text-sm text-red-700">{{ optionsError }} <button class="underline" @click="loadOptions">重新读取筛选项</button></p>

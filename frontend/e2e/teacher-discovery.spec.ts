@@ -70,7 +70,7 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   const mode=page.getByRole("button",{name:"授课方式",exact:true});
   await mode.click();await page.getByRole("checkbox",{name:"线下",exact:true}).check();
   await expect(cards).toHaveCount(0);await expect(paging).toHaveCount(0);
-  await expect(page.getByText("暂无符合条件的公开老师，可以稍后再来查看。")).toBeVisible();
+  await expect(page.getByText("当前条件下暂未找到完全匹配的老师")).toBeVisible();
   await page.getByRole("checkbox",{name:"线上",exact:true}).check();
   await expect(cards).toHaveCount(10);await page.keyboard.press("Escape");
   await page.getByRole("button",{name:"舞蹈",exact:true}).click();

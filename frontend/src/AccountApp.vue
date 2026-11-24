@@ -345,9 +345,9 @@ function prepareProfile() {
   const destination = safeReturn(location.pathname + location.search);
   leaveCurrent(()=>run(async()=>{await loadAccount();navigate("profile", {returnTo:destination});}));
 }
-function prepareRequests() {
+function prepareRequests(create = false) {
   const destination = safeReturn(location.pathname + location.search);
-  leaveCurrent(()=>{resetMessages();navigate("requests", {returnTo:destination});});
+  leaveCurrent(()=>{resetMessages();navigate("requests", {returnTo:destination, create: create ? "1" : undefined});});
 }
 function leaveCurrent(action:()=>void|Promise<void>){
   if(busy.value||booting.value)return;
@@ -526,7 +526,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <template #fallback><div role="status"><span class="sr-only">正在打开公开需求…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
         </Suspense>
         <Suspense v-else-if="screen==='teachers'&&me?.businessIdentity==='REQUESTER'">
-          <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests" @profile="prepareProfile" />
+          <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests()" @create-request="prepareRequests(true)" @profile="prepareProfile" />
           <template #fallback><div role="status"><span class="sr-only">正在打开发现老师…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
         </Suspense>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />

@@ -183,22 +183,25 @@ class MatchDatabaseTest {
     }
     @Test void discoveryRequiresRequesterAndOnlyShowsPublishedAllowlistedFields() throws Exception {
         var s=setup();
-        assertEquals(401,assertThrows(ApiError.class,()->profiles.publicTeachers(null,null,null,null,null)).status);
-        assertEquals(403,assertThrows(ApiError.class,()->profiles.publicTeachers(s.tutor().session(),null,null,null,null)).status);
-        var page=profiles.publicTeachers(s.owner().session(),null,"DRAWING",null,"ONLINE");assertEquals(1,((List<?>)page.get("items")).size());
+        assertEquals(401,assertThrows(ApiError.class,()->profiles.publicTeachers(null,null,null,null,null,null,null,false,false)).status);
+        assertEquals(403,assertThrows(ApiError.class,()->profiles.publicTeachers(s.tutor().session(),null,null,null,null,null,null,false,false)).status);
+        var page=profiles.publicTeachers(s.owner().session(),null,"DRAWING",null,"ONLINE",null,null,false,false);assertEquals(1,((List<?>)page.get("items")).size());
         var projection=profiles.publicTeacher(s.owner().session(),s.tutor().id());
         assertEquals(Set.of("id","avatar_url","profileVersion","displayName","categoryCodes","serviceModes","areaCodes","introduction","priceMin","priceMax","availabilityText","schoolName","collegeMajor","gradeLevel","teachGrades","teachSubjects","yearsExp","teachingStyleTags","casesJson","trialPolicy","resumePdfUrl","resumePdfName","is_school_verified","is_skill_verified"),projection.keySet());
         profiles.visibility(s.tutor().session(),new VersionBody(s.teacherVersion()),false,key());
-        assertTrue(((List<?>)profiles.publicTeachers(s.owner().session(),null,null,null,null).get("items")).isEmpty());
+        assertTrue(((List<?>)profiles.publicTeachers(s.owner().session(),null,null,null,null,null,null,false,false).get("items")).isEmpty());
         assertEquals(404,assertThrows(ApiError.class,()->profiles.publicTeacher(s.owner().session(),s.tutor().id())).status);
     }
     @SuppressWarnings("unchecked")
     @Test void teacherDiscoveryPagesTenProfilesWithoutDuplicatesOrPrivateFields() {
-        var owner=user("REQUESTER");var expected=new HashSet<UUID>();
+        var owner=user("REQUESTER");var expected=new HashSet<UUID>();var featured=new HashSet<UUID>();
         for(int i=0;i<23;i++){
             var tutor=user("TUTOR");expected.add(tutor.id());
             db.update("UPDATE profiles SET display_name=?,category_codes='[\"DRAWING\"]'::jsonb,service_modes='[\"ONLINE\"]'::jsonb,introduction=?,is_public=true,price_min=100,price_max=150 WHERE account_id=?",
                 "分页合成老师"+i,"方向：成人水彩入门。\n擅长：色彩与构图。",tutor.id());
+            if (i < 13) verify(tutor, "student_id");
+            if (i != 12) db.update("UPDATE profiles SET avatar_url=? WHERE account_id=?", "/api/v1/avatars/" + tutor.id(), tutor.id());
+            if (i < 12) featured.add(tutor.id());
         }
         var hidden=user("TUTOR");
         var unverified=user("TUTOR");
@@ -206,19 +209,50 @@ class MatchDatabaseTest {
         db.update("UPDATE accounts SET email_verified=false WHERE id=?",unverified.id());
         var found=new HashSet<UUID>();String cursor=null;
         for(int size:List.of(10,10,3)){
-            var page=profiles.publicTeachers(owner.session(),cursor,"DRAWING",null,"ONLINE");
+            var page=profiles.publicTeachers(owner.session(),cursor,"DRAWING",null,"ONLINE",null,null,false,false);
             var teachers=(List<Map<String,Object>>)page.get("items");assertEquals(size,teachers.size());
             for(var teacher:teachers){
                 UUID id=(UUID)teacher.get("id");assertTrue(found.add(id));assertTrue(expected.contains(id));
+                assertEquals(found.size() <= featured.size(), featured.contains(id));
                 assertEquals(profiles.publicTeacher(owner.session(),id),teacher);
                 assertEquals("方向：成人水彩入门。\n擅长：色彩与构图。",teacher.get("introduction"));
                 for(String field:List.of("email","phone","wechat","account","password_hash","is_public"))assertFalse(teacher.containsKey(field));
             }
-            cursor=(String)page.get("nextCursor");if(size==10)assertEquals(teachers.getLast().get("id").toString(),cursor);else assertNull(cursor);
+            cursor=(String)page.get("nextCursor");if(size==10)assertNotNull(cursor);else assertNull(cursor);
         }
         assertEquals(expected,found);assertFalse(found.contains(hidden.id()));assertFalse(found.contains(unverified.id()));
-        assertTrue(((List<?>)profiles.publicTeachers(owner.session(),null,"DRAWING",null,"OFFLINE").get("items")).isEmpty());
-        assertEquals(422,assertThrows(ApiError.class,()->profiles.publicTeachers(owner.session(),"invalid-cursor",null,null,null)).status);
+        assertTrue(((List<?>)profiles.publicTeachers(owner.session(),null,"DRAWING",null,"OFFLINE",null,null,false,false).get("items")).isEmpty());
+        assertEquals(422,assertThrows(ApiError.class,()->profiles.publicTeachers(owner.session(),"invalid-cursor",null,null,null,null,null,false,false)).status);
+    }
+    private void verify(User teacher, String type) {
+        db.update("INSERT INTO verifications(id,user_id,verify_type,proof_path,status,reviewed_at) VALUES(?,?,?,?,'approved',now())",
+            UUID.randomUUID(), teacher.id(), type, key());
+    }
+
+    @Test void teacherDiscoveryCombinesExactLabelsTrialOffersAndSchoolVerification() {
+        var owner = user("REQUESTER");
+        var tutor = user("TUTOR");
+        publish(tutor);
+        db.update("""
+            UPDATE profiles SET teach_grades='["初一","初二"]', teach_subjects='["物理","数学"]',
+                area_codes='["PS_PINGSHAN"]' WHERE account_id=?
+            """, tutor.id());
+        Supplier<List<?>> filtered = () -> (List<?>) profiles.publicTeachers(owner.session(), null, "DRAWING",
+            "PS_PINGSHAN", "ONLINE", "初二", "数学", true, true).get("items");
+        verify(tutor, "skill_cert");
+        db.update("UPDATE profiles SET trial_policy='按正常时薪试课' WHERE account_id=?", tutor.id());
+        assertTrue(filtered.get().isEmpty());
+        verify(tutor, "student_id");
+        for (String policy : List.of("支持线上免费沟通15分钟", "支持首次试课半价", "按正常时薪试课", "暂不支持试课", "")) {
+            db.update("UPDATE profiles SET trial_policy=? WHERE account_id=?", policy, tutor.id());
+            assertEquals(policy.isEmpty() || policy.equals("暂不支持试课") ? 0 : 1, filtered.get().size(), policy);
+        }
+        assertEquals(1, ((List<?>) profiles.publicTeachers(owner.session(), null, null, null, null,
+            "初二", "数学", false, false).get("items")).size());
+        for (var labels : List.of(List.of("初", "数学"), List.of("初二", "数"))) {
+            assertTrue(((List<?>) profiles.publicTeachers(owner.session(), null, null, null, null,
+                labels.get(0), labels.get(1), false, false).get("items")).isEmpty());
+        }
     }
     @Test void duplicateReverseAndIdempotentStartsNeverImplicitlyAccept() throws Exception {
         var s=setup();String key=key();var initial=matches.start(s.tutor().session(),body(s,false),key);

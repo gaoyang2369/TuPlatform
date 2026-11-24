@@ -22,7 +22,10 @@ class ProfileController {
     }
     @GetMapping("/teachers/{id}") Map<String, Object> teacher(@PathVariable UUID id, HttpServletRequest req) { return profiles.publicTeacher(AuthController.session(req), id); }
     @GetMapping("/teachers") Map<String,Object> teachers(HttpServletRequest req,@RequestParam(required=false) String cursor,
-        @RequestParam(required=false) String categoryCode,@RequestParam(required=false) String areaCode,@RequestParam(required=false) String serviceMode) {
-        return profiles.publicTeachers(AuthController.session(req),cursor,categoryCode,areaCode,serviceMode);
+        @RequestParam(required=false) String categoryCode,@RequestParam(required=false) String areaCode,@RequestParam(required=false) String serviceMode,
+        @RequestParam(required=false) String grade, @RequestParam(required=false) String subject,
+        @RequestParam(name="trial_only", defaultValue="false") boolean trialOnly,
+        @RequestParam(name="verified_only", defaultValue="false") boolean verifiedOnly) {
+        return profiles.publicTeachers(AuthController.session(req), cursor, categoryCode, areaCode, serviceMode, grade, subject, trialOnly, verifiedOnly);
     }
 }
