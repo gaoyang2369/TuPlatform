@@ -77,7 +77,10 @@ function Run-Operator([string]$Mode) {
     try {
         $migrations=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/classes/db/migration/V[0-9]+__.+\.sql$'})
         $versions=@($migrations | ForEach-Object {[void]($_.FullName -match '/V([0-9]+)__');[int]$matches[1]} | Sort-Object)
-        if(($versions -join ',') -ne '1,2,3,4,5,6'){throw 'Local launcher accepts the approved V1-V6 only. Review and approve any new migration separately.'}
+        $approvedVersions=1..9
+        if(($versions -join ',') -ne ($approvedVersions -join ',')){
+            throw "启动包中的迁移版本为 [$($versions -join ', ')]，当前批准范围为 V1–V$($approvedVersions[-1])。请核对缺失或新增的迁移。"
+        }
         $entry=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/lib/postgresql-[^/]+\.jar$'})
         if($entry.Count -ne 1){throw 'PostgreSQL driver missing from the local JAR.'}
         $driverPath=Join-Path $runRoot 'postgresql.jar'
