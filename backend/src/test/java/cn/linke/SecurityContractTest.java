@@ -22,6 +22,7 @@ class SecurityContractTest {
     @MockitoBean AuthService auth;
     @MockitoBean ProfileService profiles;
     @MockitoBean MatchService matches;
+    @MockitoBean Analytics analytics;
     @MockitoBean ContactService contacts;
     @MockitoBean RateLimits limits;
     @MockitoBean RequestDraftService drafts;
@@ -30,9 +31,26 @@ class SecurityContractTest {
     @org.springframework.test.annotation.DirtiesContext(methodMode=org.springframework.test.annotation.DirtiesContext.MethodMode.BEFORE_METHOD)
     @Test void csrfBootstrapIsReadableAndNeverCached() throws Exception {
         mvc.perform(get("/api/v1/auth/csrf")).andExpect(status().isOk())
+            .andExpect(header().doesNotExist("X-Powered-By")).andExpect(header().string("X-Content-Type-Options","nosniff"))
             .andExpect(jsonPath("$.token").isString()).andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"))
             .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
             .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")));
+    }
+    @Test void intentQuotaUsesAuthenticatedAccountAndConnectionAddress() throws Exception {
+        UUID id=UUID.randomUUID();
+        when(auth.current(null,false)).thenReturn(new Account(id,"demo","demo@example.invalid","hash",true,"REQUESTER",false,null,null,0,null));
+        doThrow(new ApiError(429,"RATE_LIMITED","操作较频繁，请15分钟后再试")).when(limits).actor("intent","127.0.0.1",id,20);
+        mvc.perform(post("/api/v1/matches").with(csrf()).header("X-Forwarded-For","192.0.2.1")
+            .header("X-Account-Id",id).contentType("application/json").content("{}"))
+            .andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After","900"))
+            .andExpect(jsonPath("$.code").value("RATE_LIMITED"));
+        verifyNoInteractions(matches);
+    }
+    @Test void productionOriginsAreExactHttpsOrigins() {
+        for (var value : java.util.List.of("http://pilot.example","https://*.example","https://u@pilot.example",
+                "https://pilot.example/path","https://pilot.example?q=1","https://pilot.example/#fragment"))
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,()->SecurityConfig.origin(value,true));
+        org.junit.jupiter.api.Assertions.assertEquals("https://pilot.example",SecurityConfig.origin("https://pilot.example",true));
     }
     @Test void csrfIsRequiredEvenForLogin() throws Exception {
         mvc.perform(post("/api/v1/auth/login").contentType("application/json").content("{\"account\":\"demo\",\"password\":\"secret\"}"))

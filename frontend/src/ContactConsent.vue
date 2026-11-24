@@ -19,15 +19,18 @@ const path=()=>`/matches/${encodeURIComponent(props.matchId)}/contact-consent`;
 const canAgree=computed(()=>!!grant.value&&!!contacts.value&&selected.value.length>0&&selected.value.every(f=>f==='PHONE'?!!contacts.value?.phone:!!contacts.value?.wechat)&&!unknown.value&&!conflict.value);
 const sharedAddress=ref("");
 function clearValues(){sharedAddress.value="";if(grant.value)grant.value={...grant.value,canViewContacts:false,mySharedContacts:undefined,otherSharedContacts:undefined};}
-async function read(reset=true){
+const revealed=ref(false);
+async function read(reset=true, reveal=false){
   clearValues();const requestEpoch=++epoch;
-  const [g,c]=await Promise.all([api.request<Grant>(path()),api.request<Contacts>('/me/contacts')]);
+  const [g,c]=await Promise.all([api.request<Grant>(path()+(reveal?"?reveal=true":revealed.value?"":"?statusOnly=true")),api.request<Contacts>('/me/contacts')]);
   if(!alive||requestEpoch!==epoch||document.hidden)return;
-  if (g.canViewContacts && props.withRequestAddress && g.roundId===props.roundId) {
+  if ((reveal||revealed.value) && g.canViewContacts && props.withRequestAddress && g.roundId===props.roundId) {
     const match=await api.request<{roundId:string;exact_address?:string}>("/matches/"+encodeURIComponent(props.matchId));
     if (!alive || requestEpoch!==epoch || document.hidden) return;
     if (match.roundId===g.roundId) sharedAddress.value=match.exact_address || "";
   }
+  if (!g.canViewContacts) revealed.value=false;
+  else if (reveal) revealed.value=true;
   grant.value=g;contacts.value=c;
   if(reset){pending=null;unknown.value=false;conflict.value=false;saved.value=false;}
 }
@@ -60,7 +63,8 @@ onBeforeUnmount(()=>{alive=false;++epoch;clearInterval(timer);document.removeEve
   <p v-if="unknown" class="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">{{saved?'操作已保存，最新状态暂未更新。':'上次操作结果尚未确认。'}}<Button variant="ghost" :disabled="busy" @click="perform()">重试同一次授权操作</Button></p>
   <p v-if="conflict" class="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">联系方式已变化，请重新读取后确认。</p>
   <template v-if="grant">
-    <div v-if="grant.canViewContacts&&grant.otherSharedContacts" class="space-y-3 rounded-xl bg-card p-4" data-testid="shared-contacts"><div v-if="grant.otherSharedContacts.phone" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>手机号</span><a :href="`tel:+86${grant.otherSharedContacts.phone}`">{{grant.otherSharedContacts.phone}}</a></div><div v-if="grant.otherSharedContacts.wechat" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>微信</span><strong>{{grant.otherSharedContacts.wechat}}</strong></div><div v-if="sharedAddress" class="grid gap-1 break-words"><span class="text-sm text-muted-foreground">本次需求的具体地址</span><strong>{{ sharedAddress }}</strong></div><p class="text-sm leading-6 text-secondary-foreground">添加时可以说明来自邻课，沟通课程与安排。</p></div>
+    <Button v-if="grant.canViewContacts && !revealed" :disabled="busy" @click="run(()=>read(false,true))">查看对方联系方式</Button>
+    <div v-else-if="grant.canViewContacts&&grant.otherSharedContacts" class="space-y-3 rounded-xl bg-card p-4" data-testid="shared-contacts"><div v-if="grant.otherSharedContacts.phone" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>手机号</span><a :href="`tel:+86${grant.otherSharedContacts.phone}`">{{grant.otherSharedContacts.phone}}</a></div><div v-if="grant.otherSharedContacts.wechat" class="grid gap-1 text-xl font-bold [&>span]:text-xs [&>span]:font-medium [&>span]:text-muted-foreground"><span>微信</span><strong>{{grant.otherSharedContacts.wechat}}</strong></div><div v-if="sharedAddress" class="grid gap-1 break-words"><span class="text-sm text-muted-foreground">本次需求的具体地址</span><strong>{{ sharedAddress }}</strong></div><p class="text-sm leading-6 text-secondary-foreground">添加时可以说明来自邻课，沟通课程与安排。</p></div>
     <template v-else-if="!grant.myConsent">
       <template v-if="contacts&&(contacts.phone||contacts.wechat)"><p class="text-sm leading-6 text-secondary-foreground">{{grant.requiresReconfirmation?'联系方式有更新，确认后即可继续交换。':'这条联系记录尚未确认交换联系方式。'}}</p><ContactExchangeNotice :contacts="contacts" action="同意交换"/><Button class="h-11 rounded-xl" :disabled="busy||!canAgree" @click="perform()">同意交换联系方式</Button></template>
       <template v-else-if="contacts"><p class="text-sm leading-6 text-secondary-foreground">补充手机号或微信，让对方能联系到你。</p><Button class="h-11 rounded-xl" :disabled="busy||unknown" @click="emit('contacts')">填写联系方式</Button></template>

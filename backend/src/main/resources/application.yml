@@ -1,7 +1,10 @@
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
   port: ${SERVER_PORT:8080}
-  forward-headers-strategy: none
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+  tomcat:
+    remoteip:
+      internal-proxies: ${TRUSTED_PROXY_REGEX:127[.]0[.]0[.]1}
   error:
     include-message: never
     include-stacktrace: never
@@ -12,6 +15,7 @@ spring:
     name: linke-api
   servlet:
     multipart:
+      resolve-lazily: true
       max-file-size: 5MB
       max-request-size: 6MB
   datasource:
@@ -42,6 +46,8 @@ spring:
       fail-on-unknown-properties: true
       accept-float-as-int: false
 app:
+  analytics-test-mode: ${ANALYTICS_TEST_MODE:false}
+  cors-origins: ${CORS_ALLOWED_ORIGINS:}
   pilot-school: ${PILOT_SCHOOL_NAME:深圳技术大学}
   avatar-directory: ${AVATAR_DIRECTORY:./data/avatars}
   verification-directory: ${VERIFICATION_DIRECTORY:${user.home}/.tuplatform/private_uploads/verifications}

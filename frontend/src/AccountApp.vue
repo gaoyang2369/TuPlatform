@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PolicyLinks from "./PolicyLinks.vue";
+import PolicyConsent from "./PolicyConsent.vue";
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
 import { motion, useReducedMotion } from "motion-v";
@@ -53,7 +55,7 @@ const error = ref("");
 const messageSequence = ref(0);
 const fieldErrors = ref<Record<string, string>>({});
 const options = ref<ProfileOptions>({ categoryCodes: [], serviceModes: [], areaCodes: [] });
-const credentials = reactive({ account: "", password: "", email: "", confirmation: "", adultConfirmed: false });
+const credentials = reactive({ account: "", password: "", email: "", confirmation: "", adultConfirmed: false, policiesAccepted: false });
 const identity = ref<Identity | "">("");
 const identityConfirmed = ref(false);
 const registrationFlowId = ref("");
@@ -175,7 +177,7 @@ function clearPrivate() {
   livePreview.value = false;
   Object.assign(form, { resume: resumeDraft(), displayName: "", categoryCodes: [], serviceModes: [], areaCodes: [], introduction: "", priceMin: "", priceMax: "", availabilityText: "" });
   baseline = ""; pendingVisibility = null; preview.value = false; stopConfirm.value = false; conflict.value = false;
-  credentials.account = ""; credentials.email = ""; credentials.adultConfirmed = false; clearPasswords();
+  credentials.account = ""; credentials.email = ""; credentials.adultConfirmed = false; credentials.policiesAccepted = false; clearPasswords();
 }
 async function run(action: () => Promise<void>) {
   if (busy.value) return;
@@ -194,7 +196,7 @@ async function run(action: () => Promise<void>) {
     }
   } finally { busy.value = false; }
 }
-function go(target: Screen) { if (busy.value) return; resetMessages(); clearPasswords(); credentials.adultConfirmed = false; navigate(target, { returnTo: returnTarget.value }); }
+function go(target: Screen) { if (busy.value) return; resetMessages(); clearPasswords(); credentials.adultConfirmed = false; credentials.policiesAccepted = false; navigate(target, { returnTo: returnTarget.value }); }
 function updateAvatar(id: string, url: string | null) {
   if (me.value?.id !== id) return;
   me.value.avatar_url = url;
@@ -245,7 +247,7 @@ async function register() {
   await run(async () => {
     checkPassword();
     if (!credentials.adultConfirmed) throw new Error("请主动确认本人已年满18岁。");
-    const result = await api.request<{ registrationFlowId: string; mailAccepted: boolean }>("/auth/register", "POST", { account: credentials.account, password: credentials.password, email: credentials.email, adultConfirmed: true });
+    const result = await api.request<{ registrationFlowId: string; mailAccepted: boolean }>("/auth/register", "POST", { account: credentials.account, password: credentials.password, email: credentials.email, adultConfirmed: true, policiesAccepted: credentials.policiesAccepted });
     rememberFlow(result.registrationFlowId); mailAccepted.value = result.mailAccepted; clearPasswords(); screen.value = "registered";
     notice.value = result.mailAccepted ? "注册已受理，请查看邮箱并完成验证，再回来登录。发信受理不代表已送达。" : "注册已保存，但邮件未能受理发送。请稍后在此页面重新发送，验证后才能登录。";
   });
@@ -507,7 +509,8 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
               <label for="field-password">密码 <small>8—64个字符，可包含空格</small><input id="field-password" v-model="credentials.password" type="password" autocomplete="new-password" required :disabled="busy"></label>
               <label>确认密码<input v-model="credentials.confirmation" type="password" autocomplete="new-password" required :disabled="busy"></label>
               <label id="field-adultConfirmed" class="flex items-center gap-2 text-sm"><input v-model="credentials.adultConfirmed" type="checkbox" required :disabled="busy"><span>我确认本人已年满18岁。</span></label>
-              <Button type="submit" class="h-11 rounded-xl w-full" :disabled="busy || !credentials.adultConfirmed">{{ busy ? '正在注册…' : '注册并验证邮箱' }}</Button><Button type="button" variant="ghost" class="h-11 rounded-xl w-full" @click="go('login')">已有账号，返回登录</Button>
+              <PolicyConsent v-model="credentials.policiesAccepted" :disabled="busy"/>
+              <Button type="submit" class="h-11 rounded-xl w-full" :disabled="busy || !credentials.adultConfirmed || !credentials.policiesAccepted">{{ busy ? '正在注册…' : '注册并验证邮箱' }}</Button><Button type="button" variant="ghost" class="h-11 rounded-xl w-full" @click="go('login')">已有账号，返回登录</Button>
             </form>
             <div v-else-if="screen === 'registered'">
               <Mail class="size-8 text-primary" aria-hidden="true"/><h1>请验证注册邮箱</h1><p class="text-[15px] leading-6 text-secondary-foreground">{{ mailAccepted ? '发信请求已受理，请检查收件箱和垃圾邮件。' : '注册已保存，邮件尚未受理发送，请稍后重试。' }}</p><p>打开邮件链接后，需要在页面上明确确认。验证不会自动登录。未验证注册自首次登记起保留7天，重发不会延长。</p>
@@ -606,7 +609,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </section>
       </template>
     </main>
-    <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span>
+    <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <PolicyLinks/>
       <button v-if="mobile && me?.operatorGranted && me.businessIdentity" type="button" :disabled="busy" class="min-h-11 text-primary" @click="showReview">需求审核</button>
     </footer>
 

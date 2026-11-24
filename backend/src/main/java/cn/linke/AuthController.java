@@ -28,8 +28,10 @@ class AuthController {
         res.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(name, value).httpOnly(true).secure(secure).sameSite("Lax").path("/").maxAge(age).build().toString());
     }
     private void limit(HttpServletRequest req, String action, String subject, int maximum) {
-        // Remote address only; untrusted Forwarded/X-Forwarded-For headers cannot bypass limits.
+        // Remote address is resolved by the container according to the trusted proxy configuration.
         limits.check(action + ":ip", req.getRemoteAddr(), Math.max(20, maximum * 4));
+        Account actor = auth.sessionAccount(session(req), false);
+        if (actor != null) limits.check(action + ":user", actor.id().toString(), maximum);
         if (subject != null) limits.check(action + ":subject", subject.toLowerCase(java.util.Locale.ROOT), maximum);
     }
     @GetMapping("/auth/csrf") Map<String, String> csrf(CsrfToken token) { return Map.of("token", token.getToken(), "headerName", token.getHeaderName()); }

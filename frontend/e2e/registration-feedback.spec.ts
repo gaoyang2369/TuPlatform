@@ -5,6 +5,7 @@ test("注册短密码提交与悬浮提示不挤动页面、自动消失及重�
   let submissions = 0;
   await page.route("**/api/v1/auth/register", async route => {
     submissions++;
+    expect(route.request().postDataJSON().policiesAccepted).toBe(true);
     expect(route.request().postDataJSON().password).toBe("Abcd1234");
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ registrationFlowId: "00000000-0000-4000-8000-000000000001", mailAccepted: true }) });
   });
@@ -18,6 +19,16 @@ test("注册短密码提交与悬浮提示不挤动页面、自动消失及重�
   await page.locator("#field-password").fill("1234567");
   await page.getByLabel("确认密码", { exact: true }).fill("1234567");
   await page.getByRole("checkbox", { name: "我确认本人已年满18岁。" }).check();
+  await expect(page.getByRole("button",{name:"注册并验证邮箱"})).toBeDisabled();
+  for (const [label,path] of [["《用户服务协议》","/terms"],["《隐私保护政策》","/privacy"]]) {
+    const popup=page.waitForEvent("popup");
+    await page.locator("form").getByRole("link",{name:label}).click();
+    const policy=await popup;
+    await expect(policy).toHaveURL(new RegExp(path+"$"));
+    await expect(policy.getByRole("heading",{level:1})).toHaveText(label.slice(1,-1));
+    await policy.close();
+  }
+  await page.getByRole("checkbox",{name:/我已阅读并同意/}).check();
   const card = page.getByRole("region", { name: "账号服务" });
   const before = await card.boundingBox();
   await page.getByRole("button", { name: "注册并验证邮箱" }).click();

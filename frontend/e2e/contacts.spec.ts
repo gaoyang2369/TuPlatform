@@ -38,7 +38,7 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
     await ownerPage.getByLabel('需求标题',{exact:false}).fill('合成联系方式闭环');await ownerPage.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"绘画",exact:true}).check();await ownerPage.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"成年",exact:true}).check();await ownerPage.getByLabel("公开街道").selectOption("坪山街道");await ownerPage.getByLabel("具体地址").fill("合成私密花园3栋");await ownerPage.getByLabel('目标与现状',{exact:false}).fill('合成绘画目标');
     await ownerPage.getByRole("group",{name:"服务方式",exact:true}).getByRole("radio",{name:"线上",exact:true}).check();
     await ownerPage.getByRole('button',{name:'保存并下一步'}).click();await ownerPage.getByLabel('预算下限').fill('100');await ownerPage.getByLabel('预算上限').fill('200');await ownerPage.getByLabel('单次时长（小时）',{exact:true}).fill('1.5');await ownerPage.getByRole("group",{name:"频率",exact:true}).getByRole("radio",{name:"可协商",exact:true}).check();await ownerPage.getByRole('radio',{name:'填写精确时间',exact:true}).check();await ownerPage.getByRole('button',{name:'添加时段'}).click();await ownerPage.getByRole('button',{name:'保存并预览'}).click();
-    await expect(ownerPage.getByRole('button',{name:'确认提交审核',exact:true})).toBeDisabled();await ownerPage.getByRole('radio',{name:'我为已满18岁的本人发布本条需求。',exact:true}).check();await ownerPage.getByRole('button',{name:'确认提交审核',exact:true}).click();await expect(ownerPage.getByText('待审核',{exact:true})).toBeVisible();
+    await expect(ownerPage.getByRole('button',{name:'确认提交审核',exact:true})).toBeDisabled();await ownerPage.getByRole('radio',{name:'我为已满18岁的本人发布本条需求。',exact:true}).check();await ownerPage.getByRole("checkbox",{name:/我已阅读并同意/}).check();await ownerPage.getByRole('button',{name:'确认提交审核',exact:true}).click();await expect(ownerPage.getByText('待审核',{exact:true})).toBeVisible();
     const recommended = ownerPage.getByRole('button',{name:'查看老师资料：合成绘画老师'});
     await expect(recommended).toBeVisible();
     await ownerPage.getByRole('button',{name:'返回我的需求',exact:true}).click();
@@ -53,7 +53,9 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
   }else{
     const d=await(await write(ownerPage,owner,'/requests',{},'POST')).json();
     const saved=await(await write(ownerPage,owner,`/requests/${d.id}/draft`,{expectedVersion:d.version,fields:{title:'合成联系方式闭环',categoryCode:'DRAWING',audienceStageCode:'ADULT',areaCode:'PS_PINGSHAN',goal:'合成绘画目标',budgetMin:'100',budgetMax:'200',durationHours:'1.5',frequency:{mode:'NEGOTIABLE'},availableSlots:[{weekday:1,startMinute:600,endMinute:660}]}},'PATCH')).json();
-    const submitted=await(await write(ownerPage,owner,`/requests/${d.id}/submit`,{expectedVersion:saved.version,publisherDeclaration:'SELF_ADULT',declarationVersion:'publisher-v1'},'POST')).json();
+    const submission=await write(ownerPage,owner,`/requests/${d.id}/submit`,{expectedVersion:saved.version,publisherDeclaration:'SELF_ADULT',declarationVersion:'publisher-v1',policiesAccepted:true},'POST');
+    expect(submission.ok(),await submission.text()).toBe(true);
+    const submitted=await submission.json();
     expect((await write(operatorPage,operator,`/operations/submissions/${submitted.submissionId}/decision`,{expectedVersion:0,decision:'APPROVE'},'POST')).ok()).toBeTruthy();request=d.id;
   }
   await saveContacts(ownerPage,'13800000001','owner_contact');await saveContacts(tutorPage,'13800000002','tutor_contact');
@@ -198,11 +200,18 @@ test('直接邀请双方从交换联系方式到合作完结解锁互评',async(
     const saved=await write(tp,tutor,'/me/teacher-profile',{expectedVersion:0,...sampleResume,displayName:'合成直接邀请老师',categoryCodes:['DRAWING'],serviceModes:['ONLINE'],areaCodes:[],introduction:'水彩入门教学',priceMin:null,priceMax:null,availabilityText:'周末下午'});
     expect(saved.ok()).toBe(true);const profile=await saved.json();expect((await write(tp,tutor,'/me/teacher-profile/publish',{expectedVersion:profile.version},'POST')).ok()).toBe(true);
     await saveContacts(page,'','direct_owner');await saveContacts(tp,'','direct_teacher');
-    await page.goto('/?view=teachers&teacher='+tutor.id);await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.locator('.exchange-notice')).toContainText('direct_owner');await page.locator('#invitation-introduction').fill('想了解周末水彩课');await page.getByRole('button',{name:'发送邀请',exact:true}).click();
+    const recorded = new Set<string>();
+    page.on("response", response => {
+      if (new URL(response.url()).pathname === "/api/v1/events" && response.status()===204)
+        recorded.add(response.request().postDataJSON().eventName);
+    });
+    await page.goto('/?view=teachers&teacher='+tutor.id);
+    await expect.poll(()=>[...recorded].sort()).toEqual(["open_teacher_detail","page_view_teachers"]);
+    await page.getByRole('button',{name:'邀请这位老师'}).click();await expect(page.locator('.exchange-notice')).toContainText('direct_owner');await page.locator('#invitation-introduction').fill('想了解周末水彩课');await page.getByRole('button',{name:'发送邀请',exact:true}).click();
     await expect(page.locator('.match-detail .status-pill')).toHaveText('等待对方回应');expect((await(await page.request.get('/api/v1/me/requests')).json()).items).toHaveLength(0);
     const m=(await(await page.request.get('/api/v1/me/matches')).json()).items[0];expect(m.requestId).toBeNull();hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());
     await progress(tp);await expect(tp.getByRole('heading',{name:'合成直接邀请人',exact:true})).toBeVisible();await expect(tp.locator('.invitation-summary')).toContainText('想了解周末水彩课');await accept(tp);
-    await expect(tp.getByTestId('shared-contacts')).toContainText('direct_owner');await refresh(page);await expect(page.getByTestId('shared-contacts')).toContainText('direct_teacher');
+    await reveal(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('direct_owner');await refresh(page);await reveal(page);await expect(page.getByTestId('shared-contacts')).toContainText('direct_teacher');
     for(const p of [page,tp]){await expect(p.getByRole('button',{name:'同意交换联系方式'})).toHaveCount(0);await expect(p.getByRole('checkbox')).toHaveCount(0);expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}expect(native).toBe(0);
     await page.screenshot({path:path.join(root,`.tools/match-simplification/real-mutual-${info.project.name}.png`),fullPage:true});
     async function action(p: Page, label: string) {
@@ -297,9 +306,9 @@ test('完整投递闭环：发布审核、接受后联系，停止分享可取�
     const matchId=new URL(tp.url()).searchParams.get("match");
     const detail=()=>tp.request.get("/api/v1/matches/"+matchId);
     expect(await (await detail()).text()).not.toMatch(/exact_address|合成私密花园/);
-    await progress(page);await accept(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('13800000001');await expect(tp.getByTestId('shared-contacts')).toContainText('合成私密花园3栋');expect((await (await detail()).json()).exact_address).toBe('合成私密花园3栋');
+    await progress(page);await accept(page);await reveal(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await reveal(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('13800000001');await reveal(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('合成私密花园3栋');expect((await (await detail()).json()).exact_address).toBe('合成私密花园3栋');
     const m=(await(await page.request.get('/api/v1/me/matches')).json()).items[0];const publicRequest=await(await page.request.get(`/api/v1/public/requests/${m.requestId}`)).json();for(const f of ['phone','wechat','email'])expect(publicRequest).not.toHaveProperty(f);
-    await stop(page,true);await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式',exact:true})).toBeEnabled();hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);expect(await (await detail()).text()).not.toMatch(/exact_address|合成私密花园/);
+    await stop(page,true);await reveal(page);await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式',exact:true})).toBeEnabled();hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);expect(await (await detail()).text()).not.toMatch(/exact_address|合成私密花园/);
   }finally{await tc.close();await oc.close();}
 });
 test('旧关系一次同意即可交换，变更需重新确认，丢失响应同键恢复且不复活已撤回值',async({page,browser},info)=>{
@@ -313,7 +322,7 @@ test('旧关系一次同意即可交换，变更需重新确认，丢失响应�
     await agree(page);await expect(page.getByRole('button',{name:'重试同一次授权操作'})).toBeVisible();const g=await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json();expect(g.canViewContacts).toBe(true);
     expect((await write(tp,data.tutor,`/matches/${m.id}/contact-consent`,{roundId:m.roundId,expectedGrantVersion:g.version},'DELETE')).ok()).toBe(true);
     await page.getByRole('button',{name:'重试同一次授权操作'}).click();await expect(page.getByRole('button',{name:'重试同一次授权操作'})).toHaveCount(0);await expect(page.getByTestId('shared-contacts')).toHaveCount(0);expect(keys).toHaveLength(2);expect(new Set(keys).size).toBe(1);
-    await refresh(tp);await agree(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('owner_contact');await saveContacts(page,'13800000003','changed_owner');hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByText('联系方式有更新，确认后即可继续交换。')).toBeVisible();await agree(tp);await progress(page);await agree(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('changed_owner');
+    await refresh(tp);await agree(tp);await reveal(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('owner_contact');await saveContacts(page,'13800000003','changed_owner');hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByText('联系方式有更新，确认后即可继续交换。')).toBeVisible();await agree(tp);await progress(page);await agree(page);await reveal(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await reveal(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('changed_owner');
   }finally{await tc.close();await oc.close();}
 });
 
@@ -330,3 +339,10 @@ test('私密表单失败留输入、旧版核对与越权和换账号清理',asy
     expect((await(await second.request.get('/api/v1/me/contacts')).json()).phone).toBeNull();
   }finally{await second.close();}
 });
+
+async function reveal(page: Page) {
+  const view = page.getByRole("button", {name:"查看对方联系方式"});
+  const contacts = page.getByTestId("shared-contacts");
+  await expect(view.or(contacts)).toBeVisible();
+  if (await view.isVisible()) await view.click();
+}

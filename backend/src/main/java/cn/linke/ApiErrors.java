@@ -13,7 +13,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 class ApiErrors {
     @ExceptionHandler(ApiError.class)
     ResponseEntity<?> known(ApiError e) {
-        return ResponseEntity.status(e.status).body(Map.of("code", e.code, "message", e.getMessage(), "fieldErrors", e.fields));
+        var response=ResponseEntity.status(e.status);
+        if (e.status==429) response.header("Retry-After","900");
+        return response.body(Map.of("code", e.code, "message", e.getMessage(), "fieldErrors", e.fields));
     }
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     ResponseEntity<?> uploadTooLarge(jakarta.servlet.http.HttpServletRequest request) {

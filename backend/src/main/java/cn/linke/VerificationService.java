@@ -49,7 +49,7 @@ class VerificationService {
         return db.query("SELECT DISTINCT ON (verify_type) " + FIELDS +
             " FROM verifications WHERE user_id=? ORDER BY verify_type,created_at DESC,id DESC", this::entry, tutor.id());
     }
-    Entry submit(String session, String type, MultipartFile file) {
+    Entry submit(String session, String type, MultipartFile file, Boolean policiesAccepted) {
         var tutor = auth.business(session, "TUTOR");
         if (!"student_id".equals(type) && !"skill_cert".equals(type))
             throw ApiError.invalid("verify_type", "请选择学籍或技能证书认证");
@@ -57,6 +57,7 @@ class VerificationService {
             SELECT EXISTS (SELECT 1 FROM verifications WHERE user_id=? AND verify_type=? AND status IN ('pending','approved'))
             """, Boolean.class, tutor.id(), type)))
             throw new ApiError(409, "VERIFICATION_EXISTS", "这类材料已在审核中或已通过，请刷新认证状态");
+        if ("student_id".equals(type)) Policies.require(policiesAccepted);
         VerificationProof proof = VerificationProof.from(file);
         UUID id = UUID.randomUUID();
         String name = id + "." + proof.extension();
@@ -82,8 +83,8 @@ class VerificationService {
         } catch (IOException e) {
             throw new ApiError(503, "PROOF_STORAGE_UNAVAILABLE", "认证材料暂时无法保存，请稍后重试");
         }
-        return db.queryForObject("INSERT INTO verifications(id,user_id,verify_type,proof_path) VALUES (?,?,?,?) RETURNING " +
-            FIELDS, this::entry, id, tutor.id(), type, name);
+        return db.queryForObject("INSERT INTO verifications(id,user_id,verify_type,proof_path,policies_accepted_at) VALUES (?,?,?,?,CASE WHEN ? THEN now() END) RETURNING " +
+            FIELDS, this::entry, id, tutor.id(), type, name, "student_id".equals(type));
     }
     private Account operator(String session) {
         var account = auth.current(session, true);

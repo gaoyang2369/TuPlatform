@@ -14,7 +14,7 @@ test("普通账号与访客访问后台返回首页，所有管理接口拒绝�
   await expect(page.getByRole("link", {name:"管理后台"})).toHaveCount(0);
   const csrf = await (await page.request.get("/api/v1/auth/csrf")).json();
   const endpoints = [
-    ["GET", "/demands"], ["GET", "/demands/" + id], ["POST", "/demands/" + id + "/review"],
+    ["GET", "/funnel"], ["GET", "/demands"], ["GET", "/demands/" + id], ["POST", "/demands/" + id + "/review"],
     ["GET", "/verifications"], ["POST", "/verifications/" + id + "/review"],
     ["GET", "/verifications/" + id + "/proof"], ["DELETE", "/verifications/" + id + "/proof"],
     ["GET", "/users"], ["GET", "/users/" + id + "/reviews"], ["POST", "/reviews/" + id + "/hide"],
@@ -49,6 +49,10 @@ test("用户菜单进入后台，按邮箱查找用户并冻结和解冻", async
   await page.getByRole("button", {name:/切换账号/}).click();
   await page.getByRole("link", {name:"管理后台"}).click();
   await expect(page).toHaveURL(/\/admin$/);
+  const funnel=page.getByRole("region",{name:"转化漏斗"});
+  await expect(funnel.getByRole("listitem")).toHaveCount(5);
+  await funnel.getByRole("button",{name:"近 30 天"}).click();
+  await expect(funnel.getByRole("listitem")).toHaveCount(5);
   await page.getByRole("button", {name:"用户与风控"}).click();
   await page.getByLabel("姓名、账号或邮箱").fill(account.email);
   await page.getByLabel("角色", {exact:true}).selectOption("REQUESTER");

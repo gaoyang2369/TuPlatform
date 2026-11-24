@@ -65,7 +65,7 @@ class SmtpAccountFlowTest {
             .content(json.writeValueAsString(Map.of("account", account, "password", password, "email", recipient, "adultConfirmed", false))))
             .andExpect(status().isUnprocessableEntity());
         var registered = mvc.perform(post("/api/v1/auth/register").with(csrf()).contentType("application/json")
-            .content(json.writeValueAsString(Map.of("account", account, "password", password, "email", recipient, "adultConfirmed", true))))
+            .content(json.writeValueAsString(Map.of("account", account, "password", password, "email", recipient, "adultConfirmed", true, "policiesAccepted", true))))
             .andExpect(status().isCreated()).andReturn();
         created = db.queryForObject("SELECT id FROM accounts WHERE account_key=?", UUID.class, account);
         assertTrue(json.readTree(registered.getResponse().getContentAsString()).get("mailAccepted").asBoolean(), "Real registration mail must be accepted");

@@ -28,7 +28,7 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page){
   await write(tutorPage,tutor,"/me/teacher-profile/publish",{expectedVersion:teacher.version});
   const draft=await write(ownerPage,owner,"/requests",{});
   const saved=await write(ownerPage,owner,`/requests/${draft.id}/draft`,{expectedVersion:draft.version,fields:{title:"合成撮合需求",categoryCode:"DRAWING",audienceStageCode:"ADULT",areaCode:"PS_PINGSHAN",goal:"希望学习绘画基础",budgetMin:"100",budgetMax:"200",durationHours:"1.5",frequency:{mode:"NEGOTIABLE"},availableSlots:[{weekday:1,startMinute:600,endMinute:660}]}},"PATCH");
-  const submitted=await write(ownerPage,owner,`/requests/${draft.id}/submit`,{expectedVersion:saved.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1"});
+  const submitted=await write(ownerPage,owner,`/requests/${draft.id}/submit`,{expectedVersion:saved.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1",policiesAccepted:true});
   await write(operatorPage,operator,`/operations/submissions/${submitted.submissionId}/decision`,{expectedVersion:0,decision:"APPROVE"});
   return {owner,tutor,request:draft.id};
 }

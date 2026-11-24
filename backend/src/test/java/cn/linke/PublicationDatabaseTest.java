@@ -35,7 +35,7 @@ class PublicationDatabaseTest {
     @AfterEach void cleanup(){for(UUID id:accounts)db.update("DELETE FROM service_requests WHERE owner_id=?",id);for(UUID id:accounts)db.update("DELETE FROM accounts WHERE id=?",id);}
     private User user(String identity,boolean operator){
         String name="pub_"+UUID.randomUUID().toString().replace("-","").substring(0,12),password="Synthetic publication password";
-        Registration r=auth.register(new RegisterBody(name,password,name+"@example.invalid",true));auth.verify(new VerifyBody(token,null),r.context());
+        Registration r=auth.register(new RegisterBody(name,password,name+"@example.invalid",true,true));auth.verify(new VerifyBody(token,null),r.context());
         var login=auth.login(new LoginBody(name,password));accounts.add(login.me().id());auth.identity(login.session(),new IdentityBody(identity));
         db.update("UPDATE accounts SET operator_granted=? WHERE id=?",operator,login.me().id());
         return new User(login.me().id(),login.session());
@@ -49,14 +49,23 @@ class PublicationDatabaseTest {
              "availableSlots":[{"weekday":1,"startMinute":600,"endMinute":1440}]}
             """)));
     }
-    private RequestAction submit(User owner,SavedDraft draft){return publishing.submit(owner.session(),draft.id(),new SubmitRequest(draft.version(),"SELF_ADULT","publisher-v1"),UUID.randomUUID().toString());}
+    @Test void firstPublishRequiresConsentAndStoresItOnlyOnSuccess() throws Exception {
+        User owner=user("REQUESTER",false);
+        SavedDraft draft=ready(owner);
+        var missing=new SubmitRequest(draft.version(),"SELF_ADULT","publisher-v1",null);
+        assertEquals(422,assertThrows(ApiError.class,()->publishing.submit(owner.session(),draft.id(),missing,UUID.randomUUID().toString())).status);
+        submit(owner,draft);
+        SavedDraft next=ready(owner);
+        assertEquals("PENDING_REVIEW",publishing.submit(owner.session(),next.id(),new SubmitRequest(next.version(),"SELF_ADULT","publisher-v1",null),UUID.randomUUID().toString()).status());
+    }
+    private RequestAction submit(User owner,SavedDraft draft){return publishing.submit(owner.session(),draft.id(),new SubmitRequest(draft.version(),"SELF_ADULT","publisher-v1",true),UUID.randomUUID().toString());}
     private void approve(User operator,RequestAction submitted){publishing.decide(operator.session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),UUID.randomUUID().toString());}
     @Test void submitIsCompletePrivateImmutableAndIdempotent()throws Exception{
-        User owner=user("REQUESTER",false);SavedDraft d=ready(owner);String key=UUID.randomUUID().toString();var body=new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1");
+        User owner=user("REQUESTER",false);SavedDraft d=ready(owner);String key=UUID.randomUUID().toString();var body=new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1",true);
         var result=publishing.submit(owner.session(),d.id(),body,key);
         assertEquals(result,publishing.submit(owner.session(),d.id(),body,key));
         assertEquals(1,db.queryForObject("SELECT count(*) FROM request_submissions WHERE request_id=?",Integer.class,d.id()));
-        assertEquals(409,assertThrows(ApiError.class,()->publishing.submit(owner.session(),d.id(),new SubmitRequest(d.version(),"GUARDIAN_OF_MINOR","publisher-v1"),key)).status);
+        assertEquals(409,assertThrows(ApiError.class,()->publishing.submit(owner.session(),d.id(),new SubmitRequest(d.version(),"GUARDIAN_OF_MINOR","publisher-v1",true),key)).status);
         assertEquals(404,assertThrows(ApiError.class,()->publishing.publicDetail(d.id())).status);
         assertEquals(409,assertThrows(ApiError.class,()->drafts.save(owner.session(),d.id(),new DraftPatch(result.version(),json.createObjectNode().put("title","不能改待审")))).status);
         db.update("UPDATE profiles SET display_name='后来修改的名字' WHERE account_id=?",owner.id());
@@ -66,9 +75,9 @@ class PublicationDatabaseTest {
     }
     @Test void missingProfileDeclarationAndForeignOwnersCannotSubmit()throws Exception{
         User owner=user("REQUESTER",false),other=user("REQUESTER",false),teacher=user("TUTOR",false);SavedDraft d=ready(owner);
-        assertEquals(404,assertThrows(ApiError.class,()->publishing.submit(other.session(),d.id(),new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1"),UUID.randomUUID().toString())).status);
-        assertEquals(403,assertThrows(ApiError.class,()->publishing.submit(teacher.session(),d.id(),new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1"),UUID.randomUUID().toString())).status);
-        assertEquals(422,assertThrows(ApiError.class,()->publishing.submit(owner.session(),d.id(),new SubmitRequest(d.version(),null,null),UUID.randomUUID().toString())).status);
+        assertEquals(404,assertThrows(ApiError.class,()->publishing.submit(other.session(),d.id(),new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1",true),UUID.randomUUID().toString())).status);
+        assertEquals(403,assertThrows(ApiError.class,()->publishing.submit(teacher.session(),d.id(),new SubmitRequest(d.version(),"SELF_ADULT","publisher-v1",true),UUID.randomUUID().toString())).status);
+        assertEquals(422,assertThrows(ApiError.class,()->publishing.submit(owner.session(),d.id(),new SubmitRequest(d.version(),null,null,true),UUID.randomUUID().toString())).status);
         db.update("UPDATE profiles SET display_name='' WHERE account_id=?",owner.id());
         assertEquals(422,assertThrows(ApiError.class,()->submit(owner,d)).status);
         assertEquals("DRAFT",drafts.get(owner.session(),d.id()).status());
@@ -107,7 +116,7 @@ class PublicationDatabaseTest {
         String revisionKey=UUID.randomUUID().toString();var revised=publishing.revise(owner.session(),submitted.id(),new VersionBody(rejected.version()),revisionKey);
         assertEquals(revised,publishing.revise(owner.session(),submitted.id(),new VersionBody(rejected.version()),revisionKey));
         SavedDraft changed=drafts.save(owner.session(),submitted.id(),new DraftPatch(revised.version(),json.createObjectNode().put("goal","已补充的新目标")));
-        assertEquals(422,assertThrows(ApiError.class,()->publishing.submit(owner.session(),changed.id(),new SubmitRequest(changed.version(),null,null),UUID.randomUUID().toString())).status);
+        assertEquals(422,assertThrows(ApiError.class,()->publishing.submit(owner.session(),changed.id(),new SubmitRequest(changed.version(),null,null,true),UUID.randomUUID().toString())).status);
         var next=submit(owner,changed);assertNotEquals(submitted.submissionId(),next.submissionId());
         assertEquals("请补充目标说明",publishing.reviewDetail(operator.session(),next.submissionId()).priorReviewFeedback());
         assertEquals("希望学习绘画基础",publishing.reviewDetail(operator.session(),submitted.submissionId()).fields().path("goal").asText());

@@ -5,6 +5,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 class AdminPageController {
-    @GetMapping({"/admin", "/admin/"})
+    @GetMapping({"/admin", "/admin/", "/terms", "/privacy"})
     String page() { return "forward:/index.html"; }
 }

@@ -58,6 +58,10 @@ class RequestPublicationService {
         version(body.expectedVersion(),draft.version());
         if (!draft.status().equals("DRAFT")) throw new ApiError(409,"REQUEST_READ_ONLY","当前需求不可提交，请读取最新状态");
         String name=db.queryForObject("SELECT display_name FROM profiles WHERE account_id=?",String.class,actor.id());
+        if (!drafts.publishingPoliciesAccepted(actor.id())) {
+            Policies.require(body.policiesAccepted());
+            db.update("UPDATE accounts SET publishing_policies_accepted_at=now() WHERE id=?",actor.id());
+        }
         OffsetDateTime submittedAt=now();
         SubmissionRules.validate(draft.fields(),drafts.categories(),name,body,submittedAt);
         UUID submission=UUID.randomUUID();

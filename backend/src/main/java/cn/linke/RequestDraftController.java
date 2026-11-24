@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 class RequestDraftController {
     private final RequestDraftService drafts;
     RequestDraftController(RequestDraftService drafts) { this.drafts=drafts; }
-    @GetMapping("/publishing-options") Map<String,Object> options() { return drafts.options(); }
+    @GetMapping("/publishing-options") Map<String,Object> options(HttpServletRequest request) { return drafts.options(AuthController.session(request)); }
     @PostMapping("/requests") @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
     SavedDraft create(@RequestHeader(value="Idempotency-Key",required=false) String key,@RequestBody(required=false) DraftCreate body,HttpServletRequest req) { return drafts.create(AuthController.session(req),key,body==null?null:body.fields()); }
     @GetMapping("/me/requests") Map<String,Object> list(@RequestParam(required=false) String cursor,HttpServletRequest req) { return drafts.list(AuthController.session(req),cursor); }

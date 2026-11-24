@@ -61,10 +61,11 @@ class AuthService {
     public Registration register(RegisterBody body) {
         String key = Rules.account(body.account()); String email = Rules.email(body.email()); Rules.password(body.password());
         if (!Boolean.TRUE.equals(body.adultConfirmed())) throw ApiError.invalid("adultConfirmed", "请主动确认本人已年满18岁");
+        Policies.require(body.policiesAccepted());
         // Allow reuse only once the ORIGINAL unverified registration has reached seven days.
         db.update("DELETE FROM accounts WHERE NOT email_verified AND created_at<=now()-interval '7 days' AND (account_key=? OR email_key=?)", key, email);
         UUID id = UUID.randomUUID(), flow = UUID.randomUUID(); String context = secrets.token();
-        db.update("INSERT INTO accounts(id,account,account_key,email,email_key,password_hash,adult_confirmed_at,registration_flow_id,registration_context_hash) VALUES (?,?,?,?,?,?,now(),?,?)",
+        db.update("INSERT INTO accounts(id,account,account_key,email,email_key,password_hash,policies_accepted_at,adult_confirmed_at,registration_flow_id,registration_context_hash) VALUES (?,?,?,?,?,?,now(),now(),?,?)",
             id, body.account(), key, body.email(), email, secrets.password(body.password()), flow, secrets.digest(context));
         db.update("INSERT INTO profiles(account_id) VALUES (?)", id);
         return new Registration(flow, context, verification(id, body.email()));

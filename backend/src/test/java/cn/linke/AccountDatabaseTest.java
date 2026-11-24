@@ -42,6 +42,32 @@ class AccountDatabaseTest {
         properties.add("spring.datasource.username", () -> System.getenv("TEST_DB_USERNAME"));
         properties.add("spring.datasource.password", () -> System.getenv("TEST_DB_PASSWORD"));
     }
+    @Autowired RateLimits limits;
+    @Test void actorLimitsApplyIndependentlyAcrossAddressesAndAccounts() {
+        String scope="test-"+UUID.randomUUID();
+        var first=UUID.randomUUID();
+        String ip="192.0.2.10", secondIp="192.0.2.11";
+        var subjects=new ArrayList<String>();
+        try {
+            limits.actor(scope,ip,first,1);
+            subjects.add(scope+":user:"+first);
+            assertEquals(429,assertThrows(ApiError.class,()->limits.actor(scope,secondIp,first,1)).status);
+            for (int i=1;i<10;i++) {
+                var next=UUID.randomUUID();
+                subjects.add(scope+":user:"+next);
+                limits.actor(scope,ip,next,1);
+            }
+            assertEquals(429,assertThrows(ApiError.class,()->limits.actor(scope,ip,UUID.randomUUID(),1)).status);
+        } finally {
+            subjects.add(scope+":ip:"+ip);
+            subjects.add(scope+":ip:"+secondIp);
+            var digest=new Secrets();
+            for(String subject:subjects) db.update("DELETE FROM auth_rate_limits WHERE bucket_key=?",digest.digest(subject));
+        }
+    }
+    @Test void registrationRequiresSeparatePolicyConsent() {
+        assertEquals(422,assertThrows(ApiError.class,()->auth.register(new RegisterBody("policytest","Synthetic2026","policy@example.invalid",true,null))).status);
+    }
     @Autowired AuthService auth;
     @Autowired NotificationService notifications;
     @Autowired ProfileService profiles;
@@ -61,7 +87,7 @@ class AccountDatabaseTest {
     @AfterEach void cleanup() { for (UUID id : created) db.update("DELETE FROM accounts WHERE id=?", id); }
     private User user(String identity) {
         String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
-        Registration registration = auth.register(new RegisterBody(account, password, account + "@example.invalid", true));
+        Registration registration = auth.register(new RegisterBody(account, password, account + "@example.invalid", true,true));
         UUID id = db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, registration.registrationFlowId());
         created.add(id);
         auth.verify(new VerifyBody(verificationToken, null), registration.context());
@@ -82,14 +108,15 @@ class AccountDatabaseTest {
         ImageIO.write(new BufferedImage(12, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
         var file = new MockMultipartFile("file", "../../private.png", "image/png", bytes.toByteArray());
         var rollback = tx.execute(s -> {
-            var item = service.submit(tutor.session(), "student_id", file);
+            var item = service.submit(tutor.session(), "student_id", file, true);
             s.setRollbackOnly();
             return item.id();
         });
         assertFalse(Files.exists(directory.resolve(rollback + ".png")));
-        assertThrows(ApiError.class, () -> service.submit(parent.session(), "student_id", file));
-        var item = tx.execute(s -> service.submit(tutor.session(), "student_id", file));
-        assertEquals(409, assertThrows(ApiError.class, () -> service.submit(tutor.session(), "student_id", file)).status);
+        assertThrows(ApiError.class, () -> service.submit(parent.session(), "student_id", file, true));
+        assertEquals(422, assertThrows(ApiError.class, () -> service.submit(tutor.session(), "student_id", file, false)).status);
+        var item = tx.execute(s -> service.submit(tutor.session(), "student_id", file, true));
+        assertEquals(409, assertThrows(ApiError.class, () -> service.submit(tutor.session(), "student_id", file, true)).status);
         assertEquals(401, assertThrows(ApiError.class, () -> service.proof(null, item.id())).status);
         assertEquals(404, assertThrows(ApiError.class, () -> service.proof(parent.session(), item.id())).status);
         assertArrayEquals(bytes.toByteArray(), service.proof(tutor.session(), item.id()).bytes());
@@ -102,7 +129,7 @@ class AccountDatabaseTest {
             new VerificationService.Decision("rejected", " "))).status);
         service.review(reviewer.session(), item.id(), reject);
         assertEquals(reject.reject_reason(), service.mine(tutor.session()).getFirst().reject_reason());
-        var retry = tx.execute(s -> service.submit(tutor.session(), "student_id", file));
+        var retry = tx.execute(s -> service.submit(tutor.session(), "student_id", file, true));
         var approve = new VerificationService.Decision("approved", null);
         assertFalse((boolean) profiles.get(tutor.session()).teacher().get("is_school_verified"));
         assertNotNull(service.review(reviewer.session(), retry.id(), approve).reviewed_at());
@@ -123,7 +150,7 @@ class AccountDatabaseTest {
         assertFalse(service.mine(tutor.session()).getFirst().proof_available());
         assertTrue((boolean)profiles.get(tutor.session()).teacher().get("is_school_verified"));
         assertEquals(1, db.queryForObject("SELECT count(*) FROM admin_logs WHERE target_id=? AND action_type='delete-proof'",Integer.class,retry.id()));
-        var skill = tx.execute(s -> service.submit(tutor.session(),"skill_cert",file));
+        var skill = tx.execute(s -> service.submit(tutor.session(),"skill_cert",file,false));
         service.review(reviewer.session(),skill.id(),approve);
         assertEquals("技能证书已核验徽章已点亮。",db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),skill.id()));
     }
@@ -212,7 +239,7 @@ class AccountDatabaseTest {
     }
     @Test void verificationNeedsExplicitConfirmationAndCrossBrowserPassword() {
         String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
-        Registration r = auth.register(new RegisterBody(account, password, account + "@example.invalid", true));
+        Registration r = auth.register(new RegisterBody(account, password, account + "@example.invalid", true,true));
         created.add(db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, r.registrationFlowId()));
         assertEquals(true, auth.inspect(verificationToken, null).get("requiresRegistrationPassword"));
         assertThrows(ApiError.class, () -> auth.login(new LoginBody(account, password)));
@@ -224,7 +251,7 @@ class AccountDatabaseTest {
     @Test void eightCharacterPasswordTriggersVerificationMailAndCanLoginAfterConfirmation() {
         String account = "test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
         String email = account + "@example.invalid", shortPassword = "Abcd1234";
-        Registration registration = auth.register(new RegisterBody(account, shortPassword, email, true));
+        Registration registration = auth.register(new RegisterBody(account, shortPassword, email, true,true));
         created.add(db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?", UUID.class, registration.registrationFlowId()));
         assertTrue(registration.mailAccepted());
         verify(mail).send(eq(email), anyString(), eq(false));
@@ -298,7 +325,7 @@ class AccountDatabaseTest {
     }
     @Test void expiredVerificationAndResetTokensCannotBeConsumed() {
         String account="test_"+UUID.randomUUID().toString().replace("-","").substring(0,11);
-        Registration registration=auth.register(new RegisterBody(account,password,account+"@example.invalid",true));
+        Registration registration=auth.register(new RegisterBody(account,password,account+"@example.invalid",true,true));
         UUID id=db.queryForObject("SELECT id FROM accounts WHERE registration_flow_id=?",UUID.class,registration.registrationFlowId());created.add(id);
         String verify=verificationToken;
         db.update("UPDATE email_tokens SET expires_at=clock_timestamp()-interval '1 second' WHERE account_id=?",id);

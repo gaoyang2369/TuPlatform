@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PolicyConsent from "./PolicyConsent.vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { api, ApiFailure } from "./account-api.ts";
 import { updateQuery } from "./navigation";
@@ -15,7 +16,7 @@ import { statusNames,declarationNames } from "./request-display.ts";
 import type { SavedRequest } from "./request-display.ts";
 type Slot = { weekday: number; startMinute: number; endMinute: number };
 type Saved = SavedRequest;
-type Options = { categories: string[]; streets: string[]; areaHints?: string[]; audienceStages: string[]; serviceModes: string[]; publisherDeclarations?: {code:string;version:string;label:string}[] };
+type Options = { policiesAccepted?: boolean; categories: string[]; streets: string[]; areaHints?: string[]; audienceStages: string[]; serviceModes: string[]; publisherDeclarations?: {code:string;version:string;label:string}[] };
 const emit = defineEmits<{ expired: []; dirty: [value: boolean]; profile: []; matches: [id:string]; teacher: [id:string] }>();
 const view = ref<"list" | "edit">("list"), busy = ref(false), message = ref(""), error = ref("");
 const feedbackId = ref(0);
@@ -28,6 +29,7 @@ const fieldNames:Record<string,string>={title:"需求标题",categoryCode:"服�
 const options = ref<Options>({ categories: [], streets: [], audienceStages: [], serviceModes: [] });
 const form = reactive({ title: "", categoryCode: "", audienceStageCode: "", street: "", area_hint: "", exact_address: "", grade: "", subject: "", goal: "", serviceMode: "", budgetMin: "", budgetMax: "", durationHours: "2", frequencyMode: "", frequencyCount: "", availabilityMode: "NEGOTIABLE", preferredDays: [] as number[], preferredPeriods: [] as string[], availableSlots: [] as { weekday: number; start: string; end: string }[], availabilityNote: "", expectedStartDate: "", tutorExpectations: "" });
 const baseline = ref("");
+const policiesAccepted=ref(false);
 const declaration=ref("");
 let pendingAction:{path:string;body:string;key:string}|null=null;
 const declarations=computed(()=>(options.value.publisherDeclarations??[]).filter(item=>form.audienceStageCode==='ADULT'?item.code==='SELF_ADULT':['PRIMARY','JUNIOR','SENIOR'].includes(form.audienceStageCode)?item.code==='GUARDIAN_OF_MINOR':true));
@@ -64,7 +66,7 @@ function minute(value: string, end: boolean) {
   return result;
 }
 function load(saved: Saved) {
-  declaration.value="";pendingAction=null;
+  policiesAccepted.value=false; declaration.value="";pendingAction=null;
   autoSavedAt.value="";
   current.value=saved; const f=saved.fields;
   for(const key of ["title","categoryCode","audienceStageCode","street","area_hint","exact_address","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","availabilityNote","expectedStartDate","tutorExpectations"] as const) form[key]=String(f[key]??"");
@@ -193,7 +195,7 @@ function startAutoSave() {
   });
 }
 watch(() => JSON.stringify(form), () => {
-  if (dirty.value) { declaration.value=""; pendingAction=null; }
+  if (dirty.value) { policiesAccepted.value=false; declaration.value=""; pendingAction=null; }
   scheduleSave();
 });
 watch(confirmLeave, scheduleSave);
@@ -230,7 +232,8 @@ async function action(path:string,body:unknown) {
 }
 async function submit() {await run(async()=>{
   if(!current.value||dirty.value||!declaration.value)throw new Error("请先保存并预览内容，再主动选择本次发布声明。");
-  await action(`/requests/${current.value.id}/submit`,{expectedVersion:current.value.version,publisherDeclaration:declaration.value,declarationVersion:"publisher-v1"});
+  await action(`/requests/${current.value.id}/submit`,{expectedVersion:current.value.version,publisherDeclaration:declaration.value,declarationVersion:"publisher-v1",policiesAccepted:policiesAccepted.value});
+  options.value.policiesAccepted=true;
   message.value="需求已提交，等待运营审核；当前尚未公开。";
 });}
 async function revise() {await run(async()=>{
@@ -349,12 +352,13 @@ defineExpose({requestLeave});
         <div v-if="step===3" class="draft-preview form-section">
           <RequestSummary :fields="current.fields" />
           <p v-if="current.fields.exact_address" class="privacy-note">互选并交换联系方式后分享的地址：{{ current.fields.exact_address }}</p>
+          <PolicyConsent v-if="!options.policiesAccepted" v-model="policiesAccepted"/>
           <fieldset id="draft-publisherDeclaration" v-bind="fieldFeedback('publisherDeclaration')" tabindex="-1" class="publisher-declaration"><legend>本次发布声明 · 提交必选</legend>
             <label v-for="item in declarations" :key="item.code" class="check-line"><input v-model="declaration" type="radio" :value="item.code"><span>{{ item.label }}</span></label>
             <p class="field-help">每次提交都需主动选择。该声明仅本人及审核人员可见。</p>
           </fieldset>
         </div>
-        <div class="draft-actions"><p class="save-state" role="status">{{ autoSaving?'正在自动保存…':dirty?'有尚未保存的修改':unsaved?'开始填写后自动保存':autoSavedAt?'已自动保存 · '+autoSavedAt:'当前为已保存内容' }}</p><div class="action-buttons"><Button v-if="step>1" type="button" variant="secondary" @click="step--">上一步</Button><Button v-if="step<3" type="submit" variant="secondary" :disabled="conflict">保存草稿</Button><template v-else><Button type="button" variant="secondary" @click="requestLeave(()=>list())">返回我的需求</Button><Button type="button" variant="ghost" @click="refresh">重新读取保存状态</Button></template><Button v-if="step<3" type="button" :disabled="conflict" @click="save(true)">{{ step===1?'保存并下一步':'保存并预览' }}</Button><Button v-else type="button" :disabled="!declaration||dirty||conflict" @click="submit">确认提交审核</Button></div></div>
+        <div class="draft-actions"><p class="save-state" role="status">{{ autoSaving?'正在自动保存…':dirty?'有尚未保存的修改':unsaved?'开始填写后自动保存':autoSavedAt?'已自动保存 · '+autoSavedAt:'当前为已保存内容' }}</p><div class="action-buttons"><Button v-if="step>1" type="button" variant="secondary" @click="step--">上一步</Button><Button v-if="step<3" type="submit" variant="secondary" :disabled="conflict">保存草稿</Button><template v-else><Button type="button" variant="secondary" @click="requestLeave(()=>list())">返回我的需求</Button><Button type="button" variant="ghost" @click="refresh">重新读取保存状态</Button></template><Button v-if="step<3" type="button" :disabled="conflict" @click="save(true)">{{ step===1?'保存并下一步':'保存并预览' }}</Button><Button v-else type="button" :disabled="!declaration||(!options.policiesAccepted&&!policiesAccepted)||dirty||conflict" @click="submit">确认提交审核</Button></div></div>
       </fieldset></form>
     </template>
     <ConfirmDialog :open="confirmLeave" title="还有未保存的修改" cancel-text="继续编辑" confirm-text="保存并离开" :busy="busy" @cancel="confirmLeave=false" @confirm="leave(true)">

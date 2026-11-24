@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { track } from "./analytics";
+import { ref, watch, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import DiscoverySheet from "./DiscoverySheet.vue";
@@ -11,13 +12,14 @@ import type { PublicTeacher } from "./match-types";
 
 const props=defineProps<{id:string; guest:boolean}>();
 const emit=defineEmits<{close:[];login:[]}>();
+onMounted(() => track("page_view_teachers"));
 const teacher=ref<PublicTeacher>(), error=ref(""), retry=ref(0);
 watch([()=>props.id,retry],async ([id],_,cleanup)=>{
   let current=true;cleanup(()=>{current=false;});
   teacher.value=undefined;error.value="";
   try {
     const result=await api.request<PublicTeacher>("/public/teachers/"+encodeURIComponent(id));
-    if(current) teacher.value=result;
+    if(current) { teacher.value=result; track("open_teacher_detail"); }
   } catch(e) {if(current) error.value=e instanceof Error ? e.message : "暂时无法读取老师资料。";}
 },{immediate:true});
 </script>

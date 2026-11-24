@@ -185,6 +185,22 @@ Playwright 配置包含桌面 `1366 × 900` 和手机宽度 `390 × 844`，默�
 
 附件写入同样支持 `/api/v1/upload/resume`。沿用同源会话、CSRF 和 `X-Account-Id`。表单不接受自填附件地址。公开和停止公开沿用现有版本检查及幂等键。
 
+### 生产部署上线 Checklist
+
+- [ ] 设置 `SPRING_PROFILES_ACTIVE=prod`、`SECURE_COOKIES=true`，将 `PUBLIC_BASE_URL`、`APP_BASE_URL` 指向实际 HTTPS 来源。同源部署时 `CORS_ALLOWED_ORIGINS` 留空。核对数据库 TLS、SMTP 发件、开放类别、私有证件目录及备份恢复。
+- [ ] 备份目标库，审核待执行 Flyway 迁移并取得共享库授权。V15 新建漏斗表和协议接受时间字段。先在专用测试库演练，再启动生产后端并核对 `flyway_schema_history`。
+- [ ] 开放流量前清理已知模拟批次。脚本按种子清单中的固定账号名、确定性 UUID 和模拟邮箱匹配，在事务中清除这些账号的需求、双方均为模拟账号的撮合、评价和埋点。出现真实用户参与的撮合时整批回滚。合成演练前设置 `ANALYTICS_TEST_MODE=true`，脚本会一并删除服务端标记的测试埋点（含匿名会话）。生产保持 false。
+- [ ] 注册并验证受控的运营邮箱，运行管理员命令。首次提升权限会撤销该账号现有会话。重新登录 `/admin`，核对普通账号访问后台返回 403。
+- [ ] 反向代理强制 HTTPS，同源提供前端与 API，为 `/terms`、`/privacy`、`/admin` 提供 SPA 入口。代理请求体上限设为 6 MiB，应用限制单文件 5 MiB。隐藏 `X-Powered-By`，检查 `nosniff`、HTTPS 的 HSTS 和 Cookie 的 Secure / HttpOnly。后端仅允许代理连接，启用 `FORWARD_HEADERS_STRATEGY=native`，`TRUSTED_PROXY_REGEX` 仅匹配实际代理 IP，代理覆盖 Host、X-Forwarded-For 和 X-Forwarded-Proto。
+- [ ] 用两种身份走一遍发现、发意向、互选、查看和撤回；打开后台切换近 7 / 30 天。用合成账号验证频繁请求返回中文 429 及 `Retry-After`。
+
+以下维护命令从仓库根目录运行。脚本读取与后端相同的数据库环境变量或 `backend/.env`，需要 Java 21 和项目 Maven 缓存中的 PostgreSQL JDBC 驱动，也可用 `POSTGRES_JDBC_JAR` 指向该驱动。清理仅识别 `linke-demo-20261111-v1` 批次。
+
+```powershell
+.\scripts\reset-demo-data.ps1 --confirm
+.\scripts\create-admin.ps1 -Email operator@example.org
+```
+
 ### 本校学籍与技能证书验收
 
 1. 按上文「浏览器测试」启动专用 `_test` 库、8081 测试后端及 5174 前端。V9 会在该测试库创建认证表。以下步骤均使用合成证件、已验证邮箱的老师和需求方、独立运营账号，三个角色分别登录独立浏览器会话。

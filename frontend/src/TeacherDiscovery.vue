@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { track } from "./analytics";
+import { computed, onBeforeUnmount, onMounted, watch, ref } from "vue";
 import { ArrowLeft, ArrowRight, BadgeCheck, CircleDollarSign, MapPin, MessagesSquare, Monitor, RotateCcw, Search } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import DiscoverySheet from "./DiscoverySheet.vue";
@@ -56,7 +57,8 @@ function toggle(key: "area" | "mode" | "price", code: string) {
   const existing = filters.value[key];
   apply({ ...filters.value, [key]: existing.includes(code) ? existing.filter(v => v !== code) : [...existing, code] });
 }
-onMounted(loadOptions);
+onMounted(() => { track("page_view_teachers"); void loadOptions(); });
+watch(() => detail.value?.id, id => { if (id) track("open_teacher_detail"); });
 </script>
 
 <template>

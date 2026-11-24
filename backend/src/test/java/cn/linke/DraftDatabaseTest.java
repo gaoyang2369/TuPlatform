@@ -28,7 +28,7 @@ class DraftDatabaseTest {
     private String token; private final List<UUID> accounts=new ArrayList<>();
     @BeforeEach void mail(){when(mail.send(anyString(),anyString(),eq(false))).thenAnswer(call->{token=call.getArgument(1);return true;});}
     @AfterEach void cleanup(){for(UUID id:accounts)db.update("DELETE FROM accounts WHERE id=?",id);}
-    private String user(String identity){String name="draft_"+UUID.randomUUID().toString().replace("-","").substring(0,10);String password="Synthetic draft password 2026";Registration r=auth.register(new RegisterBody(name,password,name+"@example.invalid",true));auth.verify(new VerifyBody(token,null),r.context());var login=auth.login(new LoginBody(name,password));accounts.add(login.me().id());auth.identity(login.session(),new IdentityBody(identity));return login.session();}
+    private String user(String identity){String name="draft_"+UUID.randomUUID().toString().replace("-","").substring(0,10);String password="Synthetic draft password 2026";Registration r=auth.register(new RegisterBody(name,password,name+"@example.invalid",true,true));auth.verify(new VerifyBody(token,null),r.context());var login=auth.login(new LoginBody(name,password));accounts.add(login.me().id());auth.identity(login.session(),new IdentityBody(identity));return login.session();}
     private DraftPatch patch(long version,String fields)throws Exception{return new DraftPatch(version,(ObjectNode)json.readTree(fields));}
     @Test void partialStepSavesPreserveFieldsAndCreationIsIdempotent()throws Exception{
         String session=user("REQUESTER"),key=UUID.randomUUID().toString();SavedDraft first=drafts.create(session,key);assertEquals(first.id(),drafts.create(session,key).id());

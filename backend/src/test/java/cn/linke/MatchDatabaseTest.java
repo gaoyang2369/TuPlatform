@@ -30,6 +30,26 @@ class MatchDatabaseTest {
     }
     @Autowired MatchService matches; @Autowired ProfileService profiles; @Autowired RequestDraftService drafts;
     @Autowired RequestPublicationService publication; @Autowired JdbcTemplate db; @Autowired ObjectMapper json; @Autowired Secrets secrets;
+    @Autowired Analytics analytics;
+    @Test void funnelCountsUniqueVisitorsAndCreditsConfirmationToInitiator() {
+        var owner=user("REQUESTER");var tutor=user("TUTOR");
+        var baseline=analytics.funnel(7);
+        analytics.authenticated("page_view_teachers",owner.id(),owner.session());
+        analytics.authenticated("open_teacher_detail",owner.id(),owner.session());
+        analytics.authenticated("open_teacher_detail",owner.id(),owner.session());
+        var body=direct(tutor,publish(tutor),"");
+        String key=key();
+        var m=matches.start(owner.session(),body,key).match();
+        matches.start(owner.session(),body,key);
+        act(tutor,m,"ACCEPT");
+        analytics.authenticated("view_contact",owner.id(),owner.session());
+        var result=analytics.funnel(7);
+        for(int i=0;i<5;i++) {
+            assertEquals(baseline.get(i).visitors()+1,result.get(i).visitors());
+            if(i>0) assertEquals(baseline.get(i).advanced()+1,result.get(i).advanced());
+        }
+        assertEquals(1,db.queryForObject("SELECT count(*) FROM analytics_events WHERE user_id=? AND event_name='send_match_intent'",Integer.class,owner.id()));
+    }
     @Autowired ContactService contacts;
     @Autowired PlatformTransactionManager transactions;
     @Autowired NotificationService notifications;
@@ -63,7 +83,7 @@ class MatchDatabaseTest {
             """);
         extraFields.forEach(fields::put);
         var saved=drafts.save(owner.session(),draft.id(),new DraftPatch(draft.version(),fields));
-        var submitted=publication.submit(owner.session(),draft.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1"),key());
+        var submitted=publication.submit(owner.session(),draft.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1",true),key());
         publication.decide(operator.session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         return new Setup(owner,tutor,operator,draft.id(),submitted.submissionId(),version);
     }
@@ -676,7 +696,7 @@ class MatchDatabaseTest {
         db.update("UPDATE service_requests SET last_saved_at=now()-interval '91 days' WHERE id=?",s.request());drafts.cleanupExpiredDrafts();
         assertEquals("WAITING",matches.detail(s.owner().session(),m.id()).state());assertEquals(1,db.queryForObject("SELECT count(*) FROM service_requests WHERE id=?",Integer.class,s.request()));
         db.update("UPDATE service_requests SET last_saved_at=now() WHERE id=?",s.request());var revised=drafts.get(s.owner().session(),s.request());
-        var submitted=publication.submit(s.owner().session(),s.request(),new SubmitRequest(revised.version(),"SELF_ADULT","publisher-v1"),key());publication.decide(s.operator().session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
+        var submitted=publication.submit(s.owner().session(),s.request(),new SubmitRequest(revised.version(),"SELF_ADULT","publisher-v1",true),key());publication.decide(s.operator().session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         var result=matches.start(s.tutor().session(),new StartMatch(s.request(),submitted.submissionId(),"APPLICATION",null,s.teacherVersion()),key());
         assertEquals("EXISTING",result.outcome());assertEquals(s.submission().toString(),result.match().submissionSnapshot().get("submissionId"));assertTrue(result.match().submissionChanged());
         assertEquals("MUTUAL",act(s.owner(),m,"ACCEPT").state());
@@ -706,7 +726,7 @@ class MatchDatabaseTest {
         publication.revise(s.owner().session(),s.request(),new VersionBody(expired.version()),key());
         var draft=drafts.get(s.owner().session(),s.request());
         var saved=drafts.save(s.owner().session(),s.request(),new DraftPatch(draft.version(),json.createObjectNode().put("goal","新版目标")));
-        var submitted=publication.submit(s.owner().session(),s.request(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1"),key());
+        var submitted=publication.submit(s.owner().session(),s.request(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1",true),key());
         publication.decide(s.operator().session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         assertTrue(matches.detail(s.tutor().session(),original.id()).canInitiateAgain());
         var next=matches.start(s.tutor().session(),new StartMatch(s.request(),submitted.submissionId(),"APPLICATION",null,changed.version()),key()).match();

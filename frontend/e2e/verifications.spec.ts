@@ -35,6 +35,7 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
     await expect(school).toContainText("未提交");
     const upload = async (label: string) => {
       await mine.getByLabel("选择" + label + "材料").setInputFiles(path.join(import.meta.dirname, "fixtures/resume.pdf"));
+      if (label==="本校学籍") await school.getByRole("checkbox").check();
       await mine.getByRole("button", {name:"提交" + label + "认证"}).click();
     };
     await upload("本校学籍");

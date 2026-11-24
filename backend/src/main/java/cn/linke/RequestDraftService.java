@@ -25,7 +25,12 @@ class RequestDraftService {
         if(!Rules.CATEGORIES.containsAll(categories)) throw new IllegalArgumentException("Unknown REQUEST_CATEGORIES");
     }
     Set<String> categories() { return categories; }
-    Map<String,Object> options() { return Map.of("areaHints",RequestLocation.HINTS,"categories",categories.stream().sorted().toList(),"districts",List.of(Map.of("code","SZ_PINGSHAN","label","坪山区")),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE"),"publisherDeclarations",List.of(
+    boolean publishingPoliciesAccepted(UUID actor) {
+        return Boolean.TRUE.equals(db.queryForObject("SELECT publishing_policies_accepted_at IS NOT NULL FROM accounts WHERE id=?", Boolean.class, actor));
+    }
+    Map<String,Object> options(String session) {
+        Account actor = auth.sessionAccount(session,false);
+        return Map.of("policiesAccepted",actor != null && publishingPoliciesAccepted(actor.id()),"areaHints",RequestLocation.HINTS,"categories",categories.stream().sorted().toList(),"districts",List.of(Map.of("code","SZ_PINGSHAN","label","坪山区")),"streets",Rules.AREAS.stream().sorted().toList(),"audienceStages",List.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"),"serviceModes",List.of("ONLINE","OFFLINE"),"publisherDeclarations",List.of(
         Map.of("code","SELF_ADULT","version","publisher-v1","label","我为已满18岁的本人发布本条需求。"),
         Map.of("code","GUARDIAN_OF_MINOR","version","publisher-v1","label","我作为监护人为未成年人发布本条需求。"))); }
     private SavedDraft map(java.sql.ResultSet r,int index) throws java.sql.SQLException {

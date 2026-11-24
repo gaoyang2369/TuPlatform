@@ -46,7 +46,7 @@ class ContactDatabaseTest {
             {"title":"联系方式闭环需求","categoryCode":"DRAWING","audienceStageCode":"ADULT","areaCode":"PS_PINGSHAN","goal":"合成目标",
              "budgetMin":"100","budgetMax":"200","durationHours":"1","frequency":{"mode":"NEGOTIABLE"},"availableSlots":[{"weekday":1,"startMinute":600,"endMinute":660}]}
             """)));
-        var submitted=publication.submit(owner.session(),d.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1"),key());
+        var submitted=publication.submit(owner.session(),d.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1",true),key());
         publication.decide(operator.session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         var m=matches.start(invite?owner.session():tutor.session(),new StartMatch(d.id(),submitted.submissionId(),invite?"INVITATION":"APPLICATION",invite?tutor.id():null,teacherVersion),key()).match();
         if(accept)m=matches.respond(invite?tutor.session():owner.session(),m.id(),new RespondMatch(m.roundId(),m.version()),key(),"ACCEPT");
@@ -125,7 +125,7 @@ class ContactDatabaseTest {
         // Same owner/tutor, separate request and relationship.
         var d=drafts.create(s.owner().session(),key());var original=drafts.get(another.owner().session(),another.request());
         var saved=drafts.save(s.owner().session(),d.id(),new DraftPatch(0L,(ObjectNode)json.valueToTree(original.fields())));
-        var submission=publication.submit(s.owner().session(),d.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1"),key());publication.decide(s.operator().session(),submission.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
+        var submission=publication.submit(s.owner().session(),d.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1",true),key());publication.decide(s.operator().session(),submission.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         var m=matches.start(s.owner().session(),new StartMatch(d.id(),submission.submissionId(),"INVITATION",s.tutor().id(),s.teacherVersion()),key()).match();
         m=matches.respond(s.tutor().session(),m.id(),new RespondMatch(m.roundId(),m.version()),key(),"ACCEPT");
         agree(s.owner(),s.match(),"PHONE");agree(s.tutor(),s.match(),"WECHAT");agree(s.owner(),m,"WECHAT");agree(s.tutor(),m,"PHONE");

@@ -53,7 +53,7 @@ public class DemoData {
             naturalText(text(fields,"title"));naturalText(text(fields,"goal"));naturalText(text(r,"publisherDisplayName"));
             require(fields.hasNonNull("street") && fields.hasNonNull("area_hint") && !fields.has("locationText"),"Neighborhood-level location required");
             if(text(r,"status").equals("DRAFT")) DraftRules.validate(fields,Rules.CATEGORIES);
-            else SubmissionRules.validate(fields,Rules.CATEGORIES,text(r,"publisherDisplayName"),new SubmitRequest(1L,text(r,"declaration"),"publisher-v1"),text(r,"status").equals("EXPIRED")?now.minusDays(18):now);
+            else SubmissionRules.validate(fields,Rules.CATEGORIES,text(r,"publisherDisplayName"),new SubmitRequest(1L,text(r,"declaration"),"publisher-v1",true),text(r,"status").equals("EXPIRED")?now.minusDays(18):now);
         }
     }
     static void naturalText(String value) {

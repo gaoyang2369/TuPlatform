@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-record RegisterBody(String account, String password, String email, Boolean adultConfirmed) {}
+record RegisterBody(String account, String password, String email, Boolean adultConfirmed, Boolean policiesAccepted) {}
 record LoginBody(String account, String password) {}
 record TokenBody(String token) {}
 record VerifyBody(String token, String registrationPassword) {}

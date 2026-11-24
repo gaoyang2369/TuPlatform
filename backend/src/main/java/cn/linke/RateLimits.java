@@ -23,6 +23,11 @@ class RateLimits {
             """, Integer.class, secrets.digest(scope + ":" + subject));
         return count != null && count <= maximum;
     }
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = ApiError.class)
+    public void actor(String scope, String ip, java.util.UUID actor, int maximum) {
+        check(scope + ":ip", ip, maximum * 10);
+        check(scope + ":user", actor.toString(), maximum);
+    }
     @Scheduled(fixedDelay = 3600000)
     public void cleanup() {
         db.update("DELETE FROM auth_rate_limits WHERE window_end < now()");

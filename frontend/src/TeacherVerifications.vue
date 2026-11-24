@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PolicyConsent from "./PolicyConsent.vue";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ShieldCheck, RefreshCw } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ function select(type: VerificationType, event: Event) {
     error.value = "请选择不超过 5 MB 的 JPG、PNG、WebP 或 PDF 文件。";
   } else files[type] = file;
 }
+const policiesAccepted = ref(false);
 async function submit(type: VerificationType) {
   const file = files[type];
   if (!file || busy.value) return;
@@ -44,11 +46,13 @@ async function submit(type: VerificationType) {
   error.value = notice.value = "";
   const body = new FormData();
   body.append("verify_type", type);
+  if (type === "student_id") body.append("policiesAccepted", String(policiesAccepted.value));
   body.append("file", file);
   try {
     const record = await api.request<Verification>("/verifications", "POST", body);
     records.value = [...records.value.filter(r => r.verify_type !== type), record];
     delete files[type];
+    if (type === "student_id") policiesAccepted.value=false;
     notice.value = "认证材料已提交，可以在这里查看审核结果。";
   } catch (e) { report(e); } finally { busy.value = false; }
 }
@@ -82,7 +86,8 @@ onMounted(async () => {
             <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" :disabled="busy" class="mt-2 block w-full text-sm file:mr-2 file:rounded-lg file:border file:border-border file:bg-white file:px-3 file:py-2" @change="select(card.type, $event)">
           </label>
           <p class="text-xs text-muted-foreground">JPG、PNG、WebP 或 PDF，最大 5 MB</p>
-          <Button type="button" class="min-h-11" :disabled="busy || !files[card.type]" @click="submit(card.type)">提交{{ card.label }}认证</Button>
+          <PolicyConsent v-if="card.type==='student_id'" v-model="policiesAccepted"/>
+          <Button type="button" class="min-h-11" :disabled="busy || !files[card.type] || (card.type==='student_id' && !policiesAccepted)" @click="submit(card.type)">提交{{ card.label }}认证</Button>
         </template>
         <a v-if="card.record?.proof_available" class="block py-2 text-sm font-semibold text-primary underline" :href="'/api/verifications/' + card.record.id + '/proof'">下载本人已提交材料</a>
       </article>

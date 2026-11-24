@@ -15,8 +15,10 @@ class MatchService {
     private final JdbcTemplate db; private final AuthService auth; private final ProfileService profiles;
     private final RequestPublicationService publication; private final ObjectMapper json; private final Secrets secrets; private final ContactService contacts;
     private final NotificationService notifications;
+    private final Analytics analytics;
     private final MatchLifecycle lifecycle;
-    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts, NotificationService notifications, MatchLifecycle lifecycle) {
+    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts, NotificationService notifications, MatchLifecycle lifecycle, Analytics analytics) {
+        this.analytics = analytics;
         this.lifecycle = lifecycle;
         this.notifications = notifications;
         this.db=db;this.auth=auth;this.profiles=profiles;this.publication=publication;this.json=json;this.secrets=secrets;this.contacts=contacts;
@@ -152,6 +154,7 @@ class MatchService {
         contacts.exchangeWithIntention(a.id(),match,body.contactExchange());
         String sender = (String)(application ? teacher.get("displayName") : snapshot.get("publisherDisplayName"));
         notifications.intention(application ? requester : tutor, round, match, sender, (String)snapshot.get("title"), !application);
+        analytics.authenticated("send_match_intent", a.id(), session);
         return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
     }
     private MatchStartResult directInvitation(String session,Account a,StartMatch body,String key) {
@@ -186,6 +189,7 @@ class MatchService {
         String topic = teacher.get("teachSubjects") instanceof List<?> subjects && !subjects.isEmpty()
             ? "可授科目：" + subjects.getFirst() : "直接家教邀请";
         notifications.intention(tutor, round, match, name, topic, true);
+        analytics.authenticated("send_match_intent", a.id(), session);
         return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
     }
     public MatchView respond(String session,UUID id,RespondMatch body,String key,String action) {
@@ -206,6 +210,7 @@ class MatchService {
         }
         MatchRules.response((String)current.get("state"),a.id().equals(current.get("initiator_id")),action);
         String state=switch(action){case "ACCEPT"->"MUTUAL";case "REJECT"->"REJECTED";default->"WITHDRAWN";};
+        if (action.equals("ACCEPT")) analytics.confirmed(a.id(), session, (UUID)current.get("initiator_id"));
         db.update("UPDATE match_rounds SET state=?,responded_by=?,responded_at=clock_timestamp() WHERE id=?",state,a.id(),body.roundId());
         db.update("UPDATE match_relationships SET version=version+1 WHERE id=?",id);
         if("ACCEPT".equals(action)) {

@@ -22,7 +22,7 @@ async function prepared(page:Page){
   await expect(page.getByRole("button",{name:"确认提交审核",exact:true})).toBeDisabled();
   return owner;
 }
-async function submit(page:Page){await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();await page.getByRole("button",{name:"确认提交审核",exact:true}).click();await expect(page.getByRole("heading",{name:"需求进度",exact:true})).toBeVisible();await expect(page.getByText("待审核",{exact:true})).toBeVisible();}
+async function submit(page:Page){await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();if(await page.getByRole("checkbox",{name:/我已阅读并同意/}).count()) await page.getByRole("checkbox",{name:/我已阅读并同意/}).check();await page.getByRole("button",{name:"确认提交审核",exact:true}).click();await expect(page.getByRole("heading",{name:"需求进度",exact:true})).toBeVisible();await expect(page.getByText("待审核",{exact:true})).toBeVisible();}
 async function csrfHeaders(page:Page,actor:User){const csrf=await(await page.request.get("/api/v1/auth/csrf")).json();return {[csrf.headerName]:csrf.token,"X-Account-Id":actor.id};}
 async function latestRequest(page:Page){const result=await(await page.request.get("/api/v1/me/requests")).json();return result.items[0];}
 async function operatorPage(context:BrowserContext,actor:User){const page=await context.newPage();await login(page,actor);await page.getByRole("button",{name:"需求审核",exact:true}).click();await page.getByRole("button",{name:"核对提交",exact:true}).click();await expect(page.getByRole("heading",{name:"合成绘画公开需求",exact:true})).toBeVisible();return page;}
@@ -62,7 +62,7 @@ test("提交、驳回修改重提、审核公开、匿名浏览及到期不可�
 test("提交响应丢失可同键重试，过期审核页面冲突不覆盖已决定结果",async({page,browser})=>{
   await prepared(page);let sent=0;
   await page.route("**/api/v1/requests/*/submit",async route=>{const response=await route.fetch();expect(response.status()).toBe(200);sent++;await route.abort("failed");},{times:1});
-  await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();await page.getByRole("button",{name:"确认提交审核",exact:true}).click();await expect(page.getByRole("alert")).toContainText("暂时无法连接服务");
+  await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();if(await page.getByRole("checkbox",{name:/我已阅读并同意/}).count()) await page.getByRole("checkbox",{name:/我已阅读并同意/}).check();await page.getByRole("button",{name:"确认提交审核",exact:true}).click();await expect(page.getByRole("alert")).toContainText("暂时无法连接服务");
   await page.getByRole("button",{name:"确认提交审核",exact:true}).click();await expect(page.getByText("待审核",{exact:true})).toBeVisible();expect(sent).toBe(1);
   const contexts=[await browser.newContext(),await browser.newContext()];
   try {
@@ -81,8 +81,8 @@ test("匿名与跨账号权限边界及显式提交的CSRF保护",async({page,br
     const other=await otherContext.newPage(),actor=user("REQUESTER");await login(other,actor);await expect(other.getByRole("button",{name:"需求审核",exact:true})).toHaveCount(0);
     expect((await other.request.get("/api/v1/requests/"+own.id)).status()).toBe(404);
     expect((await other.request.get("/api/v1/operations/submissions")).status()).toBe(403);
-    const headers=await csrfHeaders(other,actor);expect((await other.request.post(`/api/v1/requests/${own.id}/submit`,{headers:{...headers,"Idempotency-Key":crypto.randomUUID()},data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1"}})).status()).toBe(404);
-    expect((await page.request.post(`/api/v1/requests/${own.id}/submit`,{data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1"}})).status()).toBe(403);
+    const headers=await csrfHeaders(other,actor);expect((await other.request.post(`/api/v1/requests/${own.id}/submit`,{headers:{...headers,"Idempotency-Key":crypto.randomUUID()},data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1",policiesAccepted:true}})).status()).toBe(404);
+    expect((await page.request.post(`/api/v1/requests/${own.id}/submit`,{data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1",policiesAccepted:true}})).status()).toBe(403);
     const visitor=await anonymous.newPage();await visitor.goto("/");expect((await visitor.request.get("/api/v1/operations/submissions")).status()).toBe(401);expect((await visitor.request.get("/api/v1/public/requests/"+own.id)).status()).toBe(404);
     const pending=await page.request.get("/api/v1/requests/"+own.id);expect((await pending.json()).status).toBe("PENDING_REVIEW");expect(owner.id).not.toBe(actor.id);
   }finally{await otherContext.close();await anonymous.close();}
@@ -93,7 +93,7 @@ test("提交缺项能定位返回填写，保存后重新主动确认声明",asy
   await page.getByRole("button",{name:"1. 基本信息",exact:true}).click();
   await page.getByLabel("目标与现状",{exact:false}).fill("");
   await page.getByRole("button",{name:"保存并下一步"}).click();await page.getByRole("button",{name:"保存并预览"}).click();
-  await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();
+  await page.getByRole("radio",{name:"我为已满18岁的本人发布本条需求。",exact:true}).check();if(await page.getByRole("checkbox",{name:/我已阅读并同意/}).count()) await page.getByRole("checkbox",{name:/我已阅读并同意/}).check();
   await page.getByRole("button",{name:"确认提交审核",exact:true}).click();
   await expect(page.getByRole("alert")).toContainText("目标与现状");
   await page.getByRole("button",{name:/目标与现状：.*返回填写/}).click();
@@ -111,7 +111,7 @@ test("另一页面提交后旧草稿留输入并可明确读取只读状态",asy
   const second=await context.newPage();
   try{
     await second.goto("/");const headers=await csrfHeaders(second,owner);
-    const submitted=await second.request.post(`/api/v1/requests/${own.id}/submit`,{headers:{...headers,"Idempotency-Key":crypto.randomUUID()},data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1"}});expect(submitted.status()).toBe(200);
+    const submitted=await second.request.post(`/api/v1/requests/${own.id}/submit`,{headers:{...headers,"Idempotency-Key":crypto.randomUUID()},data:{expectedVersion:own.version,publisherDeclaration:"SELF_ADULT",declarationVersion:"publisher-v1",policiesAccepted:true}});expect(submitted.status()).toBe(200);
     await page.getByRole("button",{name:"保存草稿",exact:true}).click();await expect(page.getByRole("alert")).toContainText("当前需求不可修改");
     await expect(page.getByLabel("需求标题",{exact:false})).toHaveValue("尚未保存的旧页面输入");
     await page.getByRole("button",{name:"读取最新草稿",exact:true}).click();

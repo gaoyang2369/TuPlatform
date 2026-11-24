@@ -20,8 +20,9 @@ class VerificationController {
     @PostMapping(value="/verifications", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     VerificationService.Entry submit(HttpServletRequest request, @RequestParam(name="verify_type", required=false) String type,
+                                     @RequestParam(required=false) Boolean policiesAccepted,
                                      @RequestParam(required=false) MultipartFile file) {
-        return service.submit(AuthController.session(request), type, file);
+        return service.submit(AuthController.session(request), type, file, policiesAccepted);
     }
     @GetMapping("/admin/verifications")
     List<VerificationService.Entry> queue(HttpServletRequest request, @RequestParam(defaultValue="pending") String status) {
