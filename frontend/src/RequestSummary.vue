@@ -11,8 +11,8 @@ const study = computed(() => props.fields.categoryCode === "EXTRACURRICULAR_STUD
 const audience = computed(() => study.value ? [text("grade"), text("subject")].filter(Boolean).join(" · ") : stageNames[text("audienceStageCode")]);
 const category = computed(() => categoryNames[text("categoryCode")] || text("categoryCode"));
 const mode = computed(() => modeNames[text("serviceMode")]);
-const street = computed(() => areaNames[text("areaCode")] ? areaNames[text("areaCode")] + "街道" : "");
-const place = computed(() => street.value || text("locationText") || (mode.value === "线上" ? "" : props.districtLabel));
+const street = computed(() => text("street") || (areaNames[text("areaCode")] ? areaNames[text("areaCode")] + "街道" : ""));
+const place = computed(() => [street.value, text("area_hint")].filter(Boolean).join(" · ") || (mode.value === "线上" ? "" : props.districtLabel));
 const budget = computed(() => {
   const min = moneyText(props.fields.budgetMin), max = moneyText(props.fields.budgetMax);
   if (!min && !max) return "待补充";
@@ -36,7 +36,7 @@ const facts = computed(() => {
   return [
     { label: study.value ? "年级与科目" : "服务对象", icon: BookOpen, lines: [audience.value || "待补充", category.value] },
     { label: "授课安排", icon: Clock3, lines: [frequency, text("durationHours") ? text("durationHours") + " 小时/次" : "时长待补充"] },
-    { label: "方式与地点", icon: props.fields.serviceMode === "ONLINE" ? Monitor : Users, lines: [mode.value, street.value, text("locationText")].filter(Boolean) },
+    { label: "方式与地点", icon: props.fields.serviceMode === "ONLINE" ? Monitor : Users, lines: [mode.value, street.value, text("area_hint")].filter(Boolean) },
     { label: "可约时间", icon: CalendarClock, lines: [time.value, text("expectedStartDate") && "期望开始 " + text("expectedStartDate")] },
   ];
 });

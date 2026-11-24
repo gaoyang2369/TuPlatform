@@ -6,6 +6,7 @@ import { ArrowRight, Clock3, FilePenLine, Plus } from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import RecommendedTeachers from "./RecommendedTeachers.vue";
 import DraftChoices from "./DraftChoices.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import RequestSummary from "./RequestSummary.vue";
@@ -14,8 +15,8 @@ import { statusNames,declarationNames } from "./request-display.ts";
 import type { SavedRequest } from "./request-display.ts";
 type Slot = { weekday: number; startMinute: number; endMinute: number };
 type Saved = SavedRequest;
-type Options = { categories: string[]; streets: string[]; audienceStages: string[]; serviceModes: string[]; publisherDeclarations?: {code:string;version:string;label:string}[] };
-const emit = defineEmits<{ expired: []; dirty: [value: boolean]; profile: []; matches: [id:string] }>();
+type Options = { categories: string[]; streets: string[]; areaHints?: string[]; audienceStages: string[]; serviceModes: string[]; publisherDeclarations?: {code:string;version:string;label:string}[] };
+const emit = defineEmits<{ expired: []; dirty: [value: boolean]; profile: []; matches: [id:string]; teacher: [id:string] }>();
 const view = ref<"list" | "edit">("list"), busy = ref(false), message = ref(""), error = ref("");
 const feedbackId = ref(0);
 const items = ref<Saved[]>([]), nextCursor = ref<string | null>(null), current = ref<Saved | null>(null), latest = ref<Saved | null>(null);
@@ -23,13 +24,18 @@ const conflict = ref(false), step = ref(1), reached = ref(1);
 const errorSummary = ref<HTMLElement>();
 const stepHeading = ref<HTMLElement>();
 const fieldErrors=ref<Record<string,string>>({});
-const fieldNames:Record<string,string>={title:"需求标题",categoryCode:"服务类别",audienceStageCode:"服务对象阶段",areaCode:"地点",locationText:"小区或附近地标",grade:"年级",subject:"科目",goal:"目标与现状",serviceMode:"服务方式",budgetMin:"预算下限",budgetMax:"预算上限",durationHours:"单次时长",frequency:"频率",availableSlots:"可约时段",availabilityPreference:"时间偏好",availabilityNote:"时间备注",expectedStartDate:"期望开始日期",tutorExpectations:"对老师的期待",displayName:"本人展示名",publisherDeclaration:"本次发布声明",expectedVersion:"保存版本"};
+const fieldNames:Record<string,string>={title:"需求标题",categoryCode:"服务类别",audienceStageCode:"服务对象阶段",street:"公开街道",area_hint:"大致片区",exact_address:"具体地址",grade:"年级",subject:"科目",goal:"目标与现状",serviceMode:"服务方式",budgetMin:"预算下限",budgetMax:"预算上限",durationHours:"单次时长",frequency:"频率",availableSlots:"可约时段",availabilityPreference:"时间偏好",availabilityNote:"时间备注",expectedStartDate:"期望开始日期",tutorExpectations:"对老师的期待",displayName:"本人展示名",publisherDeclaration:"本次发布声明",expectedVersion:"保存版本"};
 const options = ref<Options>({ categories: [], streets: [], audienceStages: [], serviceModes: [] });
-const form = reactive({ title: "", categoryCode: "", audienceStageCode: "", areaCode: "", locationText: "", grade: "", subject: "", goal: "", serviceMode: "", budgetMin: "", budgetMax: "", durationHours: "2", frequencyMode: "", frequencyCount: "", availabilityMode: "NEGOTIABLE", preferredDays: [] as number[], preferredPeriods: [] as string[], availableSlots: [] as { weekday: number; start: string; end: string }[], availabilityNote: "", expectedStartDate: "", tutorExpectations: "" });
+const form = reactive({ title: "", categoryCode: "", audienceStageCode: "", street: "", area_hint: "", exact_address: "", grade: "", subject: "", goal: "", serviceMode: "", budgetMin: "", budgetMax: "", durationHours: "2", frequencyMode: "", frequencyCount: "", availabilityMode: "NEGOTIABLE", preferredDays: [] as number[], preferredPeriods: [] as string[], availableSlots: [] as { weekday: number; start: string; end: string }[], availabilityNote: "", expectedStartDate: "", tutorExpectations: "" });
 const baseline = ref("");
 const declaration=ref("");
 let pendingAction:{path:string;body:string;key:string}|null=null;
 const declarations=computed(()=>(options.value.publisherDeclarations??[]).filter(item=>form.audienceStageCode==='ADULT'?item.code==='SELF_ADULT':['PRIMARY','JUNIOR','SENIOR'].includes(form.audienceStageCode)?item.code==='GUARDIAN_OF_MINOR':true));
+const autoSavedAt = ref("");
+const autoSaving = ref(false);
+let autoTask: Promise<void> | undefined;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let mounted = true;
 let pendingCreation: { key:string; fields:Record<string,unknown> } | null = null;
 const unsaved = computed(() => current.value?.id === "");
 const dirty = computed(() => view.value === "edit" && current.value?.status==='DRAFT' && JSON.stringify(form) !== baseline.value);
@@ -59,10 +65,11 @@ function minute(value: string, end: boolean) {
 }
 function load(saved: Saved) {
   declaration.value="";pendingAction=null;
+  autoSavedAt.value="";
   current.value=saved; const f=saved.fields;
-  for(const key of ["title","categoryCode","audienceStageCode","areaCode","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","availabilityNote","expectedStartDate","tutorExpectations"] as const) form[key]=String(f[key]??"");
+  for(const key of ["title","categoryCode","audienceStageCode","street","area_hint","exact_address","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","availabilityNote","expectedStartDate","tutorExpectations"] as const) form[key]=String(f[key]??"");
   form.durationHours ||= "2";
-  if (!form.locationText && form.areaCode) form.locationText=(areaNames[form.areaCode]??form.areaCode)+"街道附近";
+  if (!form.street && areaNames[String(f.areaCode)]) form.street = areaNames[String(f.areaCode)] + "街道";
   const frequency=f.frequency as {mode?:string;count?:number|null}|undefined;
   form.frequencyMode=frequency?.mode??""; form.frequencyCount=frequency?.count==null?"":String(frequency.count);
   form.availableSlots=((f.availableSlots??[]) as Slot[]).map(s=>({weekday:s.weekday,start:time(s.startMinute),end:time(s.endMinute)}));
@@ -76,9 +83,8 @@ function fields() {
     throw new Error("每周次数须为1—14的整数；当前输入仍保留，请修改后再保存。");
   const result: Record<string,unknown>={};
   result.districtCode="SZ_PINGSHAN";
-  for(const key of ["title","categoryCode","audienceStageCode","areaCode","locationText","goal","serviceMode","budgetMin","budgetMax","durationHours","availabilityNote","expectedStartDate","tutorExpectations"] as const) result[key]=form[key]||null;
-  // New location text replaces a legacy street filter rather than silently retaining an outdated street.
-  if (form.locationText !== (areaNames[form.areaCode]??form.areaCode)+"街道附近") result.areaCode=null;
+  for(const key of ["title","categoryCode","audienceStageCode","street","area_hint","exact_address","goal","serviceMode","budgetMin","budgetMax","durationHours","availabilityNote","expectedStartDate","tutorExpectations"] as const) result[key]=form[key]||null;
+  result.areaCode = null; // Saving the structured street replaces the old street code.
   result.grade=form.categoryCode==='EXTRACURRICULAR_STUDY'?(form.grade||null):null;
   result.subject=form.categoryCode==='EXTRACURRICULAR_STUDY'?(form.subject||null):null;
   result.frequency=form.frequencyMode?{mode:form.frequencyMode,count:form.frequencyMode==="PER_WEEK"&&form.frequencyCount!==""?Number(form.frequencyCount):null}:null;
@@ -88,7 +94,7 @@ function fields() {
 }
 async function run(action: ()=>Promise<void>|void) {
   if(busy.value)return; busy.value=true; feedbackId.value++; message.value=""; error.value="";fieldErrors.value={};
-  try { await action(); }
+  try { await autoTask; await action(); }
   catch(e) {
     error.value=e instanceof Error?e.message:"操作未完成，请重试";
     if(e instanceof ApiFailure) {
@@ -103,7 +109,7 @@ async function run(action: ()=>Promise<void>|void) {
   }
 }
 function fieldFeedback(field: string, hint?: string) {
-  const key = field === "locationText" && fieldErrors.value.areaCode ? "areaCode" : field;
+  const key = field;
   const invalid = !!fieldErrors.value[key];
   return {
     "aria-invalid": invalid || undefined,
@@ -112,7 +118,7 @@ function fieldFeedback(field: string, hint?: string) {
 }
 async function focusField(name:string){
   if(name==='displayName'){emit("profile");return;}
-  if(name==='areaCode')name='locationText';
+
   step.value=name==='publisherDeclaration'?3:["budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate"].includes(name)?2:1;
   reached.value=Math.max(reached.value,step.value);await nextTick();document.getElementById("draft-"+name)?.focus();
 }
@@ -133,6 +139,7 @@ async function open(id: string) { await run(async()=>{const saved=await api.requ
 async function persist() {
   if(!current.value)throw new Error("请重新打开草稿。");
   if(conflict.value)throw new Error("请先读取并核对最新草稿，当前输入仍保留。");
+  const snapshot = JSON.stringify(form);
   const values=fields();
   if(unsaved.value) {
     pendingCreation??={key:crypto.randomUUID(),fields:values};
@@ -147,11 +154,44 @@ async function persist() {
     const changed=JSON.stringify(values)!==JSON.stringify(pendingCreation.fields);
     pendingCreation=null;
     if(created.status!=='DRAFT'||created.version!==0)throw new ApiFailure(409,"VERSION_CONFLICT","首次保存的草稿状态已变化，请读取并核对最新内容。当前输入仍保留。");
-    if(!changed){load(created);return;}
+    if(!changed){baseline.value=snapshot;return;}
   }
   const saved=await api.request<Saved>(`/requests/${current.value.id}/draft`,"PATCH",{expectedVersion:current.value.version,fields:values});
-  load(saved);
+  current.value=saved;
+  baseline.value=snapshot;
 }
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  if (!mounted || !dirty.value || conflict.value || confirmLeave.value) return;
+  saveTimer = setTimeout(startAutoSave, 1500);
+}
+function startAutoSave() {
+  if (!mounted || !dirty.value || conflict.value || confirmLeave.value) return;
+  if (busy.value || autoTask) { scheduleSave(); return; }
+  const sent = JSON.stringify(form);
+  autoSaving.value = true;
+  autoTask = persist().then(() => {
+    if (!mounted) return;
+    autoSavedAt.value = new Date(current.value!.lastSavedAt).toLocaleTimeString("zh-CN", {timeZone:"Asia/Shanghai",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+    error.value=""; fieldErrors.value={};
+  }).catch(e => {
+    if (!mounted) return;
+    error.value = e instanceof Error ? e.message : "自动保存失败，请点击保存草稿重试。";
+    if (e instanceof ApiFailure) {
+      fieldErrors.value = e.fieldErrors;
+      if (["VERSION_CONFLICT","REQUEST_READ_ONLY"].includes(e.code)) conflict.value=true;
+      if (e.status===401 || e.code==="SESSION_CHANGED") emit("expired");
+    }
+  }).finally(() => {
+    autoTask=undefined; autoSaving.value=false;
+    if (sent !== JSON.stringify(form)) scheduleSave();
+  });
+}
+watch(() => JSON.stringify(form), () => {
+  if (dirty.value) { declaration.value=""; pendingAction=null; }
+  scheduleSave();
+});
+watch(confirmLeave, scheduleSave);
 function statusColor(status: string) {
   if (status === "OPEN") return "bg-emerald-50 text-emerald-800";
   if (status === "PENDING_REVIEW" || status === "REJECTED") return "bg-orange-50 text-orange-800";
@@ -164,9 +204,10 @@ async function removeDraft() { await run(async()=>{
   catch(e) { if(!(e instanceof ApiFailure && e.status===404 && e.code==='NOT_FOUND'))throw e; }
   items.value=items.value.filter(value=>value.id!==item.id);deleting.value=null;message.value="草稿已删除。";
 }); }
-async function save(next=false) {await run(async()=>{await persist();message.value="草稿已保存。";if(next){step.value=Math.min(3,step.value+1);reached.value=Math.max(reached.value,step.value);await nextTick();stepHeading.value?.focus();}});}
+async function save(next=false) {clearTimeout(saveTimer);await run(async()=>{await persist();autoSavedAt.value="";message.value="草稿已保存。";if(next){step.value=Math.min(3,step.value+1);reached.value=Math.max(reached.value,step.value);await nextTick();stepHeading.value?.focus();}});}
 function requestLeave(action: ()=>Promise<void>|void) {
   if(busy.value)return;
+  if(autoTask){void autoTask.then(()=>requestLeave(action));return;}
   if(dirty.value){leaveAction=action;confirmLeave.value=true;}else void run(action);
 }
 async function leave(saveFirst:boolean) {await run(async()=>{if(saveFirst)await persist();const action=leaveAction;leaveAction=null;confirmLeave.value=false;if(action)await action();});}
@@ -199,7 +240,7 @@ onMounted(()=>{
   if (new URLSearchParams(location.search).get("create") === "1") void create();
   else void run(()=>list());
 });
-onBeforeUnmount(()=>window.removeEventListener("beforeunload",beforeUnload));
+onBeforeUnmount(()=>{mounted=false;clearTimeout(saveTimer);window.removeEventListener("beforeunload",beforeUnload);});
 defineExpose({requestLeave});
 </script>
 
@@ -207,7 +248,7 @@ defineExpose({requestLeave});
   <section class="draft-page space-y-5 text-foreground [overflow-wrap:anywhere]" :class="view==='edit' && 'mx-auto max-w-4xl'">
     <header class="flex flex-wrap items-center justify-between gap-3">
       <div><h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">{{ view==='list'?'我的需求':current?.status==='DRAFT'?'填写需求草稿':'需求进度' }}</h1>
-        <p class="mt-1 text-[15px] text-secondary-foreground">草稿手动保存，提交并审核通过后才会公开。</p></div>
+        <p class="mt-1 text-[15px] text-secondary-foreground">填写时会自动保存草稿，提交并通过审核后才会公开。</p></div>
       <Button v-if="view==='list'" class="h-11 rounded-xl" :disabled="busy" @click="create"><Plus/>新建需求草稿</Button>
       <Button v-else variant="outline" :disabled="busy" @click="requestLeave(()=>list())">返回我的需求</Button>
     </header>
@@ -224,6 +265,7 @@ defineExpose({requestLeave});
           <p v-if="item.retentionReminder" class="inline-warning">这份草稿长期未保存，7天内可能被清理；继续编辑并保存可保留。</p>
           <div class="flex flex-wrap items-center gap-2"><Button variant="secondary" class="h-10 flex-1 justify-between rounded-xl" :disabled="busy" @click="open(item.id)">{{ item.status==='DRAFT'?'继续填写':'查看进度' }}<ArrowRight/></Button>
             <Button v-if="item.status==='DRAFT' && !item.latestSubmission" variant="ghost" class="text-muted-foreground" :disabled="busy" @click="askDelete(item)">删除草稿</Button></div>
+          <RecommendedTeachers v-if="item.status==='PENDING_REVIEW'" :request-id="item.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
         </article>
       </div>
       <Button v-if="nextCursor" variant="secondary" :disabled="busy" @click="run(()=>list(true))">加载更多</Button><Button v-if="error" variant="secondary" :disabled="busy" @click="run(()=>list())">重新读取</Button>
@@ -231,6 +273,7 @@ defineExpose({requestLeave});
     <article v-else-if="current && current.status!=='DRAFT'" class="form-card">
       <Badge variant="secondary" :class="statusColor(current.status)">{{ statusNames[current.status] }}</Badge>
       <p v-if="current.status==='PENDING_REVIEW'" class="privacy-note">正在等待运营审核，当前仅本人可见。待审期间不可编辑或撤回。</p>
+      <RecommendedTeachers v-if="current.status==='PENDING_REVIEW'" :request-id="current.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
       <p v-if="current.status==='OPEN'" class="privacy-note">已审核通过，当前招募中。公开内容为本次提交版本，不能直接修改或暂停。</p>
       <p v-if="current.status==='EXPIRED'" class="privacy-note">需求已到期，不再公开。你可以主动修改后重新提交并等待审核。</p>
       <p v-if="current.latestSubmission?.reviewFeedback" class="message warning">驳回理由：{{ current.latestSubmission.reviewFeedback }}</p>
@@ -259,7 +302,11 @@ defineExpose({requestLeave});
         </section>
         <section v-if="step===1" class="form-section">
           <h2>授课安排与目标</h2>
-          <label for="draft-locationText">小区或附近地标 <span v-if="form.serviceMode==='ONLINE'" class="optional">线上服务可不填</span><input id="draft-locationText" v-bind="fieldFeedback('locationText')" v-model="form.locationText" placeholder="例如：坪山区 · 某某小区，或某某地铁站附近" maxlength="80"><small>将公开展示，方便老师估算通勤；请勿填写楼栋、门牌、联系方式。</small></label>
+          <p class="privacy-note">仅公开街道与大致片区，具体小区地址仅在双方确认意向后可见。</p>
+          <div><label for="draft-street">公开街道</label><select id="draft-street" v-model="form.street" v-bind="fieldFeedback('street')"><option value="">请选择（线上可不填）</option><option v-for="code in options.streets" :key="code">{{ areaNames[code] }}街道</option></select></div>
+          <div><label for="draft-area_hint">大致片区（选填）</label><select id="draft-area_hint" v-model="form.area_hint"><option value="">仅公开街道</option><option v-for="hint in options.areaHints" :key="hint">{{ hint }}</option></select></div>
+          <label>具体地址（选填）<input id="draft-exact_address" v-model="form.exact_address" v-bind="fieldFeedback('exact_address')" placeholder="具体小区、楼栋或见面地点" maxlength="160"><small>仅本条需求匹配的老师在双方同意交换联系方式后可见；停止分享后隐藏。</small></label>
+          <p v-if="current.fields.locationText" class="field-help">旧版地点（仅自己可见）：{{ current.fields.locationText }}。如需在互选后分享，请填写上方具体地址。</p>
           <label>目标与现状<textarea id="draft-goal" v-bind="fieldFeedback('goal')" v-model="form.goal" rows="6" placeholder="希望达到什么目标，目前有哪些基础？"></textarea><small>最多2000个字符，勿填儿童实名、学校班级、联系方式。</small></label>
           <DraftChoices id="draft-serviceMode" v-bind="fieldFeedback('serviceMode')" v-model="form.serviceMode" label="服务方式" :options="options.serviceModes" :names="modes" empty-label="留待沟通"/>
           <label>对老师的期待 <span class="optional">选填</span><textarea id="draft-tutorExpectations" v-bind="fieldFeedback('tutorExpectations')" v-model="form.tutorExpectations" rows="3"></textarea><small>最多500个字符。</small></label>
@@ -293,12 +340,13 @@ defineExpose({requestLeave});
         </section>
         <div v-if="step===3" class="draft-preview form-section">
           <RequestSummary :fields="current.fields" />
+          <p v-if="current.fields.exact_address" class="privacy-note">互选并交换联系方式后分享的地址：{{ current.fields.exact_address }}</p>
           <fieldset id="draft-publisherDeclaration" v-bind="fieldFeedback('publisherDeclaration')" tabindex="-1" class="publisher-declaration"><legend>本次发布声明 · 提交必选</legend>
             <label v-for="item in declarations" :key="item.code" class="check-line"><input v-model="declaration" type="radio" :value="item.code"><span>{{ item.label }}</span></label>
             <p class="field-help">每次提交都需主动选择。该声明仅本人及审核人员可见。</p>
           </fieldset>
         </div>
-        <div class="draft-actions"><p class="save-state" role="status">{{ unsaved?'尚未保存，点击保存后才会生成草稿':dirty?'有尚未保存的修改':'当前为已保存内容' }}</p><div class="action-buttons"><Button v-if="step>1" type="button" variant="secondary" @click="step--">上一步</Button><Button v-if="step<3" type="submit" variant="secondary" :disabled="conflict">保存草稿</Button><template v-else><Button type="button" variant="secondary" @click="requestLeave(()=>list())">返回我的需求</Button><Button type="button" variant="ghost" @click="refresh">重新读取保存状态</Button></template><Button v-if="step<3" type="button" :disabled="conflict" @click="save(true)">{{ step===1?'保存并下一步':'保存并预览' }}</Button><Button v-else type="button" :disabled="!declaration||dirty||conflict" @click="submit">确认提交审核</Button></div></div>
+        <div class="draft-actions"><p class="save-state" role="status">{{ autoSaving?'正在自动保存…':dirty?'有尚未保存的修改':unsaved?'开始填写后自动保存':autoSavedAt?'已自动保存 · '+autoSavedAt:'当前为已保存内容' }}</p><div class="action-buttons"><Button v-if="step>1" type="button" variant="secondary" @click="step--">上一步</Button><Button v-if="step<3" type="submit" variant="secondary" :disabled="conflict">保存草稿</Button><template v-else><Button type="button" variant="secondary" @click="requestLeave(()=>list())">返回我的需求</Button><Button type="button" variant="ghost" @click="refresh">重新读取保存状态</Button></template><Button v-if="step<3" type="button" :disabled="conflict" @click="save(true)">{{ step===1?'保存并下一步':'保存并预览' }}</Button><Button v-else type="button" :disabled="!declaration||dirty||conflict" @click="submit">确认提交审核</Button></div></div>
       </fieldset></form>
     </template>
     <ConfirmDialog :open="confirmLeave" title="还有未保存的修改" cancel-text="继续编辑" confirm-text="保存并离开" :busy="busy" @cancel="confirmLeave=false" @confirm="leave(true)">
@@ -321,8 +369,8 @@ defineExpose({requestLeave});
 .draft-steps [aria-current="step"], button[aria-pressed="true"] { @apply bg-blue-50 font-semibold text-primary; }
 .draft-steps button:disabled:not([aria-current]), button:disabled { @apply opacity-50; }
 .draft-form label:not(.sr-only), .draft-form legend { @apply text-sm font-semibold; }
-.draft-form input:not([type="radio"]), .draft-form textarea { @apply mt-1.5 block min-h-11 w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-base font-normal text-foreground; }
-.draft-form input:focus-visible, .draft-form textarea:focus-visible, button:focus-visible { @apply outline-2 outline-offset-2 outline-primary; }
+.draft-form input:not([type="radio"]), .draft-form select, .draft-form textarea { @apply mt-1.5 block min-h-11 w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-base font-normal text-foreground; }
+.draft-form input:focus-visible, .draft-form select:focus-visible, .draft-form textarea:focus-visible, button:focus-visible { @apply outline-2 outline-offset-2 outline-primary; }
 .draft-form label:not(.sr-only) { @apply block; }
 .draft-form small, .field-help, .save-state, .optional { @apply text-xs leading-5 font-normal text-muted-foreground; }
 .draft-form small, .field-help { @apply mt-1.5 block; }

@@ -18,8 +18,8 @@ final class SubmissionRules {
         }
         Rules.text("title",fields.path("title").asText(),60,true);
         Rules.text("goal",fields.path("goal").asText(),2000,true);
-        if (!fields.path("serviceMode").asText().equals("ONLINE") && fields.path("areaCode").asText("").isBlank())
-            Rules.text("locationText",fields.path("locationText").asText(""),80,true);
+        if (!fields.path("serviceMode").asText().equals("ONLINE") && RequestLocation.street(fields).isEmpty())
+            throw ApiError.invalid("street","请选择公开街道");
         if (fields.path("categoryCode").asText().equals("EXTRACURRICULAR_STUDY")) {
             Rules.text("grade",fields.path("grade").asText(""),20,true);
             Rules.text("subject",fields.path("subject").asText(""),40,true);

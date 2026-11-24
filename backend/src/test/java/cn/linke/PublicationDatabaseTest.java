@@ -25,6 +25,7 @@ class PublicationDatabaseTest {
         if(url==null||!url.matches("jdbc:postgresql://[^/]+/[A-Za-z0-9_]+_test(?:\\?.*)?"))throw new IllegalStateException("Dedicated _test database required");
         p.add("spring.datasource.url",()->url);p.add("spring.datasource.username",()->System.getenv("TEST_DB_USERNAME"));p.add("spring.datasource.password",()->System.getenv("TEST_DB_PASSWORD"));
     }
+    @Autowired ProfileService profiles;
     @Autowired AuthService auth; @Autowired RequestDraftService drafts; @Autowired RequestPublicationService publishing;
     @Autowired JdbcTemplate db; @Autowired ObjectMapper json; @MockitoBean MailGateway mail;
     private String token;private final List<UUID> accounts=new ArrayList<>();
@@ -132,7 +133,7 @@ class PublicationDatabaseTest {
     @Test void communityStudyAndBroadTimeSurviveSaveSubmissionReviewAndPublicSearch() throws Exception {
         User owner=user("REQUESTER",false),operator=user("TUTOR",true);SavedDraft original=ready(owner);
         String location="坪山区 · 合成花园"+UUID.randomUUID().toString().substring(0,8);
-        ObjectNode changes=json.createObjectNode().put("categoryCode","EXTRACURRICULAR_STUDY").put("grade","成人学习").put("subject","英语").put("locationText",location).putNull("areaCode");
+        ObjectNode changes=json.createObjectNode().put("categoryCode","EXTRACURRICULAR_STUDY").put("grade","成人学习").put("subject","英语").put("locationText",location).put("exact_address",location+"3栋").put("street","坪山街道").put("area_hint","中心公园附近").putNull("areaCode");
         changes.putArray("availableSlots");
         ObjectNode preference=changes.putObject("availabilityPreference").put("mode","PREFERRED");
         preference.putArray("weekdays").add(6).add(7);preference.putArray("periods").add("AFTERNOON");
@@ -142,11 +143,52 @@ class PublicationDatabaseTest {
         assertEquals("英语",publishing.reviewDetail(operator.session(),submitted.submissionId()).fields().path("subject").asText());
         approve(operator,submitted);
         var visible=publishing.publicDetail(saved.id());
-        assertEquals(location,visible.get("locationText"));assertEquals("成人学习",visible.get("grade"));assertEquals("英语",visible.get("subject"));
+        assertEquals("坪山街道",visible.get("street"));assertEquals("中心公园附近",visible.get("area_hint"));
+        for (Object response : List.of(visible,publishing.publicList(null,null,null,null))) {
+            String encoded=json.writeValueAsString(response);
+            assertFalse(encoded.contains(location));assertFalse(encoded.contains("exact_address"));assertFalse(encoded.contains("locationText"));
+        }
+        assertEquals("成人学习",visible.get("grade"));assertEquals("英语",visible.get("subject"));
         assertEquals("PREFERRED",((Map<?,?>)visible.get("availabilityPreference")).get("mode"));
         assertTrue(((List<?>)visible.get("availableSlots")).isEmpty());
-        assertEquals(1,((List<?>)publishing.publicList(null,null,null,null,location).get("items")).size());
-        assertTrue(((List<?>)publishing.publicList(null,null,null,null,"不存在"+location).get("items")).isEmpty());
+        assertEquals(1,((List<?>)publishing.publicList(null,null,null,null,"中心公园").get("items")).size());
+        assertTrue(((List<?>)publishing.publicList(null,null,null,null,location).get("items")).isEmpty());
+        db.update("""
+            UPDATE request_submissions SET fields=(fields-'street'-'area_hint'-'exact_address')
+                || '{"areaCode":"PS_PINGSHAN"}'::jsonb WHERE id=?
+            """,submitted.submissionId());
+        var legacy=publishing.publicDetail(saved.id());
+        assertEquals("坪山片区",legacy.get("area_hint"));
+        assertFalse(json.writeValueAsString(legacy).contains(location));
+        assertFalse(((List<?>)publishing.publicList(null,null,null,null,"坪山片区").get("items")).isEmpty());
+        assertTrue(((List<?>)publishing.publicList(null,null,null,null,location).get("items")).isEmpty());
+    }
+    @Test void pendingRecommendationsRankEligibleTeachersAndRequireTheOwner() throws Exception {
+        User owner=user("REQUESTER",false), stranger=user("REQUESTER",false);
+        var draft=ready(owner);
+        var saved=drafts.save(owner.session(),draft.id(),new DraftPatch(draft.version(),
+            json.createObjectNode().put("grade","初二").put("subject","数学").put("serviceMode","OFFLINE")));
+        assertThrows(ApiError.class,()->profiles.recommendedTeachers(owner.session(),draft.id()));
+        submit(owner,saved);
+        assertEquals(404,assertThrows(ApiError.class,()->profiles.recommendedTeachers(stranger.session(),draft.id())).status);
+        var eligible=new ArrayList<UUID>();
+        for (int i=0;i<6;i++) {
+            var t=user("TUTOR",false);
+            db.update("""
+                UPDATE profiles SET display_name='合成老师',introduction='合成介绍',is_public=?,school_name=?,category_codes='["DRAWING"]',service_modes='["OFFLINE"]',
+                    area_codes='["PS_PINGSHAN"]',teach_grades='["初二"]',teach_subjects='["数学"]',
+                    price_min=1050,price_max=1100 WHERE account_id=?
+                """, i!=4, i==5 ? "其他院校" : "深圳技术大学",t.id());
+            if(i<4) eligible.add(t.id());
+        }
+        db.update("INSERT INTO verifications(id,user_id,verify_type,proof_path,status,reviewed_at) VALUES(?,?,'student_id',?,'approved',now())",
+            UUID.randomUUID(),eligible.get(1),UUID.randomUUID().toString());
+        var cards=profiles.recommendedTeachers(owner.session(),draft.id());
+        assertEquals(3,cards.size());assertEquals(eligible.get(1),cards.getFirst().get("id"));
+        for (var card : cards) {
+            assertTrue(eligible.contains(card.get("id")));
+            assertEquals(List.of("同街道","年级匹配","科目匹配","方式匹配","预算相符"),card.get("reasons"));
+        }
     }
     @Test void publicPagesHaveTenDistinctItemsAndSupportDistrictGradeAndMultipleSubjects() {
         User owner=user("REQUESTER",false);

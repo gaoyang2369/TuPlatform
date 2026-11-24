@@ -61,7 +61,7 @@ class RulesTest {
     @Test void selectionsRespectConfiguredCategoriesAndRequiredOfflineArea() {
         assertThrows(ApiError.class, () -> Rules.choices("categoryCodes", List.of("DRAWING"), Set.of(), true));
         assertThrows(ApiError.class, () -> Rules.choices("serviceModes", List.of("ONLINE", "ONLINE"), Rules.MODES, true));
-        var service = new ProfileService(null, null, null, null, "DRAWING", "试点大学");
+        var service = new ProfileService(null, null, null, null, "DRAWING", "试点大学", null);
         assertDoesNotThrow(() -> service.validateTeacher(ResumeFixtures.teacher(0L, "老师", List.of("DRAWING"), List.of("ONLINE"), List.of(), "自述", null, null, ""), true));
         assertThrows(ApiError.class, () -> service.validateTeacher(ResumeFixtures.teacher(0L, "老师", List.of("DRAWING"), List.of("OFFLINE"), List.of(), "自述", null, null, ""), true));
         assertDoesNotThrow(() -> service.validateTeacher(ResumeFixtures.teacher(0L, "", List.of(), List.of(), List.of(), "", null, null, ""), false));

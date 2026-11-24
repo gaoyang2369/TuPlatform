@@ -51,7 +51,7 @@ public class DemoData {
             require(requests.add(text(r,"key")),"Duplicate request key");require(accounts.contains(text(r,"owner")),"Missing owner");
             var fields=(ObjectNode)r.path("fields");require(titles.add(text(fields,"title")),"Duplicate title");
             naturalText(text(fields,"title"));naturalText(text(fields,"goal"));naturalText(text(r,"publisherDisplayName"));
-            require(text(fields,"locationText").startsWith("深圳市坪山区") && text(fields,"locationText").length()>8,"Neighborhood-level location required");
+            require(fields.hasNonNull("street") && fields.hasNonNull("area_hint") && !fields.has("locationText"),"Neighborhood-level location required");
             if(text(r,"status").equals("DRAFT")) DraftRules.validate(fields,Rules.CATEGORIES);
             else SubmissionRules.validate(fields,Rules.CATEGORIES,text(r,"publisherDisplayName"),new SubmitRequest(1L,text(r,"declaration"),"publisher-v1"),text(r,"status").equals("EXPIRED")?now.minusDays(18):now);
         }

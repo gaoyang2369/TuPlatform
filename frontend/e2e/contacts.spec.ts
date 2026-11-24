@@ -34,9 +34,19 @@ async function prepare(ownerPage:Page,tutorPage:Page,operatorPage:Page,ui=false)
   let request:string;
   if(ui){
     await ownerPage.getByRole('button',{name:'我的需求',exact:true}).click();await ownerPage.getByRole('button',{name:'新建需求草稿'}).click();
-    await ownerPage.getByLabel('需求标题',{exact:false}).fill('合成联系方式闭环');await ownerPage.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"绘画",exact:true}).check();await ownerPage.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"成年",exact:true}).check();await ownerPage.getByLabel('小区或附近地标',{exact:false}).fill('坪山区 · 合成花园');await ownerPage.getByLabel('目标与现状',{exact:false}).fill('合成绘画目标');
+    await ownerPage.getByLabel('需求标题',{exact:false}).fill('合成联系方式闭环');await ownerPage.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"绘画",exact:true}).check();await ownerPage.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"成年",exact:true}).check();await ownerPage.getByLabel("公开街道").selectOption("坪山街道");await ownerPage.getByLabel("具体地址").fill("合成私密花园3栋");await ownerPage.getByLabel('目标与现状',{exact:false}).fill('合成绘画目标');
+    await ownerPage.getByRole("group",{name:"服务方式",exact:true}).getByRole("radio",{name:"线上",exact:true}).check();
     await ownerPage.getByRole('button',{name:'保存并下一步'}).click();await ownerPage.getByLabel('预算下限').fill('100');await ownerPage.getByLabel('预算上限').fill('200');await ownerPage.getByLabel('单次时长（小时）',{exact:true}).fill('1.5');await ownerPage.getByRole("group",{name:"频率",exact:true}).getByRole("radio",{name:"可协商",exact:true}).check();await ownerPage.getByRole('radio',{name:'填写精确时间',exact:true}).check();await ownerPage.getByRole('button',{name:'添加时段'}).click();await ownerPage.getByRole('button',{name:'保存并预览'}).click();
     await expect(ownerPage.getByRole('button',{name:'确认提交审核',exact:true})).toBeDisabled();await ownerPage.getByRole('radio',{name:'我为已满18岁的本人发布本条需求。',exact:true}).check();await ownerPage.getByRole('button',{name:'确认提交审核',exact:true}).click();await expect(ownerPage.getByText('待审核',{exact:true})).toBeVisible();
+    const recommended = ownerPage.getByRole('button',{name:'查看老师资料：合成绘画老师'});
+    await expect(recommended).toBeVisible();
+    await ownerPage.getByRole('button',{name:'返回我的需求',exact:true}).click();
+    await recommended.click();
+    await expect(ownerPage.getByRole('dialog',{name:'老师资料'})).toContainText('合成绘画老师');
+    await ownerPage.getByRole('button',{name:'邀请这位老师'}).click();
+    await expect(ownerPage.getByRole('button',{name:'发送邀请',exact:true})).toBeEnabled();
+    await ownerPage.getByRole('button',{name:'返回我的需求',exact:true}).click();
+    await expect(ownerPage.getByRole('heading',{name:'我的需求',exact:true})).toBeVisible();
     request=(await(await ownerPage.request.get('/api/v1/me/requests')).json()).items[0].id;
     await operatorPage.getByRole('button',{name:'需求审核',exact:true}).click();await operatorPage.getByRole('button',{name:'核对提交',exact:true}).click();await operatorPage.getByRole('radio',{name:'通过审核并公开',exact:true}).check();await operatorPage.getByRole('button',{name:'核对并确认审核'}).click();await operatorPage.getByRole('button',{name:'确认通过并公开',exact:true}).click();await expect(operatorPage.getByRole("dialog", {name:"核对提交", exact:true}).getByText('已通过',{exact:true})).toBeVisible();
   }else{
@@ -76,11 +86,21 @@ test('无需发布需求，发送和接受即同意交换，互选前隐藏、�
 });
 test('完整投递闭环：发布审核、接受后联系，停止分享可取消和确认',async({page,browser},info)=>{
   const tc=await browser.newContext({viewport:info.project.use.viewport,isMobile:info.project.use.isMobile,hasTouch:info.project.use.hasTouch}),oc=await browser.newContext({viewport:info.project.use.viewport});
-  try{const tp=await tc.newPage(),op=await oc.newPage();await prepare(page,tp,op,true);
+  try{const tp=await tc.newPage(),op=await oc.newPage();const data=await prepare(page,tp,op,true);
+    for (const route of ['/public/requests','/public/requests/'+data.request]) {
+      const response=await tp.request.get('/api/v1'+route);
+      expect(response.ok()).toBe(true);
+      const json=await response.text();
+      expect(json).toContain('坪山街道');
+      expect(json).not.toMatch(/exact_address|locationText|合成私密花园/);
+    }
     await tp.getByRole('button',{name:'浏览需求',exact:true}).click();await tp.getByRole('button',{name:'查看需求',exact:true}).click();await tp.getByRole('button',{name:'发出意向',exact:true}).click();await tp.getByRole('button',{name:'确认投递',exact:true}).click();await expect(tp.locator('.match-detail .status-pill')).toHaveText('等待对方回应');
-    await progress(page);await accept(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('13800000001');
+    const matchId=new URL(tp.url()).searchParams.get("match");
+    const detail=()=>tp.request.get("/api/v1/matches/"+matchId);
+    expect(await (await detail()).text()).not.toMatch(/exact_address|合成私密花园/);
+    await progress(page);await accept(page);await expect(page.getByTestId('shared-contacts')).toContainText('tutor_contact');await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toContainText('13800000001');await expect(tp.getByTestId('shared-contacts')).toContainText('合成私密花园3栋');expect((await (await detail()).json()).exact_address).toBe('合成私密花园3栋');
     const m=(await(await page.request.get('/api/v1/me/matches')).json()).items[0];const publicRequest=await(await page.request.get(`/api/v1/public/requests/${m.requestId}`)).json();for(const f of ['phone','wechat','email'])expect(publicRequest).not.toHaveProperty(f);
-    await stop(page,true);await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式',exact:true})).toBeEnabled();hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);
+    await stop(page,true);await expect(page.getByTestId('shared-contacts')).toBeVisible();await page.getByRole('button',{name:'停止分享',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'停止分享',exact:true}).click();await expect(page.getByTestId('shared-contacts')).toHaveCount(0);await expect(page.getByRole('button',{name:'同意交换联系方式',exact:true})).toBeEnabled();hidden(await(await tp.request.get(`/api/v1/matches/${m.id}/contact-consent`)).json());await refresh(tp);await expect(tp.getByTestId('shared-contacts')).toHaveCount(0);expect(await (await detail()).text()).not.toMatch(/exact_address|合成私密花园/);
   }finally{await tc.close();await oc.close();}
 });
 test('旧关系一次同意即可交换，变更需重新确认，丢失响应同键恢复且不复活已撤回值',async({page,browser},info)=>{

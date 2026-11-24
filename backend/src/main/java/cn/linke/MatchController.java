@@ -13,7 +13,7 @@ class MatchController {
     @GetMapping("/me/matches") Map<String,Object> list(HttpServletRequest req,
         @RequestParam(required=false) String cursor, @RequestParam(required=false) String state,
         @RequestParam(required=false) UUID requestId) { return matches.list(AuthController.session(req),cursor,state,requestId); }
-    @GetMapping("/matches/{id}") MatchView detail(@PathVariable UUID id,HttpServletRequest req) { return matches.detail(AuthController.session(req),id); }
+    @GetMapping("/matches/{id}") MatchDetail detail(@PathVariable UUID id,HttpServletRequest req) { return matches.privateDetail(AuthController.session(req),id); }
     @PostMapping("/matches") MatchStartResult start(@RequestBody StartMatch body,
         @RequestHeader(value="Idempotency-Key",required=false) String key,HttpServletRequest req) {
         return matches.start(AuthController.session(req),body,key);

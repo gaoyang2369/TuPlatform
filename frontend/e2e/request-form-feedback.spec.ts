@@ -11,7 +11,7 @@ for (const legacy of [false, true]) {
       if(endpoint==="/me")return route.fulfill({json:{id:"00000000-0000-4000-8000-000000000011",account:"form_test",email:"form@example.invalid",emailVerified:true,businessIdentity:"REQUESTER",operatorGranted:false,profileVersion:0}});
       if(endpoint==="/me/profile")return route.fulfill({json:{displayName:"测试需求方",version:0,teacher:null}});
       if(endpoint==="/profile-options")return route.fulfill({json:{categoryCodes:[],serviceModes:[],areaCodes:[]}});
-      if(endpoint==="/publishing-options")return route.fulfill({json:{categories:["DRAWING","EXTRACURRICULAR_STUDY"],streets:["PS_SHIJING"],audienceStages:["PRIMARY","JUNIOR","SENIOR","ADULT"],serviceModes:["ONLINE","OFFLINE"],publisherDeclarations:[{code:"GUARDIAN_OF_MINOR",version:"publisher-v1",label:"我作为监护人为未成年人发布本条需求。"},{code:"SELF_ADULT",version:"publisher-v1",label:"我为已满18岁的本人发布本条需求。"}]}});
+      if(endpoint==="/publishing-options")return route.fulfill({json:{categories:["DRAWING","EXTRACURRICULAR_STUDY"],streets:["PS_SHIJING"],areaHints:["石井片区"],audienceStages:["PRIMARY","JUNIOR","SENIOR","ADULT"],serviceModes:["ONLINE","OFFLINE"],publisherDeclarations:[{code:"GUARDIAN_OF_MINOR",version:"publisher-v1",label:"我作为监护人为未成年人发布本条需求。"},{code:"SELF_ADULT",version:"publisher-v1",label:"我为已满18岁的本人发布本条需求。"}]}});
       if(endpoint==="/auth/csrf")return route.fulfill({json:{token:"mock-csrf",headerName:"X-XSRF-TOKEN"}});
       if(endpoint==="/me/requests")return route.fulfill({json:{items:[saved],nextCursor:null}});
       if(endpoint===`/requests/${id}/draft`){
@@ -24,16 +24,16 @@ for (const legacy of [false, true]) {
       return route.fulfill({status:404,json:{message:"Unexpected test endpoint"}});
     });
     await page.goto("/");await page.getByRole("button",{name:"我的需求",exact:true}).click();await page.getByRole("button",{name:"继续填写",exact:true}).click();
-    const location=page.getByLabel("小区或附近地标",{exact:false});
+    const location=page.getByLabel("公开街道");
     if(legacy){
-      await expect(location).toHaveValue("石井街道附近");
+      await expect(location).toHaveValue("石井街道");
       await page.getByRole("button",{name:"2. 时间预算",exact:true}).click();
       await expect(page.getByRole("radio",{name:"填写精确时间",exact:true})).toBeChecked();
       await expect(page.getByLabel("开始",{exact:true})).toHaveValue("09:00");await expect(page.getByLabel("结束",{exact:true})).toHaveValue("10:00");
       await expect(page.getByLabel("单次时长（小时）",{exact:true})).toHaveValue("8");
       await page.getByRole("button",{name:"减少半小时",exact:true}).click();await page.getByRole("button",{name:"保存并预览",exact:true}).click();
       await expect(page.locator(".request-summary")).toContainText("7.5 小时");
-      expect(saved.fields.areaCode).toBe("PS_SHIJING");expect(saved.fields.durationHours).toBe("7.5");expect(saved.fields.availableSlots).toEqual([{weekday:6,startMinute:540,endMinute:600}]);
+      expect(saved.fields.street).toBe("石井街道");expect(saved.fields.durationHours).toBe("7.5");expect(saved.fields.availableSlots).toEqual([{weekday:6,startMinute:540,endMinute:600}]);
       await expect(page.locator(".request-summary")).toContainText("09:00—10:00");
       await expect(page.locator(".request-summary dt").filter({hasText:/^服务对象$/})).toHaveCount(1);
       await expect(page.locator(".request-summary dt").filter({hasText:/^服务方式$/})).toHaveCount(0);
@@ -41,7 +41,7 @@ for (const legacy of [false, true]) {
     }
     await page.getByLabel("需求标题",{exact:false}).fill("周末数学辅导");
     await page.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"课外学习",exact:true}).check();await page.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"高中",exact:true}).check();
-    await page.locator("#draft-grade").fill("高二");await page.locator("#draft-subject").fill("数学");await location.fill("坪山区 · 测试花园");
+    await page.locator("#draft-grade").fill("高二");await page.locator("#draft-subject").fill("数学");await location.selectOption("石井街道");await page.getByLabel("大致片区").selectOption("石井片区");await page.getByLabel("具体地址").fill("坪山区 · 测试花园");
     await page.getByLabel("目标与现状",{exact:false}).fill("巩固基础，逐步提升。");await page.getByRole("group",{name:"服务方式",exact:true}).getByRole("radio",{name:"线下",exact:true}).check();
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/basic-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并下一步",exact:true}).click();
@@ -54,8 +54,8 @@ for (const legacy of [false, true]) {
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/time-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并预览",exact:true}).click();
     await expect(page.getByRole("heading",{name:"周末数学辅导",exact:true})).toBeVisible();
-    expect(saved.fields.availabilityPreference).toEqual({mode:"PREFERRED",weekdays:[6,7],periods:["AFTERNOON"]});expect(saved.fields.availableSlots).toEqual([]);expect(saved.fields.grade).toBe("高二");expect(saved.fields.subject).toBe("数学");expect(saved.fields.locationText).toBe("坪山区 · 测试花园");
-    const summary=page.locator(".request-summary");await expect(summary).toContainText("周末 · 下午（具体时间可协商）");await expect(summary).toContainText("高二");await expect(summary).toContainText("数学");await expect(summary).toContainText("测试花园");
+    expect(saved.fields.availabilityPreference).toEqual({mode:"PREFERRED",weekdays:[6,7],periods:["AFTERNOON"]});expect(saved.fields.availableSlots).toEqual([]);expect(saved.fields.grade).toBe("高二");expect(saved.fields.subject).toBe("数学");expect(saved.fields.exact_address).toBe("坪山区 · 测试花园");
+    const summary=page.locator(".request-summary");await expect(summary).toContainText("周末 · 下午（具体时间可协商）");await expect(summary).toContainText("高二");await expect(summary).toContainText("数学");await expect(summary).toContainText("石井片区");await expect(summary).not.toContainText("测试花园");
     await expect(summary.locator("dt").filter({hasText:/^服务对象$/})).toHaveCount(0);
     await expect(summary.locator("dt").filter({hasText:/^年级与科目$/})).toHaveCount(1);
     await expect(summary.locator("dl > div")).toHaveCount(4);
@@ -69,7 +69,7 @@ for (const legacy of [false, true]) {
     await page.getByRole("button",{name:"保存并预览",exact:true}).click();
     await expect(summary).toContainText("周日下午优先");await expect(summary).toContainText("2099-01-01");
     await page.getByRole("button",{name:"返回我的需求",exact:true}).first().click();await page.getByRole("button",{name:"继续填写",exact:true}).click();
-    await expect(page.locator("#draft-grade")).toHaveValue("高二");await expect(location).toHaveValue("坪山区 · 测试花园");await page.getByRole("button",{name:"2. 时间预算",exact:true}).click();
+    await expect(page.locator("#draft-grade")).toHaveValue("高二");await expect(location).toHaveValue("石井街道");await page.getByRole("button",{name:"2. 时间预算",exact:true}).click();
     await expect(page.getByRole("radio",{name:"选择偏好时段",exact:true})).toBeChecked();await expect(page.getByRole("button",{name:"下午",exact:true})).toHaveAttribute("aria-pressed","true");
     await page.getByRole("button",{name:"保存并预览",exact:true}).click();await page.getByRole("radio",{name:"我作为监护人为未成年人发布本条需求。",exact:true}).check();await submit.click();
     await expect(page.getByText("待审核",{exact:true})).toBeVisible();expect(submitted).toBe(true);

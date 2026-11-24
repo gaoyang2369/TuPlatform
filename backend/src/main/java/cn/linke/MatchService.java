@@ -58,6 +58,12 @@ class MatchService {
             (String) r.get("REQUESTER".equals(role) ? "tutor_avatar" : "requester_avatar"));
     }
     public MatchView detail(String session,UUID id) { Account a=actor(session);return view(own(a.id(),id),a.id()); }
+    public MatchDetail privateDetail(String session, UUID id) {
+        MatchView match = detail(session, id);
+        if (!"TUTOR".equals(match.myRole()) || !"MUTUAL".equals(match.state()) || match.requestId() == null)
+            return new MatchDetail(match, null);
+        return new MatchDetail(match, contacts.sharedRequestAddress(session, id, match.roundId()));
+    }
     public Map<String,Object> list(String session,String cursor,String state,UUID requestId) {
         Account a=actor(session);UUID after=ProfileService.pageCursor(cursor);
         List<Object> args=new ArrayList<>(List.of(a.id(),a.id(),after));

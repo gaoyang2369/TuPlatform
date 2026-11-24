@@ -64,10 +64,12 @@ for rid,row in expected.items():
     natural_content(result['title'])
     natural_content(result['publisherDisplayName'])
     natural_content(result['goal'])
-    assert result['locationText'].startswith('深圳市坪山区')
-    assert len(result['locationText']) > len('深圳市坪山区') + 2
+    assert result['street'] == row['fields']['street']
+    assert result['area_hint'] == row['fields']['area_hint']
+    assert not {'locationText','exact_address'} & result.keys()
     assert not {'email','password','publisherDeclaration','phone','wechat'} & result.keys()
     detail = call('/public/requests/'+rid)
+    assert not {'locationText','exact_address'} & detail.keys()
     for key,value in row['fields'].items():
         assert detail[key] == value, f'Public field mismatch: {key}'
 hidden = {fixture_id(row['key']) for row in DATA['requests'] if row['status']!='OPEN'}
@@ -82,9 +84,9 @@ for category in categories:
 for mode in ['ONLINE','OFFLINE']:
     items = all_pages('/public/requests',dict(serviceMode=mode))
     assert all(item['serviceMode']==mode for item in items)
-for area in sorted({row['fields']['areaCode'] for row in expected.values()}):
+for area, street in {'PS_PINGSHAN': '坪山街道', 'PS_KENGZI': '坑梓街道', 'PS_LONGTIAN': '龙田街道', 'PS_SHIJING': '石井街道', 'PS_MALUAN': '马峦街道', 'PS_BILING': '碧岭街道'}.items():
     items = all_pages('/public/requests',dict(areaCode=area))
-    assert all(item['areaCode']==area for item in items)
+    assert all(item['street']==street for item in items)
 
 credentials = json.loads((ROOT/'.tools/demo-data/credentials.local.json').read_text(encoding='utf-8'))
 def login(account):
@@ -124,6 +126,6 @@ try:
 finally:
     try: call('/auth/logout',{},'POST')
     except Exception: pass
-report = dict(result='PASS',httpRequests=checks,publicSeedRequests=len(expected),publicSeedTeachers=len(wanted_teachers),hiddenWorkflowRequests=len(hidden),allFourCategories=True,allSixAreas=True,bothServiceModes=True,loginBothRoles=True,noVisibleFixtureMarkers=True,neighborhoodLocations=len({row['fields']['locationText'] for row in expected.values()}))
+report = dict(result='PASS',httpRequests=checks,publicSeedRequests=len(expected),publicSeedTeachers=len(wanted_teachers),hiddenWorkflowRequests=len(hidden),allFourCategories=True,allSixAreas=True,bothServiceModes=True,loginBothRoles=True,noVisibleFixtureMarkers=True,neighborhoodLocations=len({row['fields']['area_hint'] for row in expected.values()}))
 (ROOT/'.tools/demo-data/http-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(report,ensure_ascii=False))

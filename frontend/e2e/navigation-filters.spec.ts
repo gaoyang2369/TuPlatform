@@ -31,7 +31,7 @@ for(const identity of ["REQUESTER","TUTOR"] as const) {
 }
 
 test("浏览列表每页10条、组合筛选与详情返回保留页码",async({page},info)=>{
-  const data=Array.from({length:23},(_,index)=>({id:"request-"+index,submissionId:"submission-"+index,title:"分页需求 "+String(index+1).padStart(2,"0"),categoryCode:"EXTRACURRICULAR_STUDY",audienceStageCode:"SENIOR",grade:index<13?"高一":"高二",subject:index<13?"数学、物理":"英语",districtCode:"SZ_PINGSHAN",locationText:"测试花园",serviceMode:"OFFLINE",budgetMin:index%2?"210":"80",budgetMax:index%2?"300":"100",durationHours:"2",goal:"合成需求说明",publisherDisplayName:"合成需求方"}));
+  const data=Array.from({length:23},(_,index)=>({id:"request-"+index,submissionId:"submission-"+index,title:"分页需求 "+String(index+1).padStart(2,"0"),categoryCode:"EXTRACURRICULAR_STUDY",audienceStageCode:"SENIOR",grade:index<13?"高一":"高二",subject:index<13?"数学、物理":"英语",districtCode:"SZ_PINGSHAN",street:"坪山街道",area_hint:"坪山片区",serviceMode:"OFFLINE",budgetMin:index%2?"210":"80",budgetMax:index%2?"300":"100",durationHours:"2",goal:"合成需求说明",publisherDisplayName:"合成需求方"}));
   const queries:URLSearchParams[]=[];
   await page.route("**/api/v1/**",async route=>{
     const url=new URL(route.request().url()),endpoint=url.pathname.replace("/api/v1","");

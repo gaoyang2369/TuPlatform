@@ -27,7 +27,7 @@ test("三步保存、预算大于999、重开不丢第一步",async({page},info)
   await page.getByLabel("需求标题",{exact:false}).fill("合成绘画需求");
   await page.getByRole("group",{name:"服务类别",exact:true}).getByRole("radio",{name:"绘画",exact:true}).check();
   await page.getByRole("group",{name:"服务对象阶段",exact:true}).getByRole("radio",{name:"成年",exact:true}).check();
-  await page.getByLabel("小区或附近地标",{exact:false}).fill("坪山区 · 合成花园");
+  await page.getByLabel("公开街道").selectOption("坪山街道");await page.getByLabel("具体地址").fill("合成私密花园3栋");
   await page.getByLabel("目标与现状",{exact:false}).fill("合成测试：希望学习绘画基础。");
   await page.getByRole("button",{name:"保存并下一步"}).click();
   await expect(page.getByLabel("预算下限")).toBeVisible();
@@ -59,8 +59,8 @@ test("两标签页冲突先核对最新内容，保留输入后再保存",async(
     await second.getByLabel("需求标题",{exact:false}).fill("另一标签页保存的标题");
     await second.getByRole("button",{name:"保存草稿",exact:true}).click();
     await expect(second.getByText("当前为已保存内容",{exact:true})).toBeVisible();
+    await page.bringToFront();
     await page.getByLabel("需求标题",{exact:false}).fill("本页保留的输入");
-    await page.getByRole("button",{name:"保存草稿",exact:true}).click();
     await expect(page.getByRole("alert")).toContainText("草稿已在其他页面修改");
     await expect(page.getByLabel("需求标题",{exact:false})).toHaveValue("本页保留的输入");
     await page.getByRole("button",{name:"读取最新草稿",exact:true}).click();

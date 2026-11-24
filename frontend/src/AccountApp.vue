@@ -345,6 +345,12 @@ function prepareProfile() {
   const destination = safeReturn(location.pathname + location.search);
   leaveCurrent(()=>run(async()=>{await loadAccount();navigate("profile", {returnTo:destination});}));
 }
+function openRecommendedTeacher(id: string) {
+  leaveCurrent(() => {
+    navigate("teachers", { teacher: id });
+    history.replaceState({ ...history.state, discoveryList: "teachers", fromPendingRequest: true }, "");
+  });
+}
 function prepareRequests(create = false) {
   const destination = safeReturn(location.pathname + location.search);
   leaveCurrent(()=>{resetMessages();navigate("requests", {returnTo:destination, create: create ? "1" : undefined});});
@@ -520,7 +526,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <Button v-if="conflict" variant="outline" :disabled="busy" @click="run(loadAccount)">读取已确认的账号身份</Button>
         </section>
 
-        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" :key="routeRevision" @expired="draftSessionExpired" @profile="prepareProfile" @matches="showMatches(undefined,$event)" />
+        <RequestDrafts v-else-if="screen === 'requests'" ref="draftsRef" :key="routeRevision" @expired="draftSessionExpired" @profile="prepareProfile" @matches="showMatches(undefined,$event)" @teacher="openRecommendedTeacher" />
         <Suspense v-else-if="screen==='public'">
           <PublicRequests :key="me?.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @profile="prepareProfile" @login="showLogin" />
           <template #fallback><div role="status"><span class="sr-only">正在打开公开需求…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>

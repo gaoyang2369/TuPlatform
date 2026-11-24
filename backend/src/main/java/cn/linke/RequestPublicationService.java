@@ -85,7 +85,9 @@ class RequestPublicationService {
         "(SELECT previous.reason FROM review_decisions previous JOIN request_submissions old ON old.id=previous.submission_id WHERE old.request_id=s.request_id AND old.id<>s.id AND old.submitted_at<s.submitted_at ORDER BY old.submitted_at DESC LIMIT 1) AS prior_review_feedback "+
         "FROM request_submissions s JOIN service_requests r ON r.id=s.request_id LEFT JOIN review_decisions d ON d.submission_id=s.id ";
     private ReviewSubmission reviewMap(java.sql.ResultSet r,int row) throws java.sql.SQLException {
-        return new ReviewSubmission(r.getObject("id",UUID.class),r.getObject("request_id",UUID.class),r.getString("effective_status"),r.getLong("version"),r.getObject("submitted_at",OffsetDateTime.class),r.getObject("expires_at",OffsetDateTime.class),fields(r.getString("fields")),r.getString("publisher_display_name"),r.getString("publisher_declaration"),r.getString("declaration_version"),r.getString("review_feedback"),r.getString("prior_review_feedback"));
+        ObjectNode reviewFields = fields(r.getString("fields"));
+        reviewFields.remove(List.of("locationText", "exact_address"));
+        return new ReviewSubmission(r.getObject("id",UUID.class),r.getObject("request_id",UUID.class),r.getString("effective_status"),r.getLong("version"),r.getObject("submitted_at",OffsetDateTime.class),r.getObject("expires_at",OffsetDateTime.class),reviewFields,r.getString("publisher_display_name"),r.getString("publisher_declaration"),r.getString("declaration_version"),r.getString("review_feedback"),r.getString("prior_review_feedback"));
     }
     private ReviewSubmission review(UUID actor,UUID id) {
         var rows=db.query(REVIEW_READ+"WHERE s.id=? AND r.owner_id<>?",this::reviewMap,id,actor);
@@ -150,13 +152,14 @@ class RequestPublicationService {
         db.update("UPDATE service_requests SET status=?,version=version+1 WHERE id=?",status,initial.requestId());
         return remember(actor.id(),"REVIEW",key,id,body,new RequestAction(initial.requestId(),id,status,((Number)rows.getFirst().get("version")).longValue()+1));
     }
-    private static final List<String> PUBLIC_FIELDS=List.of("title","categoryCode","audienceStageCode","areaCode","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
+    private static final List<String> PUBLIC_FIELDS=List.of("title","categoryCode","audienceStageCode","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
     private record PublicRow(Map<String,Object> value,OffsetDateTime time,UUID id) {}
     private PublicRow publicMap(java.sql.ResultSet r,int row) throws java.sql.SQLException {
         ObjectNode saved=fields(r.getString("fields"));
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("id",r.getObject("request_id",UUID.class));result.put("submissionId",r.getObject("id",UUID.class));result.put("publisherDisplayName",r.getString("publisher_display_name"));
         for (String name:PUBLIC_FIELDS) if (saved.hasNonNull(name)) result.put(name,json.convertValue(saved.get(name),Object.class));
+        RequestLocation.publicFields(saved, result);
         result.put("districtCode",saved.path("districtCode").asText("SZ_PINGSHAN"));
         return new PublicRow(result,r.getObject("submitted_at",OffsetDateTime.class),r.getObject("id",UUID.class));
     }
@@ -181,16 +184,30 @@ class RequestPublicationService {
     public Map<String,Object> publicList(String value,String category,String area,String mode,String location,String district,String grade,String subject) {
         Cursor after=cursor(value); List<Object> args=new ArrayList<>(List.of(after.time(),after.id()));
         String condition=publicCondition(args);
-        String[][] filters={{"categoryCode",category},{"areaCode",area},{"serviceMode",mode}};
+        String[][] filters={{"categoryCode",category},{"serviceMode",mode}};
         for (String[] filter:filters) if (filter[1]!=null && !filter[1].isBlank()) {
-            Set<String> allowed=switch(filter[0]) {case "categoryCode"->Rules.CATEGORIES;case "areaCode"->Rules.AREAS;default->Rules.MODES;};
+            Set<String> allowed=filter[0].equals("categoryCode") ? Rules.CATEGORIES : Rules.MODES;
             if (!allowed.contains(filter[1])) throw ApiError.invalid(filter[0],"请选择有效的筛选条件");
             condition+=" AND s.fields->>'"+filter[0]+"'=?";args.add(filter[1]);
         }
+        if (area!=null && !area.isBlank()) {
+            if (!RequestLocation.STREETS.containsKey(area)) throw ApiError.invalid("areaCode","请选择有效街道");
+            condition+=" AND (s.fields->>'street'=? OR (s.fields->>'street' IS NULL AND s.fields->>'areaCode'=?))";
+            args.add(RequestLocation.STREETS.get(area)); args.add(area);
+        }
         if (location!=null && !location.isBlank()) {
             Rules.text("location",location,80,false);
-            condition+=" AND position(lower(?) in lower(coalesce(s.fields->>'locationText','') || ' ' || CASE s.fields->>'areaCode' WHEN 'PS_PINGSHAN' THEN '坪山街道' WHEN 'PS_KENGZI' THEN '坑梓街道' WHEN 'PS_LONGTIAN' THEN '龙田街道' WHEN 'PS_SHIJING' THEN '石井街道' WHEN 'PS_MALUAN' THEN '马峦街道' WHEN 'PS_BILING' THEN '碧岭街道' ELSE '' END))>0";
-            args.add(location.strip());
+            // Search only the same public street and hint shown by the list, including legacy street codes.
+            condition+="""
+                 AND EXISTS (
+                    SELECT 1 FROM (SELECT COALESCE(s.fields->>'street', (?::jsonb)->>(s.fields->>'areaCode'), '') AS street) loc
+                    WHERE position(? in (loc.street || ' ' || CASE
+                        WHEN s.fields->>'area_hint' = ANY (?) THEN s.fields->>'area_hint'
+                        WHEN s.fields->>'locationText' IS NOT NULL THEN replace(loc.street,'街道','片区')
+                        ELSE '' END)) > 0)
+                """;
+            args.add(encode(RequestLocation.STREETS)); args.add(location.strip());
+            args.add(RequestLocation.HINTS.toArray(String[]::new));
         }
         if(district!=null && !district.isBlank()) {
             if(!Rules.DISTRICTS.contains(district))throw ApiError.invalid("districtCode","请选择已开放的区域");

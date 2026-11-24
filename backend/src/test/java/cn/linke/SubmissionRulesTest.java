@@ -52,10 +52,10 @@ class SubmissionRulesTest {
     @Test void communityLocationAndNegotiableTimesCanSubmitWhileStudyNeedsGradeAndSubject() throws Exception {
         var body=new SubmitRequest(1L,"SELF_ADULT","publisher-v1");
         ObjectNode fields=complete();fields.remove("areaCode");fields.remove("availableSlots");
-        fields.put("locationText","坪山区 · 测试花园");
+        fields.put("street","坪山街道");
         var preference=fields.putObject("availabilityPreference");preference.put("mode","NEGOTIABLE");preference.putArray("weekdays");preference.putArray("periods");
         assertDoesNotThrow(()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
-        fields.remove("locationText");
+        fields.remove("street");
         assertThrows(ApiError.class,()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));
         fields.put("serviceMode","ONLINE");
         assertDoesNotThrow(()->SubmissionRules.validate(fields,Set.of("DRAWING"),"需求方",body,now));

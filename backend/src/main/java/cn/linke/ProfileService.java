@@ -30,8 +30,10 @@ class ProfileService {
     private final ObjectMapper json;
     private final Set<String> categories;
     private final String pilotSchool;
+    private final RequestDraftService drafts;
     ProfileService(JdbcTemplate db, AuthService auth, Secrets secrets, ObjectMapper json,
-        @Value("${app.teacher-categories}") String categories, @Value("${app.pilot-school}") String pilotSchool) {
+        @Value("${app.teacher-categories}") String categories, @Value("${app.pilot-school}") String pilotSchool, RequestDraftService drafts) {
+        this.drafts = drafts;
         this.pilotSchool = pilotSchool;
         this.db = db; this.auth = auth; this.secrets = secrets; this.json = json;
         this.categories = Arrays.stream(categories.split(",")).map(String::strip).filter(s -> !s.isEmpty()).collect(Collectors.toUnmodifiableSet());
@@ -229,6 +231,45 @@ class ProfileService {
         }
         result.put("nextCursor", nextCursor);
         return result;
+    }
+
+    public List<Map<String,Object>> recommendedTeachers(String session, UUID requestId) {
+        var demand = drafts.get(session, requestId);
+        if (!"PENDING_REVIEW".equals(demand.status()) || demand.latestSubmission() == null)
+            throw new ApiError(409, "REQUEST_NOT_PENDING", "需求状态已变化，请刷新进度");
+        var fields = demand.latestSubmission().fields();
+        String street = RequestLocation.street(fields);
+        String area = RequestLocation.STREETS.entrySet().stream().filter(e -> e.getValue().equals(street))
+            .map(Map.Entry::getKey).findFirst().orElse("");
+        String candidates = TEACHER_QUERY + "a.email_verified AND a.business_identity='TUTOR' AND p.is_public " +
+            "AND p.category_codes @> CAST(? AS jsonb)";
+        String sql = """
+            SELECT id, display_name, avatar_url, college_major, grade_level, price_min, price_max, is_school_verified, reasons
+            FROM (
+                SELECT candidates.*, array_remove(ARRAY[
+                    CASE WHEN jsonb_exists(area_codes, ?) THEN '同街道' END,
+                    CASE WHEN jsonb_exists(teach_grades, ?) THEN '年级匹配' END,
+                    CASE WHEN jsonb_exists(teach_subjects, ?) THEN '科目匹配' END,
+                    CASE WHEN jsonb_exists(service_modes, ?) THEN '方式匹配' END,
+                    CASE WHEN price_min <= ? AND price_max >= ? THEN '预算相符' END
+                ], NULL) AS reasons
+                FROM (""" + candidates + """
+                ) candidates WHERE is_school_verified OR school_name=? OR (school_name IS NULL AND teach_grades <> '[]'::jsonb)
+            ) scored WHERE cardinality(reasons) > 0
+            ORDER BY cardinality(reasons) DESC, is_school_verified DESC, id DESC LIMIT 3
+            """;
+        return db.query(sql, (r, i) -> {
+            Map<String,Object> card = new LinkedHashMap<>();
+            card.put("id", r.getObject("id")); card.put("displayName", r.getString("display_name"));
+            card.put("avatar_url", r.getString("avatar_url")); card.put("is_school_verified", r.getBoolean("is_school_verified"));
+            card.put("collegeMajor", r.getString("college_major")); card.put("gradeLevel", r.getString("grade_level"));
+            card.put("priceMin", amount(r.getBigDecimal("price_min"))); card.put("priceMax", amount(r.getBigDecimal("price_max")));
+            var reasons = (String[])r.getArray("reasons").getArray();
+            card.put("reasons", List.of(reasons));
+            return card;
+        }, area, fields.path("grade").asText(""), fields.path("subject").asText(""), fields.path("serviceMode").asText(""),
+            new BigDecimal(fields.path("budgetMax").asText()), new BigDecimal(fields.path("budgetMin").asText()),
+            encode(List.of(fields.path("categoryCode").asText())), pilotSchool);
     }
 
     private void addTeacherFilter(StringBuilder query, List<Object> args, String column, String value, Set<String> allowed) {

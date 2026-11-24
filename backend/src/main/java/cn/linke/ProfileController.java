@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.*;
 class ProfileController {
     private final ProfileService profiles;
     ProfileController(ProfileService profiles) { this.profiles = profiles; }
+    @GetMapping("/requests/{id}/recommended-teachers")
+    Map<String,Object> recommendations(@PathVariable UUID id, HttpServletRequest req) {
+        return Map.of("items", profiles.recommendedTeachers(AuthController.session(req), id));
+    }
     @GetMapping("/profile-options") Map<String, Object> options() { return profiles.options(); }
     @GetMapping("/me/profile") Profile get(HttpServletRequest req) { return profiles.get(AuthController.session(req)); }
     @PatchMapping("/me/profile") Profile save(@RequestBody BaseProfileBody body, HttpServletRequest req) { return profiles.saveBase(AuthController.session(req), body); }

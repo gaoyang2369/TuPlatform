@@ -167,6 +167,30 @@ class MatchDatabaseTest {
         matches.start(legacyOwner.session(),new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),version,"",new ContactExchange(true,1L)),key());
         assertEquals(false,contacts.grant(tutor.session(),legacy.id()).get("otherConsent")); // EXISTING is navigation only.
     }
+    @Test void privateAddressFollowsTheCurrentRoundAndNeverEntersSnapshotsOrReceipts() throws Exception {
+        var s=setup();
+        String address="合成私密地点3栋";
+        db.update("UPDATE request_submissions SET fields=fields || jsonb_build_object('exact_address',?::text) WHERE id=?",
+            address,s.submission());
+        contacts.save(s.owner().session(),new SaveContacts(0L,null,"owner_address_test"));
+        contacts.save(s.tutor().session(),new SaveContacts(0L,null,"tutor_address_test"));
+        var send=new StartMatch(s.request(),s.submission(),"APPLICATION",null,s.teacherVersion(),null,new ContactExchange(true,1L));
+        String sendKey=key();
+        var m=matches.start(s.tutor().session(),send,sendKey).match();
+        db.update("UPDATE match_rounds SET submission_snapshot=submission_snapshot || jsonb_build_object('locationText',?::text) WHERE id=?",
+            address,m.roundId());
+        assertNull(matches.privateDetail(s.tutor().session(),m.id()).exact_address());
+        assertFalse(json.writeValueAsString(matches.list(s.tutor().session(),null,null,null)).contains(address));
+        var accept=new RespondMatch(m.roundId(),m.version(),new ContactExchange(true,1L));
+        matches.respond(s.owner().session(),m.id(),accept,key(),"ACCEPT");
+        assertEquals(address,matches.privateDetail(s.tutor().session(),m.id()).exact_address());
+        assertNull(matches.privateDetail(s.owner().session(),m.id()).exact_address());
+        assertFalse(json.writeValueAsString(matches.start(s.tutor().session(),send,sendKey)).contains(address));
+        assertFalse(json.writeValueAsString(contacts.grant(s.tutor().session(),m.id())).contains(address));
+        contacts.save(s.owner().session(),new SaveContacts(1L,null,"changed_address_test"));
+        assertNull(matches.privateDetail(s.tutor().session(),m.id()).exact_address());
+        assertEquals(404,assertThrows(ApiError.class,()->matches.privateDetail(user("TUTOR").session(),m.id())).status);
+    }
     @Test void applicationAndRequestInvitationAlsoIntegrateContactConsent() throws Exception {
         for(boolean invite:List.of(false,true)){
             var s=setup();contacts.save(s.owner().session(),new SaveContacts(0L,null,"owner_contact"));contacts.save(s.tutor().session(),new SaveContacts(0L,null,"tutor_contact"));

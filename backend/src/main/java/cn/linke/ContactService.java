@@ -57,7 +57,7 @@ class ContactService {
     }
     private ApiError conflict() { return new ApiError(409,"VERSION_CONFLICT","联系方式或授权进度已变化，请读取最新内容并核对"); }
     private Map<String,Object> own(UUID actor,UUID id) {
-        var rows=db.queryForList("SELECT m.*,n.state FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.id=? AND (m.requester_id=? OR m.tutor_id=?)",id,actor,actor);
+        var rows=db.queryForList("SELECT m.*,n.state,n.submission_id FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id WHERE m.id=? AND (m.requester_id=? OR m.tutor_id=?)",id,actor,actor);
         if(rows.isEmpty())throw new ApiError(404,"NOT_FOUND","撮合进度不存在或不可查看");
         return rows.getFirst();
     }
@@ -99,6 +99,14 @@ class ContactService {
         result.put("canViewContacts",visible);
         if(visible){result.put("mySharedContacts",values(g,mine,requester?r:t));result.put("otherSharedContacts",values(g,other,requester?t:r));}
         return result;
+    }
+    String sharedRequestAddress(String session, UUID id, UUID round) {
+        Account a = actor(session);
+        var m = locked(session, a, id);
+        if (!a.id().equals(m.get("tutor_id")) || !round.equals(m.get("current_round_id")) ||
+            m.get("submission_id")==null || !Boolean.TRUE.equals(view(m, a.id()).get("canViewContacts"))) return null;
+        return db.queryForObject("SELECT NULLIF(fields->>'exact_address','') FROM request_submissions WHERE id=?",
+            String.class, m.get("submission_id"));
     }
     public Map<String,Object> grant(String session,UUID id) { Account a=actor(session);return view(locked(session,a,id),a.id()); }
     private String fingerprint(Object body) { try{return secrets.digest(json.writeValueAsString(body));}catch(Exception e){throw new IllegalStateException("Contact action encoding failed",e);} }

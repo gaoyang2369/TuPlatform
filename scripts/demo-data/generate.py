@@ -143,16 +143,6 @@ TEACHERS = [
 
 AREAS = ['PS_PINGSHAN','PS_KENGZI','PS_LONGTIAN','PS_SHIJING','PS_MALUAN','PS_BILING']
 AREA_NAMES = ['坪山街道','坑梓街道','龙田街道','石井街道','马峦街道','碧岭街道']
-# Public neighborhood names, paired with their actual street for location filters.
-# These are fictional requests situated in real neighborhoods, with no building/unit numbers.
-NEIGHBORHOODS = [
-    ['招商花园城','万科金域缇香'],
-    ['金田风华苑','深业御园'],
-    ['聚龙花园','中粮一品澜山'],
-    ['燕澜和鸣花园','天健和悦府'],
-    ['京基御景印象','心海城'],
-    ['倚湖居花园','汤亨花园'],
-]
 STAGES = {'PRIMARY':'小学阶段','JUNIOR':'初中阶段','SENIOR':'高中阶段','ADULT':'成人','OTHER':'学龄前'}
 
 def resume_fields(i, category, specialty, experience):
@@ -185,13 +175,11 @@ def main():
         area = i % 6
         online = i % 4 == 0
         mode = 'ONLINE' if online else 'OFFLINE'
-        neighborhood = NEIGHBORHOODS[area][(i // 6) % len(NEIGHBORHOODS[area])]
-        location = f'深圳市坪山区{neighborhood}'
         base = {'PRIMARY':70,'JUNIOR':100,'SENIOR':140,'ADULT':100,'OTHER':60}[stage]
         low = base + (i % 5) * 10
         fields = dict(
             title=title, categoryCode=category, audienceStageCode=stage,
-            areaCode=AREAS[area], locationText=location,
+            street=AREA_NAMES[area], area_hint=AREA_NAMES[area].replace('街道','片区'),
             grade=grade, subject=subject, serviceMode=mode,
             goal=f'目前情况：{background}。\n期望内容：{goal}。\n沟通方式：先了解现有基础和目标，首次课后简要反馈，再商量后续安排。',
             budgetMin=str(low), budgetMax=str(low + [30,50,70,40][i % 4]),

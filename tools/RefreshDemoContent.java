@@ -15,10 +15,11 @@ final class RefreshDemoContent {
     }
     static ObjectNode mergeFields(JsonNode actual,JsonNode oldFields,JsonNode nextFields,String label) {
         ObjectNode merged=actual.deepCopy();
-        for(String key:List.of("title","goal","locationText")) {
+        for(String key:List.of("title","goal","street","area_hint")) {
             expectedText(text(actual,key),text(oldFields,key),text(nextFields,key),label+":"+key);
             merged.set(key,nextFields.get(key));
         }
+        // Retain old locationText on private records. The public projection never uses its value.
         DraftRules.validate(merged,Rules.CATEGORIES);
         return merged;
     }
@@ -61,7 +62,7 @@ final class RefreshDemoContent {
             requestBackups.add(actual);
             var next=mergeFields(actual.path("fields"),old.path("fields"),r.path("fields"),key);
             naturalText(text(next,"title"));naturalText(text(next,"goal"));
-            require(text(next,"locationText").startsWith("深圳市坪山区")&&text(next,"locationText").length()>8,"Missing neighborhood");
+            require(next.hasNonNull("street") && next.hasNonNull("area_hint"),"Missing neighborhood");
             if(!actual.path("fields").equals(next)){update(db,"UPDATE service_requests SET fields=CAST(? AS jsonb),version=version+1 WHERE id=?",encode(next),rid);requestsChanged++;}
             if(actual.hasNonNull("latest_submission_id")) {
                 sid=UUID.fromString(text(actual,"latest_submission_id"));

@@ -12,7 +12,7 @@
 
 另外提供8条流程需求：草稿、待审核、驳回、过期各2条。合计88条需求、48份老师资料、128个合成账号（80需求方＋48老师）。老师在此产品中以公开资料承载供给，不另建“老师订单”。全部128份公开内容中，课外学习占62.5%。
 
-覆盖小学、初中、高中、成年及其他阶段；坪山、坑梓、龙田、石井、马峦、碧岭六街道；线上与线下；时间可协商、偏好时段和精确时段；固定与可协商频率；老师区间报价与面议。预算均为每小时的测试参数，不代表调研所得的市场报价。地点显示“深圳市坪山区＋小区名”，不包含楼栋、单元或门牌。
+覆盖小学、初中、高中、成年及其他阶段；坪山、坑梓、龙田、石井、马峦、碧岭六街道；线上与线下；时间可协商、偏好时段和精确时段；固定与可协商频率；老师区间报价与面议。预算均为每小时的测试参数，不代表调研所得的市场报价。公开地点使用街道与片区，例如「坪山街道 · 坪山片区」。
 
 每条需求包含学习现状、目标、预算、单次时长和老师期望；公开老师包含方向、虚构背景、教学方法、服务范围、报价与可用时间。按用户要求，页面标题、昵称、正文及老师介绍均按普通用户内容呈现，不显示“测试”“样本”“模拟设定”等标签。批次标识、确定性ID和保留域邮箱留在数据维护层，用于上线前识别和清理；姓名、背景和经历仍为虚构。
 
@@ -52,7 +52,7 @@ powershell.exe -NoProfile -File scripts/seed-demo.ps1 -Action dry-run
 powershell.exe -NoProfile -File scripts/seed-demo.ps1 -Action apply
 # 核对账号、老师、需求及提交快照
 powershell.exe -NoProfile -File scripts/seed-demo.ps1 -Action verify
-# 将本批次原有文案改为自然展示，并同步小区地点（精确原值比对，保留密码、状态和日期）
+# 将本批次原有文案改为自然展示，并同步公开片区（精确原值比对，保留密码、状态和日期）
 powershell.exe -NoProfile -File scripts/seed-demo.ps1 -Action refresh-content
 # 核对真实应用API的列表、所有样本详情、分页、筛选、状态隔离及双身份登录
 python scripts/demo-data/verify-http.py
@@ -82,23 +82,4 @@ python scripts/demo-data/verify-http.py
 
 后续已读取用户补充的群聊需求文本，参考其中“科目、时间、小区、费用、老师要求”的信息粒度。群内重复转发、中介推广和邀请奖励文案不作为需求内容导入。
 
-| 街道筛选代码 | 使用的小区名 |
-| --- | --- |
-| `PS_PINGSHAN` | 招商花园城、万科金域缇香 |
-| `PS_KENGZI` | 金田风华苑、深业御园 |
-| `PS_LONGTIAN` | 聚龙花园、中粮一品澜山 |
-| `PS_SHIJING` | 燕澜和鸣花园、天健和悦府 |
-| `PS_MALUAN` | 京基御景印象、心海城 |
-| `PS_BILING` | 倚湖居花园、汤亨花园 |
-
-这些地点只用作虚构需求的场景，未关联小区真实居民。地址与街道的对应参考以下公开来源：
-
-- [坪山街道服务地图：招商花园、万科金域缇香](https://www.szpsq.gov.cn/zwgk/psqfwdt/ddzxchdg/psjd/)
-- [金田风华苑社康：坑梓街道](https://www.szpsq.gov.cn/zwgk/zdlyxxgk/ggqsydw/ylwsjgxxgk/skzxylb/content/post_12183290.html)
-- [公共住房通告：深业御园、聚龙花园等项目](https://www.szpsq.gov.cn/pszfbzzx/gkmlpt/content/7/7900/post_7900061.html)
-- [公共租赁住房通告：聚龙花园一期位于龙田街道](https://www.szpsq.gov.cn/ztfw/zfbzfw/tzgg/content/post_11751517.html)
-- [中粮一品澜山地图地址](https://www.amap.com/place/B02F38IYSV)
-- [石井街道通报：燕澜和鸣花园](https://www.szpsq.gov.cn/zwgk/zfxx/content/post_12995775.html)
-- [天健和悦府项目位置](https://zjj.sz.gov.cn/ris/bol/szfdc/projectdetail.aspx?id=128559)
-- [马峦街道心海城](https://www.szpsq.gov.cn/ztfw/shbz/shfl/lnrfl/jgyljzzzcfw/content/post_12970504.html)
-- [碧岭街道服务地图：倚湖居花园、汤亨花园](https://www.szpsq.gov.cn/zwgk/psqfwdt/dqfw/bljd/)
+当前样本只标注街道和大致片区，具体地址留空。

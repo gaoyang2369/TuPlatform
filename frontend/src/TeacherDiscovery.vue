@@ -27,6 +27,7 @@ const { filters, items, detail, selectedId, listBusy, listError, detailError, he
   fetchPage: teacherPage, readFilters: readTeacherFilters, filterQuery, failure,
   fetchDetail: id => api.request<PublicTeacher>("/teachers/" + encodeURIComponent(id)),
 });
+const backLabel = computed(() => selectedId.value && history.state?.fromPendingRequest ? "返回我的需求" : "返回老师列表");
 const groups = computed(() => [
   { key: "area" as const, label: "坪山街道", icon: MapPin, options: options.value.areaCodes.map(code => ({ code, label: (areaNames[code] || code) + "街道" })) },
   { key: "mode" as const, label: "授课方式", icon: Monitor, options: options.value.serviceModes.map(code => ({ code, label: modeNames[code] || code })) },
@@ -102,7 +103,7 @@ onMounted(loadOptions);
         <Button variant="outline" :disabled="listBusy || !nextCursor" @click="changePage(1)">下一页<ArrowRight/></Button>
       </nav>
     </section>
-    <DiscoverySheet :open="!!selectedId" title="老师资料" description="查看教学安排，合适时可直接邀请老师。" back-label="返回老师列表" @close="close" @restore-focus="restoreFocus">
+    <DiscoverySheet :open="!!selectedId" title="老师资料" description="查看教学安排，合适时可直接邀请老师。" :back-label="backLabel" @close="close" @restore-focus="restoreFocus">
       <MatchComposer v-if="detail" drawer :key="detail.id" :me="me" :teacher-id="detail.id" @matched="emit('matched',$event)" @expired="emit('expired')" @requests="emit('requests')" @profile="emit('profile')">
         <TeacherSummary :teacher="detail" public-profile/>
       </MatchComposer>

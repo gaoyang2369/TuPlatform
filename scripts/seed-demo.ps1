@@ -46,7 +46,7 @@ $javac = Join-Path $javaHomePath 'bin/javac.exe'
 $classes = Join-Path $output 'classes'
 New-Item -ItemType Directory -Force -Path $classes | Out-Null
 $source = Join-Path $project 'backend/src/main/java/cn/linke'
-$files = @('ApiError.java','Rules.java','DraftRules.java','SubmissionRules.java','RequestModels.java','Models.java','Secrets.java') | ForEach-Object { Join-Path $source $_ }
+$files = @('ApiError.java','Rules.java','RequestLocation.java','DraftRules.java','SubmissionRules.java','RequestModels.java','Models.java','Secrets.java') | ForEach-Object { Join-Path $source $_ }
 & $javac -encoding UTF-8 -cp "$libs/*" -d $classes @files (Join-Path $project 'tools/DemoData.java') (Join-Path $project 'tools/RefreshDemoContent.java')
 if ($LASTEXITCODE -ne 0) { throw 'Demo data utility compilation failed.' }
 & $java -cp "$classes;$libs/*" cn.linke.DemoData $Action (Join-Path $project 'backend/.env') (Join-Path $project 'scripts/demo-data/catalog.json') $output $DatabaseName

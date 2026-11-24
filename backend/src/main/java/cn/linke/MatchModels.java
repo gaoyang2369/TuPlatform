@@ -22,4 +22,17 @@ record MatchView(UUID id, UUID requestId, long version, UUID roundId, String sta
     String myRole, boolean waitingForMe, boolean requestExpired, boolean teacherPublic,
     boolean canAccept, boolean canReject, boolean canWithdraw, boolean canInitiateAgain,
     Map<String,Object> submissionSnapshot, Map<String,Object> teacherSnapshot,
-    boolean submissionChanged, boolean teacherProfileChanged, @JsonProperty("avatar_url") String avatarUrl) {}
+    boolean submissionChanged, boolean teacherProfileChanged, @JsonProperty("avatar_url") String avatarUrl) {
+    MatchView {
+        // Applies to stored rounds and historical idempotency receipts as well as fresh projections.
+        submissionSnapshot = new java.util.LinkedHashMap<>(submissionSnapshot);
+        submissionSnapshot.remove("locationText");
+        submissionSnapshot.remove("exact_address");
+        Object oldStreet = submissionSnapshot.remove("areaCode");
+        if (oldStreet instanceof String code && RequestLocation.STREETS.containsKey(code))
+            submissionSnapshot.putIfAbsent("street", RequestLocation.STREETS.get(code));
+    }
+}
+
+record MatchDetail(@com.fasterxml.jackson.annotation.JsonUnwrapped MatchView match,
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String exact_address) {}

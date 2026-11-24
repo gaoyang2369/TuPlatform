@@ -7,14 +7,17 @@ import java.time.LocalDate;
 import java.util.*;
 
 final class DraftRules {
-    private static final Set<String> FIELDS = Set.of("title","categoryCode","audienceStageCode","areaCode","districtCode","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
+    private static final Set<String> FIELDS = Set.of("title","categoryCode","audienceStageCode","areaCode","districtCode","street","area_hint","exact_address","locationText","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");
     static void checkNames(ObjectNode values) {
         for (var names = values.fieldNames(); names.hasNext();) { String name = names.next(); if (!FIELDS.contains(name)) fail(name,"不支持的草稿字段"); }
     }
     static void validate(ObjectNode values, Set<String> categories) {
         checkNames(values);
         text(values,"title",60); text(values,"goal",2000); text(values,"availabilityNote",300); text(values,"tutorExpectations",500);
-        text(values,"locationText",80); text(values,"grade",20); text(values,"subject",40);
+        text(values,"locationText",80); text(values,"exact_address",160);
+        if (values.has("street") && !RequestLocation.STREETS.containsValue(string(values,"street"))) fail("street","请选择开放的街道");
+        if (values.has("area_hint") && !RequestLocation.HINTS.contains(string(values,"area_hint"))) fail("area_hint","请选择公开片区");
+        text(values,"grade",20); text(values,"subject",40);
         choice(values,"categoryCode",categories); choice(values,"audienceStageCode",Set.of("PRIMARY","JUNIOR","SENIOR","ADULT","OTHER"));
         choice(values,"areaCode",Rules.AREAS); choice(values,"serviceMode",Rules.MODES);
         choice(values,"districtCode",Rules.DISTRICTS);

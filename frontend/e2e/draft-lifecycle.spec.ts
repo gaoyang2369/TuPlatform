@@ -29,6 +29,7 @@ async function setup(page:Page, initial:SavedRequest[]=[]) {
       expect(saved?.status).toBe("DRAFT");expect(request.postDataJSON().expectedVersion).toBe(saved?.version);
       state.items=state.items.filter(item=>item.id!==id);return route.fulfill({status:204,body:""});
     }
+    if(endpoint.endsWith("/recommended-teachers"))return route.fulfill({json:{items:[]}});
     if(endpoint.startsWith("/requests/")&&saved)return route.fulfill({json:saved});
     return route.fulfill({status:404,json:{code:"NOT_FOUND",message:"不存在"}});
   });
@@ -39,7 +40,7 @@ async function setup(page:Page, initial:SavedRequest[]=[]) {
 test("误点新建或放弃输入不创建，主动保存才创建且校验失败可修正",async({page})=>{
   const state=await setup(page);
   await page.getByRole("button",{name:"新建需求草稿"}).click();
-  await expect(page.getByText("尚未保存，点击保存后才会生成草稿",{exact:true})).toBeVisible();
+  await expect(page.getByText("开始填写后自动保存",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"返回我的需求",exact:true}).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);expect(state.creates).toBe(0);
   await page.getByRole("button",{name:"新建需求草稿"}).click();await page.locator("#draft-title").fill("放弃的输入");
@@ -92,4 +93,26 @@ test("需求列表从加载、读取错误恢复到空态，表单操作栏在�
   await page.locator("#draft-goal").focus();
   await expect(save).toBeInViewport({ratio: 1});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("自动保存串行处理首次响应期间的编辑，手动保存复用同一草稿", async ({page}) => {
+  const state=await setup(page);
+  let release!:()=>void;
+  const held=new Promise<void>(resolve=>{release=resolve;});
+  await page.route("**/api/v1/requests", async route=>{
+    await held;
+    await route.fallback();
+  },{times:1});
+  await page.getByRole("button",{name:"新建需求草稿"}).click();
+  const title=page.locator("#draft-title");
+  await title.fill("首次自动保存");
+  await expect(page.getByText("正在自动保存…")).toBeVisible();
+  await title.fill("网络较慢时继续输入");
+  release();
+  await expect.poll(()=>state.items[0]?.fields.title).toBe("网络较慢时继续输入");
+  await expect(page.getByText(/已自动保存 · \d{2}:\d{2}:\d{2}/)).toBeVisible();
+  expect(state.creates).toBe(1);
+  await page.getByRole("button",{name:"返回我的需求",exact:true}).click();
+  await page.getByRole("button",{name:"继续填写",exact:true}).click();
+  await expect(title).toHaveValue("网络较慢时继续输入");
 });
