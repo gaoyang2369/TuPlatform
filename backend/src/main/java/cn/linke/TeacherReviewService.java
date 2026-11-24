@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class TeacherReviewService {
     static final String DISPLAY_AVERAGE = "CASE WHEN count(*) >= 3 THEN round(avg(overall_score),1) END";
-    private static final String PUBLISHED = "r.reviewee_id=? AND r.reviewer_role='parent' AND r.is_published";
+    private static final String PUBLISHED = "r.reviewee_id=? AND r.reviewer_role='parent' AND r.is_published AND NOT r.is_hidden";
     private final JdbcTemplate db;
     private final ProfileService profiles;
     private final ObjectMapper json;
@@ -63,7 +63,7 @@ class TeacherReviewService {
 
         String after = cursor == null ? "" : """
              AND (r.created_at,r.id) < (SELECT created_at,id FROM reviews
-                 WHERE id=? AND reviewee_id=? AND reviewer_role='parent' AND is_published)
+                 WHERE id=? AND reviewee_id=? AND reviewer_role='parent' AND is_published AND NOT is_hidden)
             """;
         var args = new ArrayList<Object>(List.of(teacher));
         if (cursor != null) { args.add(cursor); args.add(teacher); }

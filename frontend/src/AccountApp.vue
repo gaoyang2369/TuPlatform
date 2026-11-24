@@ -15,7 +15,7 @@ import DiscoverySheet from "./DiscoverySheet.vue";
 import { resumeDraft, resumeFields, trialPolicies } from "./teacher-resume";
 import AvatarUploader from "./AvatarUploader.vue";
 import RequestDrafts from "./RequestDrafts.vue";
-import OperationsReview from "./OperationsReview.vue";
+import AdminConsole from "./AdminConsole.vue";
 import MatchProgress from "./MatchProgress.vue";
 import PrivateContacts from "./PrivateContacts.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
@@ -40,7 +40,7 @@ let stopHistory: (() => void) | undefined;
 const pendingReplies=ref<number|null>(null);
 let pendingRead=0,pendingTimer:ReturnType<typeof setInterval>|undefined;
 const draftsRef = ref<InstanceType<typeof RequestDrafts>>();
-const reviewRef = ref<InstanceType<typeof OperationsReview>>();
+const reviewRef = ref<InstanceType<typeof AdminConsole>>();
 const contactsRef = ref<InstanceType<typeof PrivateContacts>>();
 const me = ref<Me | null>(null);
 const profile = ref<Profile | null>(null);
@@ -98,6 +98,14 @@ function defaultScreen(): Screen {
 function applyLocation() {
   const query = new URLSearchParams(location.search);
   let target = readScreen();
+  if (target === "review" && !me.value?.operatorGranted) {
+    routeTo("home", {}, true);
+    screen.value = "home";
+    sharedTeacherId.value = "";
+    error.value = "无权访问管理后台，已返回首页。";
+    return;
+  }
+  if (target === "review" && location.pathname !== "/admin") routeTo("review", {}, true);
   sharedTeacherId.value = target === "teachers" ? query.get("teacher") || query.get("teacherId") || "" : "";
   if (sharedTeacherId.value && query.has("teacherId")) updateQuery({teacher:sharedTeacherId.value, teacherId:undefined}, true);
   returnTarget.value = safeReturn(query.get("returnTo"));
@@ -109,7 +117,7 @@ function applyLocation() {
     returnTarget.value = safeReturn(location.pathname + location.search);
     target = "login";
     routeTo(target, { returnTo: returnTarget.value }, true);
-  } else if (me.value && ((["requests", "teachers"].includes(target) && !sharedTeacherId.value && me.value.businessIdentity !== "REQUESTER") || (target === "review" && !me.value.operatorGranted) || (["matches", "contacts"].includes(target) && !me.value.businessIdentity))) {
+  } else if (me.value && ((["requests", "teachers"].includes(target) && !sharedTeacherId.value && me.value.businessIdentity !== "REQUESTER") || (["matches", "contacts"].includes(target) && !me.value.businessIdentity))) {
     target = defaultScreen();
     notice.value = "当前身份无法使用这个入口，已为你打开可用页面。";
     routeTo(target, {}, true);
@@ -371,6 +379,7 @@ function leaveCurrent(action:()=>void|Promise<void>){
 }
 function showPublic(){if(!needsIdentity.value && screen.value!=="public")leaveCurrent(()=>{resetMessages();navigate("public");});}
 function showContacts(){if(screen.value!=="contacts")leaveCurrent(()=>{resetMessages();navigate("contacts", {returnTo:safeReturn(location.pathname+location.search)});});}
+function openAdmin(){ window.location.assign("/admin"); }
 function showReview(){if(screen.value!=="review")leaveCurrent(()=>{resetMessages();navigate("review");});}
 function showTeachers(){if(screen.value!=="teachers")leaveCurrent(()=>{resetMessages();navigate("teachers");});}
 function showMatches(id?:string,requestId?:string){leaveCurrent(()=>{resetMessages();navigate("matches", {match:id,forRequest:requestId});});}
@@ -401,7 +410,7 @@ async function reconcileSession() {
   if (!me.value || busy.value || document.visibilityState !== "visible") return;
   try {
     const current = await api.request<Me>("/me");
-    if (current.id !== me.value.id || current.businessIdentity !== me.value.businessIdentity) {
+    if (current.id !== me.value.id || current.businessIdentity !== me.value.businessIdentity || current.operatorGranted !== me.value.operatorGranted) {
       clearPrivate(); returnTarget.value=""; await run(async()=>{await loadAccount();routeTo(defaultScreen(),{},true);applyLocation();});
     } else { updateAvatar(current.id, current.avatar_url); void refreshPendingReplies(); }
   } catch (e) {
@@ -441,6 +450,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
             <PopoverContent align="end" class="w-60 space-y-3 rounded-2xl">
               <strong class="block text-sm [overflow-wrap:anywhere]">{{ accountName }}</strong>
               <p class="text-sm text-secondary-foreground">当前身份为{{ roleLabel }}。可登录另一账号使用其业务身份。</p>
+              <a v-if="me.operatorGranted" href="/admin" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-50 font-semibold text-primary" @click.prevent="leaveCurrent(openAdmin)"><ShieldCheck class="size-4"/>管理后台</a>
               <Button class="w-full" :disabled="busy" @click="logout('login')">退出并切换账号</Button>
               <Button variant="ghost" class="w-full" :disabled="busy" @click="logout()"><LogOut/>退出登录</Button>
             </PopoverContent>
@@ -542,7 +552,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </Suspense>
         <SharedTeacher v-else-if="screen==='teachers' && sharedTeacherId" :id="sharedTeacherId" :guest="!me" @close="navigate('home')" @login="showLogin"/>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
-        <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
+        <AdminConsole v-else-if="screen==='review' && me?.operatorGranted" ref="reviewRef" :account-id="me.id" @expired="openAdmin" />
         <section v-else-if="['profile','contacts'].includes(screen)" class="mx-auto max-w-4xl">
           <nav class="mb-6 inline-flex gap-1 rounded-full border border-border bg-card p-1 [&>button]:rounded-full [&>button]:px-4 [&>button]:py-2 [&>button]:text-sm [&>button[aria-current=page]]:bg-blue-50 [&>button[aria-current=page]]:text-primary" aria-label="个人资料栏目"><button :aria-current="screen==='profile'?'page':undefined" :disabled="busy" @click="showProfile">基本资料</button><button :aria-current="screen==='contacts'?'page':undefined" :disabled="busy" @click="showContacts">私密联系方式</button></nav>
           <PrivateContacts v-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />

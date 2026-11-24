@@ -12,19 +12,24 @@ class AccountContextConfig implements WebMvcConfigurer {
     private final AuthService auth;
     AccountContextConfig(AuthService auth) { this.auth = auth; }
     @Override public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new HandlerInterceptor() {
+        registry.addInterceptor(accountGuard(true)).addPathPatterns("/api/admin/**", "/api/v1/admin/**");
+        registry.addInterceptor(accountGuard(false)).addPathPatterns("/api/verifications", "/api/v1/verifications",
+            "/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**", "/api/matches/**",
+            "/api/v1/reviews/**", "/api/reviews/**", "/api/teachers/*/reviews");
+    }
+    private HandlerInterceptor accountGuard(boolean adminOnly) {
+        return new HandlerInterceptor() {
             @Override public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) {
                 // A second browser tab may replace the cookie. Never write one account's pending
                 // form into another account whose profile happens to have the same version number.
-                Account a = auth.current(AuthController.session(req), false);
+                String session = AuthController.session(req);
+                Account a = adminOnly ? auth.admin(session, false) : auth.current(session, false);
                 String expected = req.getHeader("X-Account-Id");
                 boolean writes = !req.getMethod().equals("GET") && !req.getMethod().equals("HEAD");
                 if ((writes && expected == null) || (expected != null && !a.id().toString().equals(expected)))
                     throw new ApiError(409, "SESSION_CHANGED", "浏览器中的账号已变化，请重新读取账号状态后操作");
                 return true;
             }
-        }).addPathPatterns("/api/verifications", "/api/v1/verifications", "/api/admin/verifications/**", "/api/v1/admin/verifications/**",
-            "/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**", "/api/matches/**",
-            "/api/v1/reviews/**", "/api/reviews/**", "/api/teachers/*/reviews");
+        };
     }
 }

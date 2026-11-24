@@ -45,7 +45,7 @@ test("匿名访客保留浏览需求入口", async ({ page }) => {
 
 test("无业务身份的运营账号保留审核入口", async ({ page }) => {
   await page.route("**/api/v1/me", route => route.fulfill({ json: { ...account, email: "", operatorGranted: true } }));
-  await page.route("**/api/v1/operations/**", route => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/admin/demands?*", route => route.fulfill({ json: {items:[],nextCursor:null} }));
   await page.goto("/");
   await expect(page.getByRole("button", { name: "需求审核", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "你希望如何参与？" })).toHaveCount(0);

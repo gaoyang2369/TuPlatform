@@ -31,7 +31,13 @@ class VerificationController {
     VerificationService.Entry review(HttpServletRequest request, @PathVariable UUID id, @RequestBody VerificationService.Decision decision) {
         return service.review(AuthController.session(request), id, decision);
     }
-    @GetMapping("/admin/verifications/{id}/proof")
+    @DeleteMapping("/admin/verifications/{id}/proof")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void removeProof(HttpServletRequest request, @PathVariable UUID id) {
+        service.requestDeletion(AuthController.session(request), id);
+        service.purgeProofs();
+    }
+    @GetMapping({"/verifications/{id}/proof", "/admin/verifications/{id}/proof"})
     ResponseEntity<byte[]> proof(HttpServletRequest request, @PathVariable UUID id) {
         var proof = service.proof(AuthController.session(request), id);
         var type = switch (proof.extension()) {

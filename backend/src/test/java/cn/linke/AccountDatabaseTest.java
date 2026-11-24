@@ -113,9 +113,35 @@ class AccountDatabaseTest {
         assertEquals(List.of(retry.id()), service.mine(tutor.session()).stream().map(VerificationService.Entry::id).toList());
         assertTrue(db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),item.id()).contains(reject.reject_reason()));
         assertEquals("本校学籍已核验徽章已点亮。",db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),retry.id()));
+        assertThrows(ApiError.class, () -> service.requestDeletion(reviewer.session(), item.id()));
+        tx.executeWithoutResult(s -> { service.requestDeletion(reviewer.session(), retry.id()); s.setRollbackOnly(); });
+        assertTrue(service.mine(tutor.session()).getFirst().proof_available());
+        tx.executeWithoutResult(s -> service.requestDeletion(reviewer.session(), retry.id()));
+        assertEquals(404, assertThrows(ApiError.class, () -> service.proof(reviewer.session(), retry.id())).status);
+        tx.executeWithoutResult(s -> service.purgeProofs());
+        assertFalse(Files.exists(directory.resolve(retry.id() + ".png")));
+        assertFalse(service.mine(tutor.session()).getFirst().proof_available());
+        assertTrue((boolean)profiles.get(tutor.session()).teacher().get("is_school_verified"));
+        assertEquals(1, db.queryForObject("SELECT count(*) FROM admin_logs WHERE target_id=? AND action_type='delete-proof'",Integer.class,retry.id()));
         var skill = tx.execute(s -> service.submit(tutor.session(),"skill_cert",file));
         service.review(reviewer.session(),skill.id(),approve);
         assertEquals("技能证书已核验徽章已点亮。",db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),skill.id()));
+    }
+
+    @Autowired ModerationService moderation;
+
+    @Test void frozenAccountCannotLogInAndOldSessionsStayRevokedAfterUnfreeze() {
+        var tutor = user("TUTOR");
+        var admin = user(null);
+        db.update("UPDATE accounts SET operator_granted=true WHERE id=?", admin.id());
+        var login = new LoginBody(auth.current(tutor.session(),false).account(),password);
+        moderation.userAction(admin.session(), tutor.id(), "freeze", "合成风控");
+        assertEquals("ACCOUNT_FROZEN", assertThrows(ApiError.class, () -> auth.login(login)).code);
+        assertThrows(ApiError.class, () -> profiles.get(tutor.session()));
+        moderation.userAction(admin.session(), tutor.id(), "unfreeze", "合成复核");
+        assertThrows(ApiError.class, () -> auth.current(tutor.session(), false));
+        assertEquals(tutor.id(), auth.login(login).me().id());
+        assertEquals(2, db.queryForObject("SELECT count(*) FROM admin_logs WHERE admin_id=? AND target_id=?",Integer.class,admin.id(),tutor.id()));
     }
 
     @Test void resumeAccessTracksVisibilityReplacementDeletionAndVersion() throws Exception {

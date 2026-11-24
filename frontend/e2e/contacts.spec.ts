@@ -170,6 +170,22 @@ test('公开评价冷启动门槛与老师视角的家长信用', async ({page, 
     await visitor.goto('/?view=public&request='+request);
     await expect(visitor.getByRole('dialog',{name:'需求详情'})).toContainText('合成需求方');
     await expect(visitor.getByRole('dialog')).not.toContainText('次合作');
+
+    await op.goto('/admin');
+    await op.getByRole('button',{name:'用户与风控'}).click();
+    await op.getByLabel('姓名、账号或邮箱').fill(owner.account);
+    await op.getByRole('button',{name:'搜索用户'}).click();
+    const author = op.getByRole('article').filter({hasText:owner.account});
+    await author.getByRole('button',{name:'查看已发评价'}).click();
+    await author.getByRole('button',{name:'隐藏评价'}).click();
+    const confirm = op.getByRole('dialog',{name:'隐藏评价'});
+    await confirm.getByLabel('操作理由').fill('合成评价复核');
+    await confirm.getByRole('button',{name:'确认',exact:true}).click();
+    await expect(author).toContainText('已隐藏 · 合成评价复核');
+    await page.goto('/?view=teachers');
+    const moderated = page.locator('.teacher-card').filter({hasText:'合成绘画老师'});
+    await expect(moderated).toContainText('已有 2 条真实评价');
+    await expect(moderated.getByLabel(/综合评分/)).toHaveCount(0);
   } finally { for (const context of contexts) await context.close(); }
 });
 test('直接邀请双方从交换联系方式到合作完结解锁互评',async({page,browser},info)=>{

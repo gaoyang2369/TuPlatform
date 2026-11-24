@@ -6,8 +6,9 @@ export function teacherShareUrl(id: string) {
   url.search = new URLSearchParams({view:"teachers", teacher:id}).toString();
   return url.href;
 }
-export function readScreen(search = location.search): Screen {
-  const query = new URLSearchParams(search);
+export function readScreen(search?: string): Screen {
+  if (search === undefined && /^\/admin\/?$/.test(location.pathname)) return "review";
+  const query = new URLSearchParams(search ?? location.search);
   const value = query.get("view");
   return screens.includes(value as Screen) ? value as Screen : query.has("request") ? "public" : "home";
 }
@@ -15,8 +16,8 @@ let currentUrl = location.pathname + location.search;
 let position = Number(history.state?.linkePosition) || 0;
 history.replaceState({ ...history.state, linkePosition: position }, "");
 history.scrollRestoration = "manual";
-export function writeUrl(query: URLSearchParams, replace = false) {
-  const url = location.pathname + (query.size ? "?" + query.toString() : "");
+export function writeUrl(query: URLSearchParams, replace = false, path = location.pathname) {
+  const url = path + (query.size ? "?" + query.toString() : "");
   if (url === currentUrl) return;
   history.replaceState({ ...history.state, scrollY: window.scrollY }, "");
   if (!replace) position++;
@@ -24,9 +25,9 @@ export function writeUrl(query: URLSearchParams, replace = false) {
   currentUrl = url;
 }
 export function routeTo(view: Screen, values: Record<string, string | undefined> = {}, replace = false) {
-  const query = new URLSearchParams(view === "home" ? "" : "view=" + view);
+  const query = new URLSearchParams(view === "home" || view === "review" ? "" : "view=" + view);
   for (const [key, value] of Object.entries(values)) if (value) query.set(key, value);
-  writeUrl(query, replace);
+  writeUrl(query, replace, view === "review" ? "/admin" : /^\/admin\/?$/.test(location.pathname) ? "/" : location.pathname);
 }
 export function updateQuery(values: Record<string, string | undefined>, replace = false) {
   const query = new URLSearchParams(location.search);

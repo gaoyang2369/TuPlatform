@@ -13,6 +13,7 @@ export interface Verification {
   status: keyof typeof statusLabels;
   reject_reason: string | null;
   created_at: string;
+  proof_available: boolean;
   reviewed_at: string | null;
 }
 export function verificationError(error: unknown) {

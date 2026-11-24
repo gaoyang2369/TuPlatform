@@ -204,7 +204,7 @@ class ProfileService {
     public Map<String,Object> publicTeachers(String session, String cursor, String category, String area, String mode,
             String grade, String subject, boolean trialOnly, boolean verifiedOnly) {
         auth.business(session, "REQUESTER");
-        var query = new StringBuilder(TEACHER_QUERY).append("a.email_verified AND a.business_identity='TUTOR' AND p.is_public");
+        var query = new StringBuilder(TEACHER_QUERY).append("NOT a.is_frozen AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public");
         var args = new ArrayList<Object>();
         addTeacherFilter(query, args, "category_codes", category, Rules.CATEGORIES);
         addTeacherFilter(query, args, "area_codes", area, Rules.AREAS);
@@ -232,7 +232,7 @@ class ProfileService {
         String candidates = sql + " ORDER BY featured DESC, id DESC LIMIT 11";
         var rows = db.queryForList("SELECT page.*, rating.* FROM (" + candidates + ") page CROSS JOIN LATERAL (" +
             "SELECT count(*) AS review_count, " + TeacherReviewService.DISPLAY_AVERAGE + " AS avg_rating " +
-            "FROM reviews WHERE reviewee_id=page.id AND is_published AND reviewer_role='parent'" +
+            "FROM reviews WHERE reviewee_id=page.id AND is_published AND NOT is_hidden AND reviewer_role='parent'" +
             ") rating ORDER BY page.featured DESC, page.id DESC", args.toArray());
         var result = new LinkedHashMap<String,Object>();
         result.put("items", rows.stream().limit(10).map(this::teacherProjection).toList());
@@ -253,7 +253,7 @@ class ProfileService {
         String street = RequestLocation.street(fields);
         String area = RequestLocation.STREETS.entrySet().stream().filter(e -> e.getValue().equals(street))
             .map(Map.Entry::getKey).findFirst().orElse("");
-        String candidates = TEACHER_QUERY + "a.email_verified AND a.business_identity='TUTOR' AND p.is_public " +
+        String candidates = TEACHER_QUERY + "NOT a.is_frozen AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public " +
             "AND p.category_codes @> CAST(? AS jsonb)";
         String sql = """
             SELECT id, display_name, avatar_url, college_major, grade_level, price_min, price_max, is_school_verified, reasons
@@ -307,7 +307,7 @@ class ProfileService {
     }
     private Map<String,Object> teacherProjection(UUID id) {
         List<Map<String, Object>> rows = db.queryForList(TEACHER_QUERY +
-            "a.id=? AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public", id);
+            "a.id=? AND NOT a.is_frozen AND a.email_verified AND a.business_identity='TUTOR' AND p.is_public", id);
         if (rows.isEmpty()) throw new ApiError(404, "NOT_FOUND", "老师资料当前不可查看");
         return teacherProjection(rows.getFirst());
     }

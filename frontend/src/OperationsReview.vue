@@ -8,9 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DiscoverySheet from "./DiscoverySheet.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import RequestSummary from "./RequestSummary.vue";
-import VerificationReview from "./VerificationReview.vue";
-const showVerifications = ref(false);
-import { statusNames,declarationNames } from "./request-display.ts";
+import { areaNames, categoryNames, stageNames, statusNames, declarationNames } from "./request-display";
+import { moneyText } from "./discovery-display";
 type Submission={id:string;requestId:string;status:string;version:number;submittedAt:string;expiresAt:string;fields:Record<string,unknown>;publisherDisplayName:string;publisherDeclaration:string;reviewFeedback:string|null;priorReviewFeedback:string|null};
 const emit=defineEmits<{expired:[]}>();
 const items=ref<Submission[]>([]),selected=ref<Submission|null>(null),cursor=ref<string|null>(null),status=ref("PENDING_REVIEW");
@@ -24,12 +23,12 @@ let pending:{body:string;key:string}|null=null;
 const dirty=computed(()=>selected.value?.status==='PENDING_REVIEW'&&(!!decision.value||!!reason.value));
 async function run(action:()=>Promise<void>){
   if(busy.value)return;busy.value=true;error.value="";message.value="";
-  try{await action();}catch(e){error.value=e instanceof Error?e.message:"操作未完成，请重试。";if(e instanceof ApiFailure){error.value+=" "+Object.values(e.fieldErrors).join("；");if(e.code==='LOGIN_REQUIRED'||e.code==='SESSION_CHANGED')emit("expired");}}finally{busy.value=false;}
+  try{await action();}catch(e){error.value=e instanceof Error?e.message:"操作未完成，请重试。";if(e instanceof ApiFailure){error.value+=" "+Object.values(e.fieldErrors).join("；");if(e.code==='LOGIN_REQUIRED'||e.code==='SESSION_CHANGED'||e.code==='ADMIN_REQUIRED')emit("expired");}}finally{busy.value=false;}
 }
-async function list(append=false){const query=new URLSearchParams({status:status.value});if(append&&cursor.value)query.set("cursor",cursor.value);const result=await api.request<{items:Submission[];nextCursor:string|null}>("/operations/submissions?"+query);items.value=append?[...items.value,...result.items]:result.items;cursor.value=result.nextCursor;selected.value=null;decision.value="";reason.value="";pending=null;}
-async function open(id:string,event:MouseEvent){trigger=event.currentTarget as HTMLElement;await run(async()=>{selected.value=await api.request<Submission>("/operations/submissions/"+id);decision.value="";reason.value="";pending=null;});}
-async function refresh(){await run(async()=>{if(selected.value)selected.value=await api.request<Submission>("/operations/submissions/"+selected.value.id);message.value="已读取最新状态，当前填写的审核意见仍保留。";});}
-function requestLeave(action:()=>void|Promise<void>){if(busy.value)return;if(dirty.value&&!window.confirm("审核意见尚未提交，离开将放弃本页填写。是否继续离开？"))return;void action();}
+async function list(append=false){const query=new URLSearchParams({status:status.value==="PENDING_REVIEW"?"pending":status.value.toLowerCase()});if(append&&cursor.value)query.set("cursor",cursor.value);const result=await api.request<{items:Submission[];nextCursor:string|null}>("/admin/demands?"+query);items.value=append?[...items.value,...result.items]:result.items;cursor.value=result.nextCursor;selected.value=null;decision.value="";reason.value="";pending=null;}
+async function open(id:string,event:MouseEvent){trigger=event.currentTarget as HTMLElement;await run(async()=>{selected.value=await api.request<Submission>("/admin/demands/"+id);decision.value="";reason.value="";pending=null;});}
+async function refresh(){await run(async()=>{if(selected.value)selected.value=await api.request<Submission>("/admin/demands/"+selected.value.id);message.value="已读取最新状态，当前填写的审核意见仍保留。";});}
+function requestLeave(action:()=>void|Promise<void>){if(busy.value && selected.value)return;if(dirty.value&&!window.confirm("审核意见尚未提交，离开将放弃本页填写。是否继续离开？"))return;void action();}
 function closeSheet() {
   if (confirmation.value) return;
   requestLeave(() => {
@@ -56,8 +55,8 @@ async function confirm(){await run(async()=>{
   if(!selected.value)return;
   const body={expectedVersion:selected.value.version,decision:decision.value,reason:decision.value==='REJECT'?reason.value:null};const encoded=JSON.stringify(body);
   if(!pending||pending.body!==encoded)pending={body:encoded,key:crypto.randomUUID()};
-  await api.request(`/operations/submissions/${selected.value.id}/decision`,"POST",body,pending.key);
-  confirmation.value=false;selected.value=await api.request<Submission>("/operations/submissions/"+selected.value.id);decision.value="";reason.value="";pending=null;message.value="审核结果已保存。";
+  await api.request(`/admin/demands/${selected.value.id}/review`,"POST",body,pending.key);
+  confirmation.value=false;selected.value=await api.request<Submission>("/admin/demands/"+selected.value.id);decision.value="";reason.value="";pending=null;message.value="审核结果已保存。";
 });}
 function beforeUnload(event:BeforeUnloadEvent){if(dirty.value){event.preventDefault();event.returnValue="";}}
 onMounted(()=>{void run(()=>list());window.addEventListener("beforeunload",beforeUnload);});onBeforeUnmount(()=>window.removeEventListener("beforeunload",beforeUnload));
@@ -66,11 +65,9 @@ defineExpose({requestLeave});
 <template>
   <section class="space-y-6 [overflow-wrap:anywhere]" :aria-busy="busy">
     <header ref="heading" tabindex="-1" class="space-y-2">
-      <h1 class="text-3xl font-bold tracking-tight sm:text-[40px]">需求审核</h1>
+      <h2 class="text-xl font-bold">家长需求审核队列</h2>
       <p class="text-[15px] text-secondary-foreground">核对本次提交的内容。自己的需求不会进入审核队列。</p>
-      <Button variant="outline" class="min-h-11" :aria-expanded="showVerifications" @click="showVerifications=!showVerifications"><ShieldCheck/>老师认证审核</Button>
     </header>
-    <VerificationReview v-if="showVerifications" @expired="emit('expired')"/>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div role="group" aria-label="审核状态" class="flex flex-wrap gap-1 rounded-2xl border border-border bg-card p-1">
         <Button v-for="code in states" :key="code" variant="ghost" class="rounded-full aria-pressed:bg-blue-50 aria-pressed:text-primary" :aria-pressed="status===code" :disabled="busy" @click="filter(code)">{{ statusNames[code] }}</Button>
@@ -84,6 +81,9 @@ defineExpose({requestLeave});
       <article v-for="item in items" :key="item.id" class="flex min-w-0 flex-col items-start gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-lg motion-safe:hover:-translate-y-0.5 sm:p-6">
         <Badge variant="secondary" :class="item.status==='PENDING_REVIEW' && 'bg-orange-50 text-orange-800'">{{ statusNames[item.status] }}</Badge>
         <h2 class="text-xl font-bold [overflow-wrap:anywhere]">{{ item.fields.title }}</h2>
+        <strong class="text-xl">¥{{ moneyText(item.fields.budgetMin) || '—' }} 至 {{ moneyText(item.fields.budgetMax) || '—' }} <small class="text-xs font-normal">元/小时</small></strong>
+        <p>{{ item.fields.grade || stageNames[String(item.fields.audienceStageCode)] }} · {{ item.fields.subject || categoryNames[String(item.fields.categoryCode)] }}</p>
+        <p class="text-sm text-secondary-foreground">{{ item.fields.street || areaNames[String(item.fields.areaCode)] || '未填街道' }} · {{ item.fields.exact_address || item.fields.locationText || '无地址备注' }}</p>
         <p class="mt-auto text-sm text-secondary-foreground">{{ item.publisherDisplayName }} · {{ formatTime(item.submittedAt) }}</p>
         <Button variant="secondary" class="h-11 w-full justify-between rounded-xl" :disabled="busy" @click="open(item.id,$event)">核对提交<ArrowRight/></Button>
       </article>
@@ -94,6 +94,7 @@ defineExpose({requestLeave});
         <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain [overflow-wrap:anywhere] px-5 pb-5 sm:px-8">
           <Badge variant="secondary">{{ statusNames[selected.status] }}</Badge>
           <RequestSummary :fields="selected.fields" :display-name="selected.publisherDisplayName"/>
+          <p class="rounded-xl bg-blue-50 p-3 text-sm">私有地址备注 · {{ selected.fields.exact_address || selected.fields.locationText || '未填写' }}</p>
           <section class="space-y-2 rounded-xl bg-slate-50 p-4 text-sm text-secondary-foreground">
             <h3 class="flex items-center gap-2 font-bold text-foreground"><ShieldCheck class="size-4"/>本次私有发布声明</h3>
             <p>{{ declarationNames[selected.publisherDeclaration] }}</p><p>提交时间：{{ formatTime(selected.submittedAt) }}</p><p>审核有效期限：{{ formatTime(selected.expiresAt) }}（内部）</p>
@@ -102,7 +103,7 @@ defineExpose({requestLeave});
           <p v-if="selected.reviewFeedback" class="rounded-xl bg-orange-50 p-3 text-sm">本次驳回理由：{{ selected.reviewFeedback }}</p>
           <fieldset v-if="selected.status==='PENDING_REVIEW'" :disabled="busy" class="space-y-3">
             <legend class="mb-2 font-bold">审核决定</legend>
-            <p class="text-sm text-secondary-foreground">请检查服务内容、发布对象及自由文本。含联系方式、儿童实名或精确住址时应驳回并说明。</p>
+            <p class="text-sm text-secondary-foreground">请检查服务内容、发布对象及自由文本。公开字段含联系方式、儿童实名或精确住址时应驳回并说明。</p>
             <div class="flex flex-wrap gap-2">
               <label v-for="[value,label] in [['APPROVE','通过审核并公开'], ['REJECT','驳回并说明原因']]" :key="value" class="flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm has-checked:border-blue-200 has-checked:bg-blue-50">
                 <input v-model="decision" type="radio" name="decision" :value="value" class="accent-primary">{{ label }}
@@ -119,7 +120,7 @@ defineExpose({requestLeave});
           <Button v-if="selected.status==='PENDING_REVIEW'" class="h-11 w-full rounded-xl" :disabled="busy || !decision" @click="preview">核对并确认审核</Button>
         </div>
         <ConfirmDialog :open="confirmation" :busy="busy" :title="decision==='APPROVE'?'确认通过并公开？':'确认驳回？'" :confirm-text="decision==='APPROVE'?'确认通过并公开':'确认驳回'" cancel-text="返回核对" @cancel="confirmation=false" @confirm="confirm">
-          <p>{{ decision==='APPROVE'?'通过后，该提交内容将向所有访客公开。请确认已核对本次内容。':'需求方会看到以下理由，并可修改后重新提交。' }}</p>
+          <p>{{ decision==='APPROVE'?'通过后，访客可以查看需求。完整地址与发布声明仍受保护。':'需求方会看到以下理由，并可修改后重新提交。' }}</p>
           <p v-if="decision==='REJECT'" class="whitespace-pre-wrap">{{ reason }}</p>
           <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-red-800">{{ error }}</p>
         </ConfirmDialog>

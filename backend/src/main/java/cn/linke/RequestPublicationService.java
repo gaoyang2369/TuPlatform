@@ -85,10 +85,9 @@ class RequestPublicationService {
     private static final String REVIEW_READ="SELECT s.*,r.owner_id,d.reason AS review_feedback,"+
         "CASE WHEN s.status<>'REJECTED' AND s.expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE s.status END AS effective_status,"+
         "(SELECT previous.reason FROM review_decisions previous JOIN request_submissions old ON old.id=previous.submission_id WHERE old.request_id=s.request_id AND old.id<>s.id AND old.submitted_at<s.submitted_at ORDER BY old.submitted_at DESC LIMIT 1) AS prior_review_feedback "+
-        "FROM request_submissions s JOIN service_requests r ON r.id=s.request_id LEFT JOIN review_decisions d ON d.submission_id=s.id ";
+        "FROM request_submissions s JOIN service_requests r ON r.id=s.request_id JOIN accounts owner ON owner.id=r.owner_id AND NOT owner.is_frozen LEFT JOIN review_decisions d ON d.submission_id=s.id ";
     private ReviewSubmission reviewMap(java.sql.ResultSet r,int row) throws java.sql.SQLException {
         ObjectNode reviewFields = fields(r.getString("fields"));
-        reviewFields.remove(List.of("locationText", "exact_address"));
         return new ReviewSubmission(r.getObject("id",UUID.class),r.getObject("request_id",UUID.class),r.getString("effective_status"),r.getLong("version"),r.getObject("submitted_at",OffsetDateTime.class),r.getObject("expires_at",OffsetDateTime.class),reviewFields,r.getString("publisher_display_name"),r.getString("publisher_declaration"),r.getString("declaration_version"),r.getString("review_feedback"),r.getString("prior_review_feedback"));
     }
     private ReviewSubmission review(UUID actor,UUID id) {
@@ -152,6 +151,7 @@ class RequestPublicationService {
         db.update("UPDATE request_submissions SET status=?,version=version+1 WHERE id=?",body.decision().equals("APPROVE")?"APPROVED":"REJECTED",id);
         String status=body.decision().equals("APPROVE")?"OPEN":"REJECTED";
         db.update("UPDATE service_requests SET status=?,version=version+1 WHERE id=?",status,initial.requestId());
+        AdminLog.record(db, actor.id(), body.decision(), "demand", initial.requestId(), reason);
         notifications.requestReviewed((UUID)rows.getFirst().get("owner_id"), id, initial.requestId(), submission.fields().path("title").asText(), reason);
         return remember(actor.id(),"REVIEW",key,id,body,new RequestAction(initial.requestId(),id,status,((Number)rows.getFirst().get("version")).longValue()+1));
     }
@@ -169,7 +169,7 @@ class RequestPublicationService {
     private String publicCondition(List<Object> args) {
         if (drafts.categories().isEmpty()) return "FALSE";
         args.addAll(drafts.categories());
-        return "r.status='OPEN' AND r.latest_submission_id=s.id AND s.status='APPROVED' AND s.expires_at>clock_timestamp() AND s.fields->>'categoryCode' IN ("+String.join(",",Collections.nCopies(drafts.categories().size(),"?"))+")";
+        return "r.status='OPEN' AND EXISTS (SELECT 1 FROM accounts a WHERE a.id=r.owner_id AND NOT a.is_frozen) AND r.latest_submission_id=s.id AND s.status='APPROVED' AND s.expires_at>clock_timestamp() AND s.fields->>'categoryCode' IN ("+String.join(",",Collections.nCopies(drafts.categories().size(),"?"))+")";
     }
     public Map<String,Object> publicDetail(UUID request) {
         List<Object> args=new ArrayList<>(List.of(request));
@@ -186,7 +186,7 @@ class RequestPublicationService {
             SELECT (SELECT count(*) FROM match_relationships m JOIN match_rounds n ON n.match_id=m.id
                     WHERE m.requester_id=r.owner_id AND n.state='completed') AS completed_count,
                    ARRAY(SELECT tag FROM reviews v CROSS JOIN LATERAL jsonb_array_elements_text(v.tags_json) AS tags(tag)
-                         WHERE v.reviewee_id=r.owner_id AND v.is_published AND v.reviewer_role='teacher'
+                         WHERE v.reviewee_id=r.owner_id AND v.is_published AND NOT v.is_hidden AND v.reviewer_role='teacher'
                            AND tag=ANY (?) GROUP BY tag ORDER BY count(*) DESC,tag LIMIT 3) AS tags
             FROM service_requests r WHERE r.id=?
             """, rs -> {

@@ -25,9 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 class VerificationService {
     record Entry(UUID id, UUID user_id, String verify_type, String status, String reject_reason,
-                 OffsetDateTime created_at, OffsetDateTime reviewed_at) {}
+                 OffsetDateTime created_at, OffsetDateTime reviewed_at, boolean proof_available) {}
     record Decision(String status, String reject_reason) {}
-    private static final String FIELDS = "id,user_id,verify_type,status,reject_reason,created_at,reviewed_at";
+    private static final String FIELDS = "id,user_id,verify_type,status,reject_reason,created_at,reviewed_at,(proof_path IS NOT NULL AND NOT delete_requested) AS proof_available";
     private final AuthService auth;
     private final JdbcTemplate db;
     private final Path directory;
@@ -42,7 +42,7 @@ class VerificationService {
     private Entry entry(ResultSet rs, int row) throws SQLException {
         return new Entry(rs.getObject("id", UUID.class), rs.getObject("user_id", UUID.class),
             rs.getString("verify_type"), rs.getString("status"), rs.getString("reject_reason"),
-            rs.getObject("created_at", OffsetDateTime.class), rs.getObject("reviewed_at", OffsetDateTime.class));
+            rs.getObject("created_at", OffsetDateTime.class), rs.getObject("reviewed_at", OffsetDateTime.class), rs.getBoolean("proof_available"));
     }
     List<Entry> mine(String session) {
         var tutor = auth.business(session, "TUTOR");
@@ -106,16 +106,45 @@ class VerificationService {
             " WHERE id=? AND user_id<>? AND status='pending' RETURNING " + FIELDS, this::entry,
             decision.status(), reason, id, actor.id());
         if (rows.isEmpty()) throw new ApiError(409, "VERIFICATION_NOT_PENDING", "当前申请无法审核，请重新读取队列");
+        AdminLog.record(db, actor.id(), decision.status(), "verification", id, reason);
         notifications.verificationReviewed(rows.getFirst());
         return rows.getFirst();
     }
+    void requestDeletion(String session, UUID id) {
+        var admin = auth.admin(session, true);
+        int changed = db.update("UPDATE verifications SET delete_requested=true WHERE id=? AND status='approved' AND NOT delete_requested", id);
+        if (changed == 0) throw new ApiError(409, "PROOF_STATE_CHANGED", "仅可删除已核验且尚未清理的原件");
+        AdminLog.record(db, admin.id(), "delete-proof", "verification", id, null);
+    }
+
+    // The deletion request and audit commit before unlinking. A crash or storage failure is retryable.
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay=60000)
+    public void purgeProofs() {
+        var rows = db.queryForList("SELECT id,proof_path FROM verifications WHERE delete_requested AND proof_path IS NOT NULL FOR UPDATE SKIP LOCKED");
+        for (var row : rows) {
+            UUID id = (UUID) row.get("id");
+            String name = (String) row.get("proof_path");
+            if (!validName(id, name)) throw new IllegalStateException("无效的私有证件文件名");
+            try {
+                Files.deleteIfExists(directory.resolve(name));
+                db.update("UPDATE verifications SET proof_path=NULL WHERE id=?", id);
+            } catch (IOException e) {
+                LoggerFactory.getLogger(VerificationService.class).warn("证件原件清理待重试，申请 {}", id);
+            }
+        }
+    }
+
+    private boolean validName(UUID id, String name) {
+        return name.matches(id + "\\.(jpg|png|webp|pdf)");
+    }
+
     VerificationProof proof(String session, UUID id) {
         var actor = auth.current(session, false);
-        var paths = db.queryForList("SELECT proof_path FROM verifications WHERE id=? AND (user_id=? OR ?)",
+        var paths = db.queryForList("SELECT proof_path FROM verifications WHERE id=? AND proof_path IS NOT NULL AND NOT delete_requested AND (user_id=? OR ?)",
             String.class, id, actor.id(), actor.operator());
         if (paths.isEmpty()) throw missing();
         String name = paths.getFirst();
-        if (!name.matches(id + "\\.(jpg|png|webp|pdf)")) throw missing();
+        if (!validName(id, name)) throw missing();
         Path path = directory.resolve(name);
         if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw missing();
         try {

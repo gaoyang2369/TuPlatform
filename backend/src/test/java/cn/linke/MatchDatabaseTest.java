@@ -250,6 +250,23 @@ class MatchDatabaseTest {
     @Autowired MatchLifecycle lifecycle;
     @Autowired MatchReviewService reviews;
     @Autowired TeacherReviewService teacherReviews;
+    @Autowired ModerationService moderation;
+
+    @Test void moderationControlsPublicProfilesDemandsAndAvatars() throws Exception {
+        var s = setup();
+        var admin = s.operator().session();
+        db.update("UPDATE profiles SET avatar_url=? WHERE account_id=?", "/api/v1/avatars/" + UUID.randomUUID(), s.tutor().id());
+        moderation.userAction(admin, s.tutor().id(), "reset-avatar", "违规头像");
+        assertNull(profiles.publicTeacher(s.owner().session(),s.tutor().id()).get("avatar_url"));
+        moderation.userAction(admin, s.tutor().id(), "freeze", "合成测试");
+        assertTrue(((List<?>) profiles.publicTeachers(s.owner().session(),null,null,null,null,null,null,false,false).get("items")).isEmpty());
+        assertThrows(ApiError.class, () -> profiles.publicTeacher(s.owner().session(),s.tutor().id()));
+        moderation.userAction(admin, s.owner().id(), "freeze", "合成测试");
+        assertEquals(404, assertThrows(ApiError.class, () -> publication.publicDetail(s.request())).status);
+        assertTrue(((List<?>)publication.publicList(null,null,null,null).get("items")).isEmpty());
+        moderation.userAction(admin, s.owner().id(), "unfreeze", "合成复核");
+        assertEquals(s.request(), publication.publicDetail(s.request()).get("id"));
+    }
 
     @Test void discoveryReviewsRespectPublicationThresholdPaginationAndViewerRole() throws Exception {
         var s = setup(Map.of("grade","高一","subject","素描","exact_address","合成私密门牌甲"));
@@ -320,6 +337,19 @@ class MatchDatabaseTest {
         assertEquals(List.of("沟通顺畅"),credit.get("parent_top_tags"));
         assertFalse(publication.publicDetailForViewer(s.request(),null).containsKey("completed_match_count"));
         assertFalse(publication.publicDetailForViewer(s.request(),viewer.session()).containsKey("parent_top_tags"));
+        moderation.hide(s.operator().session(), oldest.id(), "合成审核理由");
+        var moderated = teacherReviews.list(viewer.session(),tutor.id(),null,5);
+        assertEquals(2L,moderated.get("published_count"));
+        assertNull(moderated.get("avg_overall_score"));
+        assertEquals(List.of(Map.of("tag","守时靠谱","count",2L)),moderated.get("top_tags"));
+        var card = (Map<?,?>)((List<?>)profiles.publicTeachers(viewer.session(),null,null,null,null,null,null,false,false).get("items")).stream()
+            .map(item -> (Map<?,?>)item).filter(item -> tutor.id().equals(item.get("id"))).findFirst().orElseThrow();
+        assertEquals(2L,card.get("review_count"));
+        assertNull(card.get("avg_rating"));
+        var privatePage = reviews.list(s.owner().session(),rounds.getFirst().id());
+        assertTrue(privatePage.reviews().stream().noneMatch(r -> r.id().equals(oldest.id())));
+        assertFalse(privatePage.canSubmit());
+        assertEquals("合成审核理由",db.queryForObject("SELECT reason FROM admin_logs WHERE target_id=?",String.class,oldest.id()));
         profiles.visibility(tutor.session(),new VersionBody(s.teacherVersion()),false,key());
         assertEquals(404,assertThrows(ApiError.class,()->teacherReviews.list(viewer.session(),tutor.id(),null,5)).status);
     }

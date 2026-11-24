@@ -99,6 +99,7 @@ class PublicationDatabaseTest {
         User owner=user("REQUESTER",false),operator=user("TUTOR",true);var submitted=submit(owner,ready(owner));String reviewKey=UUID.randomUUID().toString();var decision=new ReviewRequest(0L,"REJECT","请补充目标说明");
         var rejected=publishing.decide(operator.session(),submitted.submissionId(),decision,reviewKey);
         assertEquals(rejected,publishing.decide(operator.session(),submitted.submissionId(),decision,reviewKey));
+        assertEquals(List.of("请补充目标说明"),db.queryForList("SELECT reason FROM admin_logs WHERE target_id=? AND admin_id=?",String.class,submitted.id(),operator.id()));
         var notification=db.queryForMap("SELECT user_id,content,target_url FROM notifications WHERE event_id=?",submitted.submissionId());
         assertEquals(owner.id(),notification.get("user_id"));
         assertTrue(notification.get("content").toString().contains("请补充目标说明"));

@@ -38,9 +38,9 @@ class MatchService {
         "n.contacts_exchanged_at,n.cooperation_requested_by,n.completion_requested_by,n.completed_at,n.review_deadline_at,"+
         "(n.state='completed' AND n.review_deadline_at>=clock_timestamp()) AS review_eligible,"+
         "parent_review.id IS NOT NULL AS parent_reviewed,teacher_review.id IS NOT NULL AS teacher_reviewed,"+
-        "(parent_review.is_published OR teacher_review.is_published OR LEAST(parent_review.reveal_at,teacher_review.reveal_at)<=clock_timestamp()) AS reviews_published,"+
+        "(NOT parent_review.is_hidden AND (parent_review.is_published OR parent_review.reveal_at<=clock_timestamp()) OR NOT teacher_review.is_hidden AND (teacher_review.is_published OR teacher_review.reveal_at<=clock_timestamp())) AS reviews_published,"+
         "EXISTS(SELECT 1 FROM match_rounds old JOIN reviews v ON v.match_id=old.id WHERE old.match_id=m.id AND old.id<>n.id "+
-        "AND (v.is_published OR v.reveal_at<=clock_timestamp())) AS past_reviews,"+
+        "AND NOT v.is_hidden AND (v.is_published OR v.reveal_at<=clock_timestamp())) AS past_reviews,"+
         "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id, p.avatar_url AS tutor_avatar, owner.avatar_url AS requester_avatar "+
         "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id LEFT JOIN request_submissions s ON s.id=n.submission_id "+
         "LEFT JOIN reviews parent_review ON parent_review.match_id=n.id AND parent_review.reviewer_role='parent' "+

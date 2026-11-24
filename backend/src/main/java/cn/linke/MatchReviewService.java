@@ -73,7 +73,7 @@ class MatchReviewService {
             """, match);
         var entries = db.query("""
             SELECT r.* FROM reviews r JOIN match_rounds n ON n.id=r.match_id
-            WHERE n.match_id=? AND (r.is_published OR r.reviewer_id=?) ORDER BY n.initiated_at DESC,r.created_at,r.id
+            WHERE n.match_id=? AND NOT r.is_hidden AND (r.is_published OR r.reviewer_id=?) ORDER BY n.initiated_at DESC,r.created_at,r.id
             """, (rs,i) -> {
             var replied = rs.getTimestamp("replied_at");
             return new Entry(rs.getObject("id",UUID.class),rs.getObject("match_id",UUID.class),
@@ -82,7 +82,7 @@ class MatchReviewService {
                 rs.getString("reply_content"),replied == null ? null : replied.toInstant(),rs.getBoolean("is_published"),
                 rs.getTimestamp("reveal_at").toInstant(),rs.getTimestamp("created_at").toInstant());
         },match,actor);
-        boolean mine = entries.stream().anyMatch(e -> e.roundId().equals(deal.round()) && e.mine());
+        boolean mine = Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS (SELECT 1 FROM reviews WHERE match_id=? AND reviewer_id=?)", Boolean.class, deal.round(), actor));
         return new Page(deal.round(),deal.completed() && deal.withinWindow() && !mine,deal.form(),entries);
     }
 
@@ -162,7 +162,7 @@ class MatchReviewService {
     public void reply(String session, UUID id, Reply body, String key) {
         validateKey(key);
         UUID actor = auth.current(session,false).id();
-        var rows = db.queryForList("SELECT reply_content,reply_key FROM reviews WHERE id=? AND reviewee_id=? AND is_published FOR UPDATE",id,actor);
+        var rows = db.queryForList("SELECT reply_content,reply_key FROM reviews WHERE id=? AND reviewee_id=? AND is_published AND NOT is_hidden FOR UPDATE",id,actor);
         if (rows.isEmpty()) throw unavailable();
         String content = limitedText(body.content(),200);
         if (content.isBlank()) throw ApiError.invalid("content","请填写回复内容");

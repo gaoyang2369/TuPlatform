@@ -15,14 +15,14 @@ test("审核筛选即时生效，二次确认只关闭顶层并保留审核意�
     const url = new URL(route.request().url());
     const path = url.pathname.slice("/api/v1".length);
     if (path === "/me") return route.fulfill({ json: { id: "operator", account: "review_demo", businessIdentity: null, operatorGranted: true } });
-    if (path === "/operations/submissions") {
+    if (path === "/admin/demands") {
       await hold;
       if (fail) { fail = false; return route.fulfill({ status: 503, json: { message: "暂时无法读取审核队列" } }); }
-      const items = url.searchParams.get("status") === submission.status ? [submission] : [];
+      const items = url.searchParams.get("status") === "pending" ? [submission] : [];
       return route.fulfill({ json: { items, nextCursor: null } });
     }
-    if (path === "/operations/submissions/submission") return route.fulfill({ json: submission });
-    if (path.endsWith("/decision")) decisions++;
+    if (path === "/admin/demands/submission") return route.fulfill({ json: submission });
+    if (path.endsWith("/review")) decisions++;
     return route.fulfill({ status: 404, json: { message: "没有对应的测试数据" } });
   });
   await page.goto("/?view=review");

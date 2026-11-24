@@ -75,7 +75,7 @@ class ResumeService {
         var files = db.query("""
             SELECT p.resume_pdf_name,f.content FROM teacher_resume_files f
             JOIN profiles p ON p.account_id=f.account_id JOIN accounts a ON a.id=p.account_id
-            WHERE f.file_id=? AND a.email_verified AND a.business_identity='TUTOR'
+            WHERE f.file_id=? AND NOT a.is_frozen AND a.email_verified AND a.business_identity='TUTOR'
             AND (f.account_id=? OR (? AND p.is_public))
             """, (rs, n) -> new Document(rs.getString(1), rs.getBytes(2)), fileId, viewer.id(), "REQUESTER".equals(viewer.identity()));
         if (files.isEmpty()) throw new ApiError(404, "NOT_FOUND", "附件已移除或当前不可查看");

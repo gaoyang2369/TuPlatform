@@ -59,6 +59,10 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
       .filter({has:operator.getByRole("heading", {name:label, exact:true})});
     const row = submission("本校学籍");
     await expect(row).toBeVisible();
+    await row.getByRole("button", {name:"查看证件"}).click();
+    const proofDialog = operator.getByRole("dialog", {name:"查看证件"});
+    await expect(proofDialog.locator("object, img")).toBeVisible();
+    await proofDialog.getByRole("button", {name:"关闭"}).click();
     const document = await operator.request.get(proof);
     expect(document.status()).toBe(200);
     expect(document.headers()["cache-control"]).toContain("no-store");
@@ -78,6 +82,14 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
     }
     await mine.getByRole("button", {name:"刷新认证状态"}).click();
     await expect(mine.getByText("已核验", {exact:true})).toHaveCount(2);
+    const approvedProof = (await school.getByRole("link").getAttribute("href"))!;
+    await queue.getByRole("button", {name:"已核验", exact:true}).click();
+    await submission("本校学籍").getByRole("button", {name:"删除已核验证件原图"}).click();
+    await operator.getByRole("button", {name:"确认删除原图"}).click();
+    await expect(submission("本校学籍")).toContainText("原件已停止提供");
+    expect((await page.request.get(approvedProof)).status()).toBe(404);
+    await mine.getByRole("button", {name:"刷新认证状态"}).click();
+    await expect(school.getByRole("link")).toHaveCount(0);
     await parent.reload();
     await expect(card).toContainText("本校学籍已核验");
     await expect(card).toContainText("技能证书已核验");

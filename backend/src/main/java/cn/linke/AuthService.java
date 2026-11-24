@@ -33,7 +33,7 @@ class AuthService {
     public Me me(Account a) { return new Me(a.id(), a.account(), managedOperator(a) ? "" : a.email(), !managedOperator(a) && a.verified(), a.identity(), a.operator(), a.profileVersion(), a.avatarUrl()); }
     Account sessionAccount(String session, boolean lock) {
         if (session == null || session.length() != 43) return null;
-        return one(db.query(ACCOUNT + "WHERE a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));
+        return one(db.query(ACCOUNT + "WHERE NOT a.is_frozen AND a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));
     }
     public Account current(String session, boolean lock) {
         if (session == null || session.length() != 43) throw new ApiError(401, "LOGIN_REQUIRED", "请先登录");
@@ -42,6 +42,15 @@ class AuthService {
         if (lock && !Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS (SELECT 1 FROM auth_sessions WHERE token_hash=? AND account_id=? AND expires_at>clock_timestamp())", Boolean.class, secrets.digest(session), a.id())))
             throw new ApiError(401, "LOGIN_REQUIRED", "登录已失效，请重新登录");
         return a;
+    }
+    public Account admin(String session, boolean lock) {
+        try {
+            Account a = current(session, lock);
+            if (a.operator()) return a;
+        } catch (ApiError e) {
+            if (e.status != 401) throw e;
+        }
+        throw new ApiError(403, "ADMIN_REQUIRED", "无权访问管理后台");
     }
     public Account business(String session, String identity) {
         Account a = current(session, true);
@@ -73,7 +82,7 @@ class AuthService {
     }
     private Account tokenAccount(String token, String purpose) {
         UUID id = tokenOwner(token, purpose);
-        Account a = one(db.query(ACCOUNT + "WHERE a.id=? FOR UPDATE OF a", this::map, id));
+        Account a = one(db.query(ACCOUNT + "WHERE a.id=? AND NOT a.is_frozen FOR UPDATE OF a", this::map, id));
         // Recheck after obtaining the account lock; concurrent confirmation/reset must not reuse the token.
         tokenOwner(token, purpose);
         if (a == null) throw new ApiError(422, "LINK_INVALID", "链接已失效，请重新申请");
@@ -108,7 +117,7 @@ class AuthService {
     public boolean resend(String flowId, String context) {
         UUID flow;
         try { flow = UUID.fromString(flowId); } catch (Exception e) { throw new ApiError(422, "REGISTRATION_CONTEXT_INVALID", "请在原注册页面重发，或重新注册"); }
-        Account a = one(db.query(ACCOUNT + "WHERE registration_flow_id=? AND NOT email_verified AND created_at>now()-interval '7 days' FOR UPDATE OF a", this::map, flow));
+        Account a = one(db.query(ACCOUNT + "WHERE registration_flow_id=? AND NOT is_frozen AND NOT email_verified AND created_at>now()-interval '7 days' FOR UPDATE OF a", this::map, flow));
         if (a == null || !contextMatches(a, context)) throw new ApiError(422, "REGISTRATION_CONTEXT_INVALID", "请在原注册页面重发，或重新注册");
         return verification(a.id(), a.email());
     }
@@ -117,6 +126,8 @@ class AuthService {
         Account a = one(db.query(ACCOUNT + "WHERE account_key=? FOR UPDATE OF a", this::map, key));
         boolean valid = secrets.matches(body.password(), a == null ? dummyPassword : a.passwordHash());
         if (a == null || !valid) throw new ApiError(401, "LOGIN_FAILED", "账号或密码不正确");
+        if (Boolean.TRUE.equals(db.queryForObject("SELECT is_frozen FROM accounts WHERE id=?", Boolean.class, a.id())))
+            throw new ApiError(403, "ACCOUNT_FROZEN", "账号已冻结，暂时无法登录");
         if (!a.verified()) throw new ApiError(403, "EMAIL_VERIFICATION_REQUIRED", "请先验证注册邮箱；可在原注册页面重新发送邮件");
         String session = secrets.token();
         db.update("INSERT INTO auth_sessions(token_hash,account_id,expires_at) VALUES (?,?,now()+interval '7 days')", secrets.digest(session), a.id());
@@ -129,7 +140,7 @@ class AuthService {
         String key = Rules.email(email);
         // Disabled transport is reported uniformly for all addresses; no account enumeration.
         if (!mail.enabled()) throw new ApiError(503, "MAIL_UNAVAILABLE", "邮件服务尚不可用，请稍后重试");
-        Account a = one(db.query(ACCOUNT + "WHERE email_key=? AND email_verified FOR UPDATE OF a", this::map, key));
+        Account a = one(db.query(ACCOUNT + "WHERE email_key=? AND NOT is_frozen AND email_verified FOR UPDATE OF a", this::map, key));
         if (a == null || managedOperator(a)) return;
         String token = secrets.token();
         db.update("INSERT INTO email_tokens(token_hash,account_id,purpose,expires_at) VALUES (?,?,'RESET',now()+interval '30 minutes')", secrets.digest(token), a.id());

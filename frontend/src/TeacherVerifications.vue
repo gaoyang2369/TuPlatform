@@ -84,7 +84,7 @@ onMounted(async () => {
           <p class="text-xs text-muted-foreground">JPG、PNG、WebP 或 PDF，最大 5 MB</p>
           <Button type="button" class="min-h-11" :disabled="busy || !files[card.type]" @click="submit(card.type)">提交{{ card.label }}认证</Button>
         </template>
-        <a v-if="card.record" class="block py-2 text-sm font-semibold text-primary underline" :href="'/api/admin/verifications/' + card.record.id + '/proof'">下载本人已提交材料</a>
+        <a v-if="card.record?.proof_available" class="block py-2 text-sm font-semibold text-primary underline" :href="'/api/verifications/' + card.record.id + '/proof'">下载本人已提交材料</a>
       </article>
     </div>
     <p v-if="error" role="alert" class="text-sm text-red-800">{{ error }}</p>

@@ -35,6 +35,7 @@ test("提交、驳回修改重提、审核公开、匿名浏览及到期不可�
   try {
     const visitor=await anonymous.newPage();await visitor.goto("/");await visitor.getByRole("button",{name:"浏览需求",exact:true}).click();await expect(visitor.getByText("暂无符合条件的公开需求，可以调整筛选条件。")).toBeVisible();
     const reviewer=await operatorPage(operations,user("OPERATOR"));
+    await expect(reviewer.getByRole("dialog", {name:"核对提交",exact:true})).toContainText("合成私密花园3栋");
     await reviewer.getByRole("radio",{name:"驳回并说明原因",exact:true}).check();await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await expect(reviewer.getByRole("alert")).toContainText("驳回前请填写理由");
     await reviewer.getByLabel("驳回理由",{exact:true}).fill("请补充学习目标，再次提交。");await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await reviewer.getByRole("button",{name:"确认驳回",exact:true}).click();await expect(reviewer.getByRole("dialog", {name:"核对提交", exact:true}).getByText("已驳回",{exact:true})).toBeVisible();
     await page.context().clearCookies();

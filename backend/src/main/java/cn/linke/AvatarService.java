@@ -67,11 +67,11 @@ class AvatarService {
         String filename = id + ".jpg";
         boolean visible = Boolean.TRUE.equals(db.queryForObject("""
             SELECT EXISTS (SELECT 1 FROM profiles p JOIN accounts a ON a.id=p.account_id
-              WHERE p.avatar_url=? AND (p.account_id=?
-                OR (?='REQUESTER' AND p.is_public AND a.email_verified AND a.business_identity='TUTOR')
+              WHERE p.avatar_url=? AND (? OR p.account_id=?
+                OR (?='REQUESTER' AND p.is_public AND NOT a.is_frozen AND a.email_verified AND a.business_identity='TUTOR')
                 OR EXISTS (SELECT 1 FROM match_relationships m WHERE
                   (m.requester_id=? AND m.tutor_id=p.account_id) OR (m.tutor_id=? AND m.requester_id=p.account_id))))
-            """, Boolean.class, URL_PREFIX + filename, viewer.id(), viewer.identity(), viewer.id(), viewer.id()));
+            """, Boolean.class, URL_PREFIX + filename, viewer.operator(), viewer.id(), viewer.identity(), viewer.id(), viewer.id()));
         if (!visible) throw missing();
         return readFile(filename);
     }
@@ -79,7 +79,7 @@ class AvatarService {
     public byte[] sharedTeacherAvatar(UUID teacherId) throws IOException {
         var urls = db.queryForList("""
             SELECT p.avatar_url FROM profiles p JOIN accounts a ON a.id=p.account_id
-            WHERE a.id=? AND a.business_identity='TUTOR' AND a.email_verified AND p.is_public AND p.avatar_url IS NOT NULL
+            WHERE a.id=? AND a.business_identity='TUTOR' AND NOT a.is_frozen AND a.email_verified AND p.is_public AND p.avatar_url IS NOT NULL
             """, String.class, teacherId);
         if (urls.isEmpty() || !urls.getFirst().matches(URL_PREFIX + "[0-9a-f-]{36}\\.jpg")) throw missing();
         return readFile(urls.getFirst().substring(URL_PREFIX.length()));
