@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiFailure, type Me, type ProfileOptions } from "./account-api";
 import type { PublicTeacher } from "./match-types";
 import TeacherSummary from "./TeacherSummary.vue";
+import TeacherReviews from "./TeacherReviews.vue";
 import TeacherShareButton from "./TeacherShareButton.vue";
 import MatchComposer from "./MatchComposer.vue";
 import { areaNames, modeNames } from "./request-display";
@@ -108,6 +109,7 @@ onMounted(loadOptions);
       <template #actions><TeacherShareButton v-if="detail" :key="detail.id" :teacher-id="detail.id"/></template>
       <MatchComposer v-if="detail" drawer :key="detail.id" :me="me" :teacher-id="detail.id" @matched="emit('matched',$event)" @expired="emit('expired')" @requests="emit('requests')" @profile="emit('profile')">
         <TeacherSummary :teacher="detail" public-profile/>
+        <TeacherReviews :key="detail.id" :teacher-id="detail.id" @expired="emit('expired')"/>
       </MatchComposer>
       <div v-else-if="detailError" role="alert" class="mx-5 space-y-3 rounded-xl bg-red-50 p-4 text-red-800"><p>{{ detailError }}</p><Button variant="outline" @click="loadDetail(selectedId)">重新读取</Button></div>
       <div v-else role="status" class="space-y-4 px-5"><span class="sr-only">正在读取老师资料…</span><Skeleton class="size-12"/><Skeleton class="h-5 w-1/2"/><Skeleton class="h-24 w-full"/></div>

@@ -21,6 +21,7 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
       const offset=Number(url.searchParams.get("cursor")||0),items=selected.slice(offset,offset+10);
       return route.fulfill({json:{items,nextCursor:offset+10<selected.length?String(offset+10):null}});
     }
+    if(endpoint.endsWith("/reviews"))return route.fulfill({json:{items:[],published_count:0,avg_overall_score:null,sub_score_averages:{},top_tags:[],nextCursor:null}});
     if(endpoint.startsWith("/teachers/")){const id=endpoint.split("/").at(-1)!;detailCalls.push(id);return route.fulfill({json:teachers.find(t=>t.id===id)});}
     return route.fulfill({status:404,json:{message:"Unexpected test endpoint"}});
   });

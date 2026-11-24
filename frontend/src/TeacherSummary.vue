@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UserAvatar from "./UserAvatar.vue";
+import TeacherRating from "./TeacherRating.vue";
 import { computed } from "vue";
 import { BadgeCheck, MapPin, Clock3, Info, BookOpen, GraduationCap, Monitor, ArrowRight, Sparkles, FileText } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ const facts = computed(() => [
       </p>
       <span v-if="supportsTrial" class="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700"><Sparkles class="size-3.5"/>{{ teacher.trialPolicy?.includes('免费沟通') ? '可试聊' : '可试课' }}</span>
     </div>
+    <TeacherRating v-if="publicProfile && compact" :count="teacher.review_count ?? 0" :average="teacher.avg_rating"/>
     </header>
     <template v-if="publicProfile && !compact">
       <p v-if="introduction.direction" class="text-base font-semibold">{{ introduction.direction }}</p>

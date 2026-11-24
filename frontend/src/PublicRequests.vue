@@ -94,7 +94,13 @@ function districtLabel(item: PublicRequest) {
     <DiscoverySheet :open="!!selectedId" title="需求详情" description="查看学习目标、授课安排与预算。" back-label="返回需求列表" @close="close" @restore-focus="restoreFocus">
       <template v-if="detail">
         <MatchComposer v-if="me?.businessIdentity==='TUTOR'" drawer :key="detail.id" :me="me" :request-id="detail.id" @matched="emit('matched',$event)" @expired="emit('expired')" @profile="emit('profile')">
-          <RequestSummary :fields="detail" :display-name="detail.publisherDisplayName"/>
+          <RequestSummary :fields="detail" :display-name="detail.publisherDisplayName">
+            <template #publisher-credit>
+              <span v-if="detail.completed_match_count" class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">
+                {{ [`已完成 ${detail.completed_match_count} 次合作`, ...(detail.parent_top_tags ?? [])].join(" · ") }}
+              </span>
+            </template>
+          </RequestSummary>
           <Button variant="ghost" class="mt-3 text-secondary-foreground" @click="loadDetail(detail.id)"><RefreshCw/>刷新需求</Button>
         </MatchComposer>
         <template v-else>

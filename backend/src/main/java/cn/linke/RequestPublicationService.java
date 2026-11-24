@@ -178,6 +178,23 @@ class RequestPublicationService {
         if (rows.isEmpty()) throw new ApiError(404,"NOT_FOUND","需求不存在或当前不可查看");
         return rows.getFirst().value();
     }
+    public Map<String,Object> publicDetailForViewer(UUID request, String session) {
+        var detail = publicDetail(request);
+        Account viewer = auth.sessionAccount(session, false);
+        if (viewer == null || !"TUTOR".equals(viewer.identity())) return detail;
+        db.query("""
+            SELECT (SELECT count(*) FROM match_relationships m JOIN match_rounds n ON n.match_id=m.id
+                    WHERE m.requester_id=r.owner_id AND n.state='completed') AS completed_count,
+                   ARRAY(SELECT tag FROM reviews v CROSS JOIN LATERAL jsonb_array_elements_text(v.tags_json) AS tags(tag)
+                         WHERE v.reviewee_id=r.owner_id AND v.is_published AND v.reviewer_role='teacher'
+                           AND tag=ANY (?) GROUP BY tag ORDER BY count(*) DESC,tag LIMIT 3) AS tags
+            FROM service_requests r WHERE r.id=?
+            """, rs -> {
+                detail.put("completed_match_count", rs.getLong("completed_count"));
+                detail.put("parent_top_tags", List.of((String[])rs.getArray("tags").getArray()));
+            }, MatchReviewService.TEACHER.tags().toArray(String[]::new), request);
+        return detail;
+    }
     public Map<String,Object> publicList(String value,String category,String area,String mode) {
         return publicList(value,category,area,mode,null);
     }

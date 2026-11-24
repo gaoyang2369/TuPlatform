@@ -23,7 +23,7 @@ class MatchReviewService {
 
     private static final Form PARENT = new Form(List.of("守时履约","讲解清晰度","备课用心度","孩子接受度"),
         List.of("守时靠谱","很有耐心","讲题清晰","孩子很喜欢","备课认真"));
-    private static final Form TEACHER = new Form(List.of("需求描述真实","沟通尊重顺畅","课时费结算及时"),
+    static final Form TEACHER = new Form(List.of("需求描述真实","沟通尊重顺畅","课时费结算及时"),
         List.of("需求真实","沟通顺畅","尊重老师","结算准时"));
     private final JdbcTemplate db;
     private final AuthService auth;

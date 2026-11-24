@@ -51,13 +51,18 @@ class MatchDatabaseTest {
         return profiles.visibility(tutor.session(),new VersionBody(saved.version()),true,key()).version();
     }
     private Setup setup() throws Exception {
+        return setup(Map.of());
+    }
+    private Setup setup(Map<String,String> extraFields) throws Exception {
         User owner=user("REQUESTER"),tutor=user("TUTOR"),operator=user("TUTOR");
         db.update("UPDATE accounts SET operator_granted=true WHERE id=?",operator.id());long version=publish(tutor);
         var draft=drafts.create(owner.session(),key());
-        var saved=drafts.save(owner.session(),draft.id(),new DraftPatch(draft.version(),(ObjectNode)json.readTree("""
+        var fields=(ObjectNode)json.readTree("""
             {"title":"合成撮合需求","categoryCode":"DRAWING","audienceStageCode":"ADULT","areaCode":"PS_PINGSHAN","goal":"当时目标",
              "budgetMin":"100","budgetMax":"200","durationHours":"1.5","frequency":{"mode":"NEGOTIABLE"},"availableSlots":[{"weekday":1,"startMinute":600,"endMinute":660}]}
-            """)));
+            """);
+        extraFields.forEach(fields::put);
+        var saved=drafts.save(owner.session(),draft.id(),new DraftPatch(draft.version(),fields));
         var submitted=publication.submit(owner.session(),draft.id(),new SubmitRequest(saved.version(),"SELF_ADULT","publisher-v1"),key());
         publication.decide(operator.session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),key());
         return new Setup(owner,tutor,operator,draft.id(),submitted.submissionId(),version);
@@ -244,6 +249,80 @@ class MatchDatabaseTest {
     }
     @Autowired MatchLifecycle lifecycle;
     @Autowired MatchReviewService reviews;
+    @Autowired TeacherReviewService teacherReviews;
+
+    @Test void discoveryReviewsRespectPublicationThresholdPaginationAndViewerRole() throws Exception {
+        var s = setup(Map.of("grade","高一","subject","素描","exact_address","合成私密门牌甲"));
+        var tutor = s.tutor();
+        var viewer = user("REQUESTER");
+        contacts.save(tutor.session(), new SaveContacts(0L,null,"test_tutor"));
+        assertEquals(403, assertThrows(ApiError.class, () -> teacherReviews.list(tutor.session(),tutor.id(),null,5)).status);
+        assertEquals(401, assertThrows(ApiError.class, () -> teacherReviews.list(null,tutor.id(),null,5)).status);
+        assertEquals(422, assertThrows(ApiError.class, () -> teacherReviews.list(viewer.session(),tutor.id(),null,0)).status);
+        var rounds = new ArrayList<MatchView>();
+        for (int i=0; i<3; i++) {
+            var parent = i==0 ? s.owner() : user("REQUESTER");
+            contacts.save(parent.session(), new SaveContacts(0L,null,"test_parent"));
+            var consent = new ContactExchange(true,1L);
+            var start = i==0 ? new StartMatch(s.request(),s.submission(),"INVITATION",tutor.id(),s.teacherVersion(),null,consent)
+                : new StartMatch(null,null,"DIRECT_INVITATION",tutor.id(),s.teacherVersion(),null,consent);
+            var pending = matches.start(parent.session(),start,key()).match();
+            var accepted = matches.respond(tutor.session(),pending.id(),new RespondMatch(pending.roundId(),pending.version(),consent),key(),"ACCEPT");
+            var done = finish(parent,tutor,accepted);
+            rounds.add(done);
+            var scores = feedback(done,true).subScores();
+            if (i==2) scores = json.valueToTree(Map.of("守时履约",4,"讲解清晰度",4,"备课用心度",4,"孩子接受度",4));
+            reviews.submit(parent.session(),done.id(),new MatchReviewService.Submission(done.roundId(),scores,
+                List.of("守时靠谱"),List.of("地点在合成私密门牌甲","合成教学反馈","联系 １３８０００００００１").get(i)),key());
+            var before = teacherReviews.list(viewer.session(),tutor.id(),null,2);
+            assertEquals((long)i, before.get("published_count"));
+            assertNull(before.get("avg_overall_score"));
+            assertEquals(i, ((List<?>)before.get("items")).size());
+            reviews.submit(tutor.session(),done.id(),feedback(done,false),key());
+            var detail = teacherReviews.list(viewer.session(),tutor.id(),null,2);
+            var list = profiles.publicTeachers(viewer.session(),null,null,null,null,null,null,false,false);
+            var card = (Map<?,?>)((List<?>)list.get("items")).getFirst();
+            assertEquals((long)i+1,card.get("review_count"));
+            assertEquals((long)i+1,detail.get("published_count"));
+            assertEquals(i==2 ? new java.math.BigDecimal("4.7") : null,card.get("avg_rating"));
+            assertEquals(card.get("avg_rating"),detail.get("avg_overall_score"));
+        }
+        var first = teacherReviews.list(viewer.session(),tutor.id(),null,2);
+        assertEquals(List.of(Map.of("tag","守时靠谱","count",3L)),first.get("top_tags"));
+        assertEquals(new java.math.BigDecimal("4.7"),((Map<?,?>)first.get("sub_score_averages")).get("守时履约"));
+        var newest = (TeacherReviewService.Entry)((List<?>)first.get("items")).getFirst();
+        assertNull(newest.content());
+        assertEquals("合家长",newest.parent_name());
+        reviews.reply(tutor.session(),newest.id(),new MatchReviewService.Reply("感谢反馈"),key());
+        var entry = json.valueToTree(teacherReviews.list(viewer.session(),tutor.id(),null,1)).path("items").get(0);
+        assertEquals("感谢反馈",entry.path("reply_content").asText());
+        assertFalse(entry.toString().contains("合成展示名"));
+        var last = teacherReviews.list(viewer.session(),tutor.id(),(UUID)first.get("nextCursor"),2);
+        assertNull(last.get("nextCursor"));
+        var oldest = (TeacherReviewService.Entry)((List<?>)last.get("items")).getFirst();
+        assertEquals("高一",oldest.grade());
+        assertEquals("素描",oldest.subject());
+        assertNull(oldest.content());
+        assertEquals(rounds.getFirst().roundId(),db.queryForObject("SELECT match_id FROM reviews WHERE id=?",UUID.class,oldest.id()));
+        assertEquals(1,((List<?>)last.get("items")).size());
+        var secondTutor = user("TUTOR");
+        var secondVersion = publish(secondTutor);
+        contacts.save(secondTutor.session(), new SaveContacts(0L,null,"second_tutor"));
+        var consent = new ContactExchange(true,1L);
+        var invitation = matches.start(s.owner().session(),new StartMatch(null,null,"DIRECT_INVITATION",secondTutor.id(),
+            secondVersion,null,consent),key()).match();
+        var accepted = matches.respond(secondTutor.session(),invitation.id(),new RespondMatch(invitation.roundId(),invitation.version(),consent),key(),"ACCEPT");
+        var completed = finish(s.owner(),secondTutor,accepted);
+        reviews.submit(secondTutor.session(),completed.id(),new MatchReviewService.Submission(completed.roundId(),
+            feedback(completed,false).subScores(),List.of("结算准时"),"测试未公开信用"),key());
+        var credit = publication.publicDetailForViewer(s.request(),tutor.session());
+        assertEquals(2L,credit.get("completed_match_count"));
+        assertEquals(List.of("沟通顺畅"),credit.get("parent_top_tags"));
+        assertFalse(publication.publicDetailForViewer(s.request(),null).containsKey("completed_match_count"));
+        assertFalse(publication.publicDetailForViewer(s.request(),viewer.session()).containsKey("parent_top_tags"));
+        profiles.visibility(tutor.session(),new VersionBody(s.teacherVersion()),false,key());
+        assertEquals(404,assertThrows(ApiError.class,()->teacherReviews.list(viewer.session(),tutor.id(),null,5)).status);
+    }
 
     private MatchView finish(User owner, User tutor, MatchView exchanged) {
         var working = act(tutor,act(owner,exchanged,"request-cooperation"),"confirm-cooperation");
@@ -463,7 +542,10 @@ class MatchDatabaseTest {
             for(var teacher:teachers){
                 UUID id=(UUID)teacher.get("id");assertTrue(found.add(id));assertTrue(expected.contains(id));
                 assertEquals(found.size() <= featured.size(), featured.contains(id));
-                assertEquals(profiles.publicTeacher(owner.session(),id),teacher);
+                var expectedCard = profiles.publicTeacher(owner.session(),id);
+                expectedCard.put("review_count",0L);
+                expectedCard.put("avg_rating",null);
+                assertEquals(expectedCard,teacher);
                 assertEquals("方向：成人水彩入门。\n擅长：色彩与构图。",teacher.get("introduction"));
                 for(String field:List.of("email","phone","wechat","account","password_hash","is_public"))assertFalse(teacher.containsKey(field));
             }

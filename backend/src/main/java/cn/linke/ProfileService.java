@@ -229,7 +229,11 @@ class ProfileService {
             args.add(featured);
             args.add(pageCursor(id));
         }
-        var rows = db.queryForList(sql + " ORDER BY featured DESC, id DESC LIMIT 11", args.toArray());
+        String candidates = sql + " ORDER BY featured DESC, id DESC LIMIT 11";
+        var rows = db.queryForList("SELECT page.*, rating.* FROM (" + candidates + ") page CROSS JOIN LATERAL (" +
+            "SELECT count(*) AS review_count, " + TeacherReviewService.DISPLAY_AVERAGE + " AS avg_rating " +
+            "FROM reviews WHERE reviewee_id=page.id AND is_published AND reviewer_role='parent'" +
+            ") rating ORDER BY page.featured DESC, page.id DESC", args.toArray());
         var result = new LinkedHashMap<String,Object>();
         result.put("items", rows.stream().limit(10).map(this::teacherProjection).toList());
         String nextCursor = null;
@@ -316,6 +320,10 @@ class ProfileService {
         addVerificationFlags(result, r);
         addResumeFields(result, r, false);
         result.put("avatar_url", r.get("avatar_url"));
+        if (r.containsKey("review_count")) {
+            result.put("review_count", r.get("review_count"));
+            result.put("avg_rating", r.get("avg_rating"));
+        }
         result.put("id", r.get("id")); result.put("profileVersion", r.get("version")); result.put("displayName", r.get("display_name"));
         result.put("categoryCodes", values(r.get("category_codes"))); result.put("serviceModes", values(r.get("service_modes"))); result.put("areaCodes", values(r.get("area_codes")));
         result.put("introduction", r.get("introduction")); result.put("priceMin", amount(r.get("price_min"))); result.put("priceMax", amount(r.get("price_max"))); result.put("availabilityText", r.get("availability_text"));

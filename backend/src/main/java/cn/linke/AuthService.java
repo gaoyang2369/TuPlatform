@@ -31,9 +31,13 @@ class AuthService {
     private Account one(List<Account> rows) { return rows.isEmpty() ? null : rows.getFirst(); }
     private boolean managedOperator(Account a) { return a.operator() && a.email().endsWith("@operators.linke.invalid"); }
     public Me me(Account a) { return new Me(a.id(), a.account(), managedOperator(a) ? "" : a.email(), !managedOperator(a) && a.verified(), a.identity(), a.operator(), a.profileVersion(), a.avatarUrl()); }
+    Account sessionAccount(String session, boolean lock) {
+        if (session == null || session.length() != 43) return null;
+        return one(db.query(ACCOUNT + "WHERE a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));
+    }
     public Account current(String session, boolean lock) {
         if (session == null || session.length() != 43) throw new ApiError(401, "LOGIN_REQUIRED", "请先登录");
-        Account a = one(db.query(ACCOUNT + "WHERE a.email_verified AND EXISTS (SELECT 1 FROM auth_sessions s WHERE s.account_id=a.id AND s.token_hash=? AND s.expires_at>now())" + (lock ? " FOR UPDATE OF a,p" : ""), this::map, secrets.digest(session)));
+        Account a = sessionAccount(session, lock);
         if (a == null) throw new ApiError(401, "LOGIN_REQUIRED", "登录已失效，请重新登录");
         if (lock && !Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS (SELECT 1 FROM auth_sessions WHERE token_hash=? AND account_id=? AND expires_at>clock_timestamp())", Boolean.class, secrets.digest(session), a.id())))
             throw new ApiError(401, "LOGIN_REQUIRED", "登录已失效，请重新登录");

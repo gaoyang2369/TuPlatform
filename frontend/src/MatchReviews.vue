@@ -87,6 +87,7 @@ function reply(id: string) {
       <DialogHeader>
         <DialogTitle class="pr-6 text-xl font-bold">合作互评</DialogTitle>
         <DialogDescription class="text-left text-sm leading-6">采用 14 天双盲互评机制，双方均提交或到期后同时公开，请放心给出真实反馈。</DialogDescription>
+        <p class="text-sm text-muted-foreground">公开后，家长评价和老师回复会显示在老师资料里，家长称呼将脱敏。老师给家长的标签会计入合作信用。请勿填写联系方式或住址。</p>
       </DialogHeader>
       <p v-if="success" role="status" class="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{{ success }}</p>
       <div v-if="error" role="alert" class="space-y-2 rounded-xl bg-red-50 p-3 text-sm text-red-800">

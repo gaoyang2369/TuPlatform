@@ -1,6 +1,6 @@
 import type { Teacher } from "./account-api.ts";
-export type PublicRequest=Record<string,unknown>&{id:string;submissionId:string;title:string;publisherDisplayName:string};
-export type PublicTeacher=Omit<Teacher,"public"|"version">&{id:string;profileVersion:number;avatar_url?:string|null;displayName:string};
+export type PublicRequest=Record<string,unknown>&{id:string;submissionId:string;title:string;publisherDisplayName:string;completed_match_count?:number;parent_top_tags?:string[]};
+export type PublicTeacher=Omit<Teacher,"public"|"version">&{id:string;profileVersion:number;avatar_url?:string|null;displayName:string;review_count?:number;avg_rating?:number|null};
 export interface Match {
   id:string;requestId:string|null;version:number;roundId:string;state:"WAITING"|"MUTUAL"|"REJECTED"|"WITHDRAWN"|"in_cooperation"|"completed"|"closed_no_deal";
   contactsExchanged:boolean;cooperationRequestedBy:string|null;completionRequestedBy:string|null;

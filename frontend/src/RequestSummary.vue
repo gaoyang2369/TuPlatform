@@ -64,7 +64,7 @@ const facts = computed(() => {
       <Button variant="secondary" :disabled="openDisabled" class="h-11 w-full justify-between rounded-xl bg-slate-100 text-slate-900 group-hover:bg-primary group-hover:text-white hover:bg-primary focus-visible:bg-primary focus-visible:text-white motion-reduce:transition-none" @click="emit('open', $event)">查看需求<ArrowRight/></Button>
     </template>
     <template v-else>
-      <p v-if="displayName" class="text-sm text-secondary-foreground">发布者：{{ displayName }}</p>
+      <div v-if="displayName" class="flex flex-wrap items-center gap-2 text-sm text-secondary-foreground"><span>发布者：{{ displayName }}</span><slot name="publisher-credit"/></div>
       <section class="space-y-2"><h3 class="text-xs font-semibold text-slate-500">目标与现状</h3><p v-for="(paragraph, i) in (text('goal') || '待补充').split(/\n+/)" :key="i" class="text-[15px] leading-7">{{ paragraph }}</p></section>
       <dl class="grid grid-cols-2 gap-3">
         <div v-for="fact in facts" :key="fact.label" class="min-w-0 rounded-xl bg-slate-50 p-3.5">

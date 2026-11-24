@@ -1,6 +1,6 @@
 import { sampleResume, fillResume } from "./resume-fixture";
 import {test,expect} from '@playwright/test';
-import type {Page} from '@playwright/test';
+import type {BrowserContext, Page} from '@playwright/test';
 import {execFileSync} from 'node:child_process';
 import {readdirSync,mkdirSync} from 'node:fs';
 import path from 'node:path';
@@ -66,6 +66,112 @@ async function stop(page:Page,cancel=false){await page.getByText('管理我的�
 function hidden(g:Record<string,unknown>){expect(g.canViewContacts).toBe(false);expect(g).not.toHaveProperty('mySharedContacts');expect(g).not.toHaveProperty('otherSharedContacts');}
 test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\?.*)?$/))throw new Error('Dedicated _test database required');mkdirSync(path.join(root,'.tools/match-simplification'),{recursive:true});});
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture('cleanup',actor.id);});
+test('公开评价冷启动门槛与老师视角的家长信用', async ({page, browser}, info) => {
+  const contexts: BrowserContext[] = [];
+  async function separatePage() {
+    const {viewport,isMobile,hasTouch} = info.project.use;
+    const context = await browser.newContext({viewport,isMobile,hasTouch});
+    contexts.push(context);
+    return context.newPage();
+  }
+  try {
+    const tp = await separatePage(), op = await separatePage();
+    const {owner, tutor, request} = await prepare(page,tp,op);
+    const profile = await (await page.request.get('/api/v1/teachers/'+tutor.id)).json();
+    const submission = await (await tp.request.get('/api/v1/public/requests/'+request)).json();
+    async function checkTeacher(count: number) {
+      const reviewPath = '**/api/v1/teachers/'+tutor.id+'/reviews*';
+      if (count === 2) {
+        let failContinuation = true;
+        await page.route(reviewPath, async route => {
+          const url = new URL(route.request().url());
+          if (failContinuation && url.searchParams.has('cursor')) {
+            failContinuation = false;
+            return route.fulfill({status:503,json:{message:'评价暂时无法读取'}});
+          }
+          url.searchParams.set('limit','1');
+          return route.continue({url:url.toString()});
+        });
+      }
+      await page.goto('/?view=teachers');
+      const card = page.locator('.teacher-card').filter({hasText:'合成绘画老师'});
+      await expect(card).toBeVisible();
+      const checkRating = async (region: typeof card) => {
+        await expect(region.getByLabel(/综合评分/)).toHaveCount(count >= 3 ? 1 : 0);
+        if (count >= 3) await expect(region.getByLabel(/综合评分/)).toHaveText(/★\s*5\.0.*3 条评价/);
+        else if (count) await expect(region.getByText(`已有 ${count} 条真实评价`)).toBeVisible();
+        else await expect(region).not.toContainText('条真实评价');
+      };
+      await checkRating(card);
+      await card.getByRole('button',{name:'查看老师'}).click();
+      const section = page.getByRole('region',{name:'真实家长评价'});
+      await expect(section).toHaveAttribute('aria-busy','false');
+      if (!count) await expect(section.getByText(/完成首次试课或合作后/)).toBeVisible();
+      else {
+        if (count === 2) {
+          await expect(section.locator('article')).toHaveCount(1);
+          await section.getByRole('button',{name:'查看更多评价'}).click();
+          await expect(section.getByRole('alert')).toBeVisible();
+          await expect(section.locator('article')).toHaveCount(1);
+          await section.getByRole('button',{name:'重新读取评价'}).click();
+        }
+        await expect(section.locator('article')).toHaveCount(count);
+        await expect(section.getByLabel('维度均分').locator('dt')).toHaveCount(4);
+        await expect(section.getByLabel('高频标签')).toContainText('很有耐心 · '+count);
+        await expect(section.locator('article').last()).toContainText('合家长');
+        await expect(section.locator('article').last()).toContainText('谢谢家长');
+        await expect(section).not.toContainText('合成需求方');
+      }
+      await checkRating(section);
+      expect(await section.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      if (count === 2) await page.unroute(reviewPath);
+    }
+    await checkTeacher(0);
+    for (let i=0; i<3; i++) {
+      const parent = i===0 ? owner : user('REQUESTER');
+      const parentPage = i===0 ? page : await separatePage();
+      if (i) {
+        await login(parentPage,parent);
+        expect((await write(parentPage,parent,'/me/profile',{expectedVersion:0,displayName:'林测试家长'},'PATCH')).ok()).toBe(true);
+        expect((await write(parentPage,parent,'/me/contacts',{expectedVersion:0,wechat:'sample_parent',phone:null})).ok()).toBe(true);
+      }
+      const consent = {agree:true,expectedVersion:1};
+      const source = i===0 ? {kind:'INVITATION',requestId:request,expectedSubmissionId:submission.submissionId} : {kind:'DIRECT_INVITATION'};
+      const started = await write(parentPage,parent,'/matches',{...source,tutorUserId:tutor.id,
+        expectedTeacherProfileVersion:profile.profileVersion,contactExchange:consent},'POST');
+      expect(started.ok()).toBe(true);
+      let match = (await started.json()).match;
+      for (const [action,actor,tab] of [
+        ['accept',tutor,tp],['request-cooperation',parent,parentPage],['confirm-cooperation',tutor,tp],
+        ['request-completion',tutor,tp],['confirm-completion',parent,parentPage],
+      ] as const) {
+        const response = await write(tab,actor,'/matches/'+match.id+'/'+action,{roundId:match.roundId,expectedVersion:match.version,
+          ...(action==='accept'?{contactExchange:consent}:{})},'POST');
+        expect(response.ok(),action).toBe(true);
+        match = await response.json();
+      }
+      const path = '/matches/'+match.id+'/reviews';
+      const parentReview = await write(parentPage,parent,path,{roundId:match.roundId,
+        subScores:{守时履约:5,讲解清晰度:5,备课用心度:5,孩子接受度:5},tags:['很有耐心'],content:'讲题很细致'},'POST');
+      expect(parentReview.ok()).toBe(true);
+      const blind = await page.request.get('/api/teachers/'+tutor.id+'/reviews');
+      expect((await blind.json()).published_count).toBe(i);
+      expect((await write(tp,tutor,path,{roundId:match.roundId,subScores:{需求描述真实:5,沟通尊重顺畅:5,课时费结算及时:5},
+        tags:['沟通顺畅'],content:'仅双方可读的评语'},'POST')).ok()).toBe(true);
+      if (i===0) {
+        const entry = (await (await tp.request.get('/api/v1'+path)).json()).reviews.find((r:{mine:boolean})=>!r.mine);
+        expect((await write(tp,tutor,'/reviews/'+entry.id+'/reply',{content:'谢谢家长'},'POST')).ok()).toBe(true);
+      }
+      await checkTeacher(i+1);
+    }
+    await tp.goto('/?view=public&request='+request);
+    await expect(tp.getByRole('dialog',{name:'需求详情'})).toContainText('已完成 1 次合作 · 沟通顺畅');
+    const visitor = await separatePage();
+    await visitor.goto('/?view=public&request='+request);
+    await expect(visitor.getByRole('dialog',{name:'需求详情'})).toContainText('合成需求方');
+    await expect(visitor.getByRole('dialog')).not.toContainText('次合作');
+  } finally { for (const context of contexts) await context.close(); }
+});
 test('直接邀请双方从交换联系方式到合作完结解锁互评',async({page,browser},info)=>{
   const tc=await browser.newContext({viewport:info.project.use.viewport,isMobile:info.project.use.isMobile,hasTouch:info.project.use.hasTouch});
   try{

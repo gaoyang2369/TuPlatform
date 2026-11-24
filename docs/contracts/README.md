@@ -65,6 +65,7 @@
 | `GET /matches/{id}/reviews` | 仅双方可读。返回当前 `roundId,canSubmit,form` 和当前及往期可见的 `reviews`。表单提供本角色的中文维度名和标签。每条带轮次、是否本人所写、公开标记、评分、标签、评语和回复。 |
 | `POST /matches/{id}/reviews` | 提交 `{roundId,subScores,tags,content}`。以表单维度名作为评分键，服务端计算综合星级，校验截止时间并从会话确定双方身份。成功返回 204。 |
 | `POST /reviews/{id}/reply` | 被评价方提交 `{content}`。仅可回复已公开评价一次，成功返回 204。 |
+| `GET /teachers/{id}/reviews` | 已登录需求方可查当前公开的老师。按创建时间降序返回 `items`，使用 `nextCursor` 续传 `cursor`，`limit` 默认为 5，范围 1–50。首层含 `published_count,avg_overall_score,sub_score_averages,top_tags`，摘要覆盖全部已公开家长评价。标签项为 `{tag,count}`。 |
 
 写入使用同源 Cookie、CSRF 和 `X-Account-Id`。同一条评价或回复以相同 `Idempotency-Key` 重试相同内容可安全重放。读取评价列表按关系检查到期公开，后台另有每分钟的到期扫描。
 
@@ -116,8 +117,8 @@
 | `POST /requests/{id}/submit` | 提交请求结构 → `{id,submissionId,status:PENDING_REVIEW,version}` | 本人需求方、本人展示名、完整字段及主动声明均满足；固定提交快照、开启本次期限；重复不产生新提交；422缺项或非法日期/声明，409旧版本 |
 | `POST /requests/{id}/revisions` | `{expectedVersion}` → `{id,status:DRAFT,version,fields}` | 仅本人已驳回或有效状态已到期；从上次内容生成可修订草稿，旧提交/反馈不覆盖；新提交重新确认声明与审核，不复制旧关系 |
 | `GET /public/requests` | `cursor?,categoryCode?,areaCode?,serviceMode?` → `PublicRequest`摘要列表 | 匿名可读，仅审核通过且当前有效的需求；到期立即过滤，不等清理任务 |
-| `GET /public/requests/{id}` | 无 → `PublicRequest` | 匿名可读；未公开、待审、到期或不准入均404，不回私有原因 |
-| `GET /teachers` | `cursor?,categoryCode?,areaCode?,serviceMode?` → `PublicTeacher`摘要列表 | 已登录需求方；只返回老师主动公开的当前资料 |
+| `GET /public/requests/{id}` | 无 → `PublicRequest`。已登录老师另获 `completed_match_count,parent_top_tags`（最多 3 个标签字符串） | 匿名可读，未公开、待审、到期或不准入均返回 404。 |
+| `GET /teachers` | `cursor?,categoryCode?,areaCode?,serviceMode?` → `PublicTeacher`摘要列表，附 `review_count,avg_rating` | 已登录需求方。列表与评价接口均在满 3 条公开家长评价时返回一位小数的综合均分，否则为 `null`。 |
 | `GET /teachers/{id}` | 无 → `PublicTeacher` | 已登录需求方，目标资料当前公开；未公开404；关系内的当时快照从关系接口读取 |
 | `GET /operations/submissions` | `cursor?,status?` → `{id,requestId,status,submittedAt,summary}`列表 | 独立运营权限；审核队列不列本人账号的需求 |
 | `GET /operations/submissions/{id}` | 无 → `{id,requestId,status,version,submittedAt,expiresAt,fields,publisherDeclaration,priorReviewFeedback?}` | 运营读取固定提交内容；内部期限用于防止过期批准，不进入普通用户公开响应；本人需求不得进入可审核界面 |

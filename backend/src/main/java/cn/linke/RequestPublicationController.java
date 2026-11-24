@@ -16,5 +16,7 @@ class RequestPublicationController {
     @GetMapping("/operations/submissions/{id}") ReviewSubmission detail(@PathVariable UUID id,HttpServletRequest req) { return requests.reviewDetail(AuthController.session(req),id); }
     @PostMapping("/operations/submissions/{id}/decision") RequestAction decide(@PathVariable UUID id,@RequestBody ReviewRequest body,@RequestHeader(value="Idempotency-Key",required=false) String key,HttpServletRequest req) { return requests.decide(AuthController.session(req),id,body,key); }
     @GetMapping("/public/requests") Map<String,Object> list(@RequestParam(required=false) String cursor,@RequestParam(required=false) String categoryCode,@RequestParam(required=false) String areaCode,@RequestParam(required=false) String serviceMode,@RequestParam(required=false) String location,@RequestParam(required=false) String districtCode,@RequestParam(required=false) String grade,@RequestParam(required=false) String subject) { return requests.publicList(cursor,categoryCode,areaCode,serviceMode,location,districtCode,grade,subject); }
-    @GetMapping("/public/requests/{id}") Map<String,Object> publicDetail(@PathVariable UUID id) { return requests.publicDetail(id); }
+    @GetMapping("/public/requests/{id}") Map<String,Object> publicDetail(@PathVariable UUID id, HttpServletRequest req) {
+        return requests.publicDetailForViewer(id, AuthController.session(req));
+    }
 }
