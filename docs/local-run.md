@@ -10,11 +10,17 @@
 
 本脚本仅在本机回环地址监听。它沿用`backend/.env`的数据库和邮件私密配置，不在本机安装PostgreSQL。使用本机`15432`端口的SSH隧道时，每次启动都会检查隧道，包括后端已在运行的情况。隧道未连接时，按新窗口的SSH提示登录，并保持窗口打开。启动器等到隧道端口可用后才继续打开网页。若60秒内未连通，完成SSH登录后再运行`local.cmd`。不会修改服务器配置或重启服务器服务。
 
-启动器核对包内 V1–V10 清单。现有业务库已批准 V1–V9。V10 创建通知表，每个目标库首次应用前请核对 `V10__notifications.sql`。得到该库授权后执行 `.\local.cmd -ApplyNotificationMigration`，已应用 V10 的库可照常启动。隔离开发和浏览器测试可按 README 连接自己的 `_test` 数据库单独运行。
+启动时，Flyway 核对实际连接的数据库，并读取本次打包的待执行迁移。共享库 `tuplatform` 没有待执行迁移时，直接运行 `.\local.cmd`。有待执行迁移时，启动窗口会列出 SQL 文件名。在 `backend/src/main/resources/db/migration/` 核对这些文件，取得该库授权后，指定本次批准的最高版本。例如批准到 V13：
+
+~~~powershell
+.\local.cmd -ApproveThrough V13
+~~~
+
+如果待执行清单包含 V14，上述命令会在执行任何迁移前退出。旧参数 `-ApplyNotificationMigration` 等价于 `-ApproveThrough V10`。批准只对本次启动有效。确认实际连接到专用 `tuplatform_test` 且指定 `-DatabaseName tuplatform_test` 时，启动器自动应用该库的待执行迁移，再初始化运营账号。
 
 ## 运营登录
 
-账号为`linke_operator`，随机密码保存于项目内的`.tools/local-run/operator-credentials.local`，仅当前Windows用户可读写；用记事本打开该文件即可查看。文件不入Git，不要转发截图或上传。账号仅有运营权限，未替本人选择需求方或老师身份，登录直接进入审核页。没有真实邮箱，不发送验证/重置邮件；数据库只保存密码散列。
+账号为`linke_operator`，业务库的随机密码保存于项目内的`.tools/local-run/operator-credentials.local`，测试库的新凭据使用同目录的`operator-credentials.tuplatform_test.local`。以启动窗口显示的文件路径为准，仅当前Windows用户可读写。文件不入Git，不要转发截图或上传。账号仅有运营权限，未替本人选择需求方或老师身份，登录直接进入审核页。没有真实邮箱，不发送验证/重置邮件；数据库只保存密码散列。
 
 重复启动不会覆盖运营密码，也不会授予已有同名普通账号权限。忘记密码时明确执行：
 

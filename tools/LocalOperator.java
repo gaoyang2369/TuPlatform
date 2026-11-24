@@ -18,7 +18,7 @@ class LocalOperator {
     }
     static String value(Properties cfg,String name,String fallback) {String v=System.getenv(name);return v==null?cfg.getProperty(name,fallback):v;}
     public static void main(String[] args) throws Exception {
-        if((args.length!=4 && !(args.length==5 && args[4].equals("require-v10"))) || !Set.of("create","reset").contains(args[0]) || !Set.of("tuplatform","tuplatform_test").contains(args[3]))
+        if(args.length!=4 || !Set.of("create","reset").contains(args[0]) || !Set.of("tuplatform","tuplatform_test").contains(args[3]))
             throw new IllegalArgumentException("Expected create|reset, env path, credential path, expected database");
         Properties cfg=new Properties();try(var r=Files.newBufferedReader(Path.of(args[1]))){cfg.load(r);}
         String url=value(cfg,"DB_URL",null);
@@ -29,15 +29,6 @@ class LocalOperator {
         try(Connection db=DriverManager.getConnection(url,auth)) {
             db.setAutoCommit(false);
             try(var s=db.createStatement();var r=s.executeQuery("SELECT current_database()")){r.next();if(!args[3].equals(r.getString(1)))throw new IllegalStateException("Unexpected database; no writes performed");}
-            if(args.length==5){
-                try(var s=db.createStatement();var r=s.executeQuery("SELECT EXISTS(SELECT 1 FROM flyway_schema_history WHERE version='10' AND success)")){
-                    r.next();
-                    if(!r.getBoolean(1)){
-                        System.err.println("目标库尚未应用 V10。核对通知表迁移并获得该库授权后，用 -ApplyNotificationMigration 启动。");
-                        System.exit(1);
-                    }
-                }
-            }
             try(var s=db.createStatement();var r=s.executeQuery("SELECT count(*) FROM flyway_schema_history WHERE success AND version IN ('1','2','3','4','5')")){r.next();if(r.getInt(1)!=5)throw new IllegalStateException("Approved V1-V5 must already be applied; no migration performed");}
             UUID id=null;
             try(var s=db.prepareStatement("SELECT id,operator_granted,email,email_verified FROM accounts WHERE account_key=? FOR UPDATE")) {

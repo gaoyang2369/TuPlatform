@@ -3,6 +3,7 @@
     [ValidateRange(1024,65535)][int]$Port = 8180,
     [ValidateSet('tuplatform','tuplatform_test')][string]$DatabaseName = 'tuplatform',
     [switch]$NoBrowser,
+    [ValidatePattern('^[vV][0-9]+(?:\.[0-9]+)*$')][string]$ApproveThrough,
     [switch]$ApplyNotificationMigration
 )
 $ErrorActionPreference='Stop'
@@ -11,6 +12,13 @@ $runRoot=Join-Path $projectRoot '.tools/local-run'
 $statePath=Join-Path $runRoot 'state.json'
 $jarPath=Join-Path $runRoot 'build/linke-api-0.1.0-SNAPSHOT.jar'
 $credentialPath=Join-Path $runRoot 'operator-credentials.local'
+if($DatabaseName -eq 'tuplatform_test' -and !((Test-Path -LiteralPath $credentialPath) -and (Select-String -LiteralPath $credentialPath -Pattern '^Database: tuplatform_test$' -Quiet))){
+    $credentialPath=Join-Path $runRoot 'operator-credentials.tuplatform_test.local'
+}
+if($ApplyNotificationMigration){
+    if($ApproveThrough){throw '请只指定一个迁移批准参数。'}
+    $ApproveThrough='V10'
+}
 $envPath=Join-Path $projectRoot 'backend/.env'
 New-Item -ItemType Directory -Path $runRoot -Force | Out-Null
 
@@ -76,20 +84,13 @@ function Run-Operator([string]$Mode) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive=[IO.Compression.ZipFile]::OpenRead($jarPath)
     try {
-        $migrations=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/classes/db/migration/V[0-9]+__.+\.sql$'})
-        $versions=@($migrations | ForEach-Object {[void]($_.FullName -match '/V([0-9]+)__');[int]$matches[1]} | Sort-Object)
-        if(($versions -join ',') -ne ((1..10) -join ',') -and !($Action -eq 'ResetOperator' -and ($versions -join ',') -eq ((1..9) -join ','))){
-            throw "启动包中的迁移版本为 [$($versions -join ', ')]，请核对 V1–V10 清单。"
-        }
         $entry=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/lib/postgresql-[^/]+\.jar$'})
         if($entry.Count -ne 1){throw 'PostgreSQL driver missing from the local JAR.'}
         $driverPath=Join-Path $runRoot 'postgresql.jar'
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entry[0],$driverPath,$true)
     }finally{$archive.Dispose()}
-    $schemaCheck=@()
-    if($Mode -eq 'create' -and !$ApplyNotificationMigration){$schemaCheck=@('require-v10')}
-    & (Resolve-Java) -cp $driverPath (Join-Path $projectRoot 'tools/LocalOperator.java') $Mode $envPath $credentialPath $DatabaseName @schemaCheck
-    if($LASTEXITCODE -ne 0){throw 'Operator initialization failed; application was not started.'}
+    & (Resolve-Java) -cp $driverPath (Join-Path $projectRoot 'tools/LocalOperator.java') $Mode $envPath $credentialPath $DatabaseName
+    if($LASTEXITCODE -ne 0){throw '运营账号初始化失败，请检查数据库配置及本地凭据文件。'}
     if(Test-Path -LiteralPath $credentialPath){
         $acl=New-Object Security.AccessControl.FileSecurity
         $acl.SetAccessRuleProtection($true,$false)
@@ -122,6 +123,7 @@ if(!$owned){
 }
 Ensure-DatabaseTunnel
 if($owned){
+    if($owned.database -ne $DatabaseName){throw '已有进程的目标库不同或未知。请先运行 .\local.cmd Stop，再启动指定库。'}
     Write-Host "Already running: http://127.0.0.1:$($owned.port)"
     if(!$NoBrowser){Start-Process "http://127.0.0.1:$($owned.port)"}
     exit 0
@@ -144,7 +146,6 @@ try {
     if($LASTEXITCODE -ne 0){throw 'Backend package failed.'}
 }finally{$env:PATH=$savedPath}
 
-Run-Operator 'create'
 $overrides=@{
     SERVER_ADDRESS='127.0.0.1';SERVER_PORT=$Port.ToString();PUBLIC_BASE_URL="http://127.0.0.1:$Port";
     SECURE_COOKIES='false';
@@ -159,11 +160,15 @@ if(!$env:APP_BASE_URL -and !(Select-String -LiteralPath $envPath -Pattern '^\s*A
     $overrides.APP_BASE_URL="http://127.0.0.1:$Port"
 }
 $previous=@{}
+$migrationArgs=@("--app.local-launch.database=$DatabaseName",'--spring.flyway.enabled=true')
+$limit=if($ApproveThrough){$ApproveThrough.Substring(1)}else{''}
+$migrationArgs+="--app.local-launch.approve-through=$limit"
 try {
     foreach($name in $overrides.Keys){$previous[$name]=[Environment]::GetEnvironmentVariable($name,'Process');[Environment]::SetEnvironmentVariable($name,$overrides[$name],'Process')}
-    $javaProcess=Start-Process -FilePath $javaBinary -ArgumentList @('-jar',('"'+$jarPath+'"'),('"--logging.file.name='+(Join-Path $runRoot 'backend.log')+'"')) -WorkingDirectory (Join-Path $projectRoot 'backend') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $runRoot 'backend-console.log') -RedirectStandardError (Join-Path $runRoot 'backend-error.log') -PassThru
+    $javaArgs=@('-jar',('"'+$jarPath+'"'),('"--logging.file.name='+(Join-Path $runRoot 'backend.log')+'"')) + $migrationArgs
+    $javaProcess=Start-Process -FilePath $javaBinary -ArgumentList $javaArgs -WorkingDirectory (Join-Path $projectRoot 'backend') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $runRoot 'backend-console.log') -RedirectStandardError (Join-Path $runRoot 'backend-error.log') -PassThru
 }finally{foreach($name in $overrides.Keys){[Environment]::SetEnvironmentVariable($name,$previous[$name],'Process')}}
-$state=@{pid=$javaProcess.Id;port=$Port;startedTicks=$javaProcess.StartTime.ToUniversalTime().Ticks.ToString()}
+$state=@{pid=$javaProcess.Id;port=$Port;database=$DatabaseName;startedTicks=$javaProcess.StartTime.ToUniversalTime().Ticks.ToString()}
 $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding UTF8
 $ready=$false
 Add-Type -AssemblyName System.Net.Http
@@ -173,15 +178,26 @@ $http=New-Object Net.Http.HttpClient($handler)
 $http.Timeout=[TimeSpan]::FromSeconds(2)
 try {
     for($attempt=0;$attempt -lt 60;$attempt++){
-        if($javaProcess.HasExited){throw "Backend exited. Inspect $runRoot/backend.log; existing services were retained."}
+        if($javaProcess.HasExited){
+            $reason=Select-String -LiteralPath (Join-Path $runRoot 'backend-console.log') -Encoding UTF8 -Pattern '\[local-migration\] (.+)$' | Select-Object -Last 1
+            if($reason){
+                Write-Host $reason.Matches[0].Groups[1].Value -ForegroundColor Yellow
+                exit 1
+            }
+            throw "Backend exited. Inspect $runRoot/backend.log; existing services were retained."
+        }
         try {
             $response=$http.GetAsync("http://127.0.0.1:$Port/api/v1/auth/csrf").GetAwaiter().GetResult()
             try {if($response.IsSuccessStatusCode){$ready=$true;break}}finally{$response.Dispose()}
         }catch{}
         Start-Sleep -Milliseconds 500
     }
+    if(!$ready){throw "等待本地服务就绪超时，请检查 $runRoot/backend.log。"}
+    Run-Operator 'create'
+}catch{
+    if(!$javaProcess.HasExited){$javaProcess.Kill();$javaProcess.WaitForExit()}
+    throw
 }finally{$http.Dispose();$handler.Dispose()}
-if(!$ready){throw 'Application is still starting. Use local.cmd Status, or Stop before retrying.'}
 Write-Host "Ready: http://127.0.0.1:$Port"
 Write-Host "Operator credentials: $credentialPath"
 Write-Host 'Status: local.cmd Status    Stop: local.cmd Stop    Reset operator password: local.cmd ResetOperator'
