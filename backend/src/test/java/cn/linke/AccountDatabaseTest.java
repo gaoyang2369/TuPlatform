@@ -43,6 +43,7 @@ class AccountDatabaseTest {
         properties.add("spring.datasource.password", () -> System.getenv("TEST_DB_PASSWORD"));
     }
     @Autowired AuthService auth;
+    @Autowired NotificationService notifications;
     @Autowired ProfileService profiles;
     @Autowired JdbcTemplate db;
     @Autowired PlatformTransactionManager transactionManager;
@@ -75,7 +76,7 @@ class AccountDatabaseTest {
         var parent = user("REQUESTER");
         var reviewer = user(null);
         db.update("UPDATE accounts SET operator_granted=true WHERE id IN (?,?)", reviewer.id(), tutor.id());
-        var service = new VerificationService(auth, db, directory.toString());
+        var service = new VerificationService(auth, db, directory.toString(), notifications);
         var tx = new TransactionTemplate(transactionManager);
         var bytes = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(12, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
@@ -110,6 +111,11 @@ class AccountDatabaseTest {
         assertEquals(409, assertThrows(ApiError.class, () -> service.review(reviewer.session(), retry.id(), reject)).status);
         assertTrue(service.queue(reviewer.session(), "approved").stream().anyMatch(row -> row.id().equals(retry.id())));
         assertEquals(List.of(retry.id()), service.mine(tutor.session()).stream().map(VerificationService.Entry::id).toList());
+        assertTrue(db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),item.id()).contains(reject.reject_reason()));
+        assertEquals("本校学籍已核验徽章已点亮。",db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),retry.id()));
+        var skill = tx.execute(s -> service.submit(tutor.session(),"skill_cert",file));
+        service.review(reviewer.session(),skill.id(),approve);
+        assertEquals("技能证书已核验徽章已点亮。",db.queryForObject("SELECT content FROM notifications WHERE user_id=? AND event_id=?",String.class,tutor.id(),skill.id()));
     }
 
     @Test void resumeAccessTracksVisibilityReplacementDeletionAndVersion() throws Exception {

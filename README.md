@@ -74,9 +74,13 @@ Copy-Item backend/.env.example backend/.env
 | `PILOT_SCHOOL_NAME` | 老师资料的默认院校名，默认「深圳技术大学」，老师可在表单中修改。 |
 | `AVATAR_DIRECTORY` | 头像持久化目录，默认是后端工作目录下的 `data/avatars`。打包运行时建议使用固定绝对路径，随数据库一同备份。 |
 | `VERIFICATION_DIRECTORY` | 私有证件目录，默认位于后端运行账号主目录的 `.tuplatform/private_uploads/verifications`。自定义时使用仅服务账号可读写的持久化绝对路径，放在所有 Web 根目录、源码与静态发布目录之外，随数据库备份。 |
-| `PUBLIC_BASE_URL` | 用户访问前端的地址，用于邮件链接；本地开发可设为 `http://127.0.0.1:5173` |
+| `PUBLIC_BASE_URL` | 注册验证和找回密码的前端地址，本地开发可设为 `http://127.0.0.1:5173` |
+| `APP_BASE_URL` | 撮合和审核通知按钮的前端地址，默认 `http://127.0.0.1:8180`。分开启动 Vite 时填写实际浏览器地址 |
 | `SECURE_COOKIES` | 本地 HTTP 设为 `false`；HTTPS 部署设为 `true` |
 | `MAIL_ENABLED` | 默认 `false`；完整注册、邮箱验证与找回密码需配置 SMTP 并开启邮件 |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_AUTH` | 业务通知复用账号邮件的 SMTP 服务。端口默认 587，认证默认开启 |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` / `MAIL_FROM` | SMTP 登录凭据及发件地址。发件地址也可用已有的 `SMTP_FROM` |
+| `SMTP_SECURE` / `SMTP_STARTTLS` | 587 使用 `false` / `true`，465 使用 `true` / `false` |
 | `TEACHER_CATEGORIES` / `REQUEST_CATEGORIES` | 默认留空，表示未开放类别；隔离的合成开发环境可分别设为 `DRAWING` |
 
 后端启动时会校验并应用尚未执行的 Flyway 迁移，不会自动创建数据库。请使用自己的开发库；在共享数据库上应用新迁移前，应先审核脚本并取得该环境的授权。
@@ -183,6 +187,26 @@ Playwright 配置包含桌面 `1366 × 900` 和手机宽度 `390 × 844`，默�
 1. 在上述专用测试库登录合成需求方。新建需求，填写标题并停顿约 1.5 秒，看到「已自动保存」及时间后返回列表。重开同一草稿，核对标题和草稿数量。
 2. 选择街道及模糊片区，另填一个容易识别的合成楼栋地址。补齐后提交审核，在进度页和「我的需求」待审卡片核对推荐原因，点击老师打开资料并发送直接邀请。
 3. 审核通过后用老师会话检查公开列表和详情 JSON，只能看到街道、片区等公开信息。对这条公开需求投递，双方确认并交换联系方式后，老师可在本次撮合详情查看具体地址。任一方停止分享后刷新，地址应随联系方式隐藏。
+
+### 离线邮件通知验收
+
+在专用 `_test` 数据库使用合成账号。启动后端以应用 V10 迁移，设置 `MAIL_ENABLED=false`、`APP_BASE_URL` 为本地前端地址。可复用上文浏览器测试的已验证账号夹具，无须真实邮箱。每次操作后，等待后端输出「本地通知邮件」及一行 JSON，核对收件人、主题、正文和按钮链接。在收件人会话中打开链接，退出登录后打开也应在登录后返回目标。
+
+1. 家长在「发现老师」发出直接邀请，或老师向一条已公开需求投递。对方应收到发起方称呼、科目或需求标题，以及本次撮合的链接。
+2. 收件人在「撮合进度」接受意向，最初的发起方应收到互选通知。进入链接按当前分享授权查看联系方式。重复提交同一操作，核对通知记录数。
+3. 家长提交需求，运营填写原因后驳回。家长通过通知链接打开该需求，核对原因，修改并重提。运营通过新版本后，家长应收到通过通知。
+4. 老师提交合成学籍或技能证件，运营驳回并填写原因。重提并通过后，老师应收到对应徽章的通知。链接直接定位到本人资料的认证区。
+
+在测试库核对记录：
+
+```sql
+SELECT user_id, event_type, event_id, title, content, target_url, channel, is_read, sent_status, attempts
+FROM notifications ORDER BY created_at DESC;
+```
+
+控制台预览成功记为 `logged`，SMTP 接受邮件记为 `sent`。后台发送失败后分别等待约 1 分钟、2 分钟重试，第 3 次仍失败记为 `failed`。普通账号验证与密码重置保留原有流程，凭据不会写入通知表或控制台。
+
+自动复验时，在上述测试服务运行期间进入 `frontend` 执行 `npm.cmd run test:e2e -- contacts.spec.ts publication.spec.ts verifications.spec.ts`。用例会创建所需的合成家长、老师与运营账号。若 SMTP 接受邮件后连接中断，重试沿用同一 Message-ID，实际收件次数取决于邮件服务。
 
 ## 文档导航
 

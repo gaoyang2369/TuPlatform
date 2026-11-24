@@ -125,6 +125,7 @@ async function focusField(name:string){
 async function list(append=false) {
   const [data,config]=await Promise.all([api.request<{items:Saved[];nextCursor:string|null}>("/me/requests"+(append&&nextCursor.value?"?cursor="+encodeURIComponent(nextCursor.value):"")),api.request<Options>("/publishing-options")]);
   options.value=config; items.value=append?[...items.value,...data.items]:data.items; nextCursor.value=data.nextCursor; view.value="list";
+  updateQuery({ownedRequest:undefined}, true);
 }
 async function create() { await run(async()=>{
   if (new URLSearchParams(location.search).get("create") === "1") {
@@ -135,7 +136,11 @@ async function create() { await run(async()=>{
   load({id:"",status:"DRAFT",version:0,fields:{},lastSavedAt:"",retentionReminder:false,latestSubmission:null});
   step.value=1;reached.value=1;view.value="edit";
 }); }
-async function open(id: string) { await run(async()=>{const saved=await api.request<Saved>("/requests/"+id);load(saved);step.value=1;reached.value=2;view.value="edit";}); }
+async function open(id: string, fromLink=false) { await run(async()=>{
+  if (fromLink) options.value = await api.request<Options>("/publishing-options");
+  const saved=await api.request<Saved>("/requests/"+encodeURIComponent(id));
+  load(saved);step.value=1;reached.value=2;view.value="edit";
+}); }
 async function persist() {
   if(!current.value)throw new Error("请重新打开草稿。");
   if(conflict.value)throw new Error("请先读取并核对最新草稿，当前输入仍保留。");
@@ -237,7 +242,10 @@ async function refresh() {await run(async()=>{if(current.value?.id)load(await ap
 function beforeUnload(event:BeforeUnloadEvent){if(dirty.value){event.preventDefault();event.returnValue="";}}
 onMounted(()=>{
   window.addEventListener("beforeunload",beforeUnload);
-  if (new URLSearchParams(location.search).get("create") === "1") void create();
+  const query = new URLSearchParams(location.search);
+  const ownedRequest = query.get("ownedRequest");
+  if (ownedRequest) void open(ownedRequest, true);
+  else if (query.get("create") === "1") void create();
   else void run(()=>list());
 });
 onBeforeUnmount(()=>{mounted=false;clearTimeout(saveTimer);window.removeEventListener("beforeunload",beforeUnload);});

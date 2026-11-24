@@ -14,7 +14,9 @@ record MatchStartResult(MatchView match,String outcome) {}
 class MatchService {
     private final JdbcTemplate db; private final AuthService auth; private final ProfileService profiles;
     private final RequestPublicationService publication; private final ObjectMapper json; private final Secrets secrets; private final ContactService contacts;
-    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts) {
+    private final NotificationService notifications;
+    MatchService(JdbcTemplate db,AuthService auth,ProfileService profiles,RequestPublicationService publication,ObjectMapper json,Secrets secrets,ContactService contacts, NotificationService notifications) {
+        this.notifications = notifications;
         this.db=db;this.auth=auth;this.profiles=profiles;this.publication=publication;this.json=json;this.secrets=secrets;this.contacts=contacts;
     }
     private Account actor(String session) {
@@ -127,6 +129,8 @@ class MatchService {
         db.update("INSERT INTO match_rounds(id,match_id,submission_id,initiator_id,initiator_role,state,teacher_profile_version,submission_snapshot,teacher_snapshot) VALUES(?,?,?,?,?,'WAITING',?,CAST(? AS jsonb),CAST(? AS jsonb))",round,match,body.expectedSubmissionId(),a.id(),a.identity(),body.expectedTeacherProfileVersion(),encode(snapshot),encode(teacher));
         if(!previous.isEmpty())db.update("UPDATE match_relationships SET current_round_id=?,version=version+1 WHERE id=?",round,match);
         contacts.exchangeWithIntention(a.id(),match,body.contactExchange());
+        String sender = (String)(application ? teacher.get("displayName") : snapshot.get("publisherDisplayName"));
+        notifications.intention(application ? requester : tutor, round, match, sender, (String)snapshot.get("title"), !application);
         return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
     }
     private MatchStartResult directInvitation(String session,Account a,StartMatch body,String key) {
@@ -158,6 +162,9 @@ class MatchService {
         db.update("INSERT INTO match_rounds(id,match_id,initiator_id,initiator_role,state,teacher_profile_version,submission_snapshot,teacher_snapshot) VALUES(?,?,?,'REQUESTER','WAITING',?,CAST(? AS jsonb),CAST(? AS jsonb))",round,match,a.id(),body.expectedTeacherProfileVersion(),encode(snapshot),encode(teacher));
         if(!previous.isEmpty())db.update("UPDATE match_relationships SET current_round_id=?,version=version+1 WHERE id=?",round,match);
         contacts.exchangeWithIntention(a.id(),match,body.contactExchange());
+        String topic = teacher.get("teachSubjects") instanceof List<?> subjects && !subjects.isEmpty()
+            ? "可授科目：" + subjects.getFirst() : "直接家教邀请";
+        notifications.intention(tutor, round, match, name, topic, true);
         return remember(a.id(),"START",key,match,body,new MatchStartResult(detail(session,match),"CREATED"));
     }
     public MatchView respond(String session,UUID id,RespondMatch body,String key,String action) {
@@ -173,7 +180,10 @@ class MatchService {
         String state=switch(action){case "ACCEPT"->"MUTUAL";case "REJECT"->"REJECTED";default->"WITHDRAWN";};
         db.update("UPDATE match_rounds SET state=?,responded_by=?,responded_at=clock_timestamp() WHERE id=?",state,a.id(),body.roundId());
         db.update("UPDATE match_relationships SET version=version+1 WHERE id=?",id);
-        if("ACCEPT".equals(action))contacts.exchangeWithIntention(a.id(),id,body.contactExchange());
+        if("ACCEPT".equals(action)) {
+            contacts.exchangeWithIntention(a.id(),id,body.contactExchange());
+            notifications.mutual((UUID)current.get("initiator_id"), body.roundId(), id);
+        }
         return remember(a.id(),action,key,id,fingerprint,detail(session,id));
     }
 }

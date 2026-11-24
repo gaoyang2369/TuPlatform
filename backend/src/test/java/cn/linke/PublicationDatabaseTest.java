@@ -26,6 +26,7 @@ class PublicationDatabaseTest {
         p.add("spring.datasource.url",()->url);p.add("spring.datasource.username",()->System.getenv("TEST_DB_USERNAME"));p.add("spring.datasource.password",()->System.getenv("TEST_DB_PASSWORD"));
     }
     @Autowired ProfileService profiles;
+    @Autowired NotificationService notifications;
     @Autowired AuthService auth; @Autowired RequestDraftService drafts; @Autowired RequestPublicationService publishing;
     @Autowired JdbcTemplate db; @Autowired ObjectMapper json; @MockitoBean MailGateway mail;
     private String token;private final List<UUID> accounts=new ArrayList<>();
@@ -89,6 +90,8 @@ class PublicationDatabaseTest {
             for(User reviewer:List.of(one,two))futures.add(pool.submit(()->{start.await();try{publishing.decide(reviewer.session(),submitted.submissionId(),new ReviewRequest(0L,"APPROVE",null),UUID.randomUUID().toString());return true;}catch(ApiError e){assertEquals(409,e.status);return false;}}));
             start.countDown();int successes=0;for(Future<Boolean> result:futures)if(result.get(25,TimeUnit.SECONDS))successes++;
             assertEquals(1,successes);assertEquals(1,db.queryForObject("SELECT count(*) FROM review_decisions WHERE submission_id=?",Integer.class,submitted.submissionId()));
+            assertEquals("你的需求已通过审核",db.queryForObject(
+                "SELECT title FROM notifications WHERE user_id=? AND event_id=?",String.class,owner.id(),submitted.submissionId()));
         }finally{pool.shutdownNow();}
         assertEquals("OPEN",drafts.get(owner.session(),submitted.id()).status());
     }
@@ -96,6 +99,10 @@ class PublicationDatabaseTest {
         User owner=user("REQUESTER",false),operator=user("TUTOR",true);var submitted=submit(owner,ready(owner));String reviewKey=UUID.randomUUID().toString();var decision=new ReviewRequest(0L,"REJECT","请补充目标说明");
         var rejected=publishing.decide(operator.session(),submitted.submissionId(),decision,reviewKey);
         assertEquals(rejected,publishing.decide(operator.session(),submitted.submissionId(),decision,reviewKey));
+        var notification=db.queryForMap("SELECT user_id,content,target_url FROM notifications WHERE event_id=?",submitted.submissionId());
+        assertEquals(owner.id(),notification.get("user_id"));
+        assertTrue(notification.get("content").toString().contains("请补充目标说明"));
+        assertTrue(notification.get("target_url").toString().endsWith("ownedRequest="+submitted.id()));
         String revisionKey=UUID.randomUUID().toString();var revised=publishing.revise(owner.session(),submitted.id(),new VersionBody(rejected.version()),revisionKey);
         assertEquals(revised,publishing.revise(owner.session(),submitted.id(),new VersionBody(rejected.version()),revisionKey));
         SavedDraft changed=drafts.save(owner.session(),submitted.id(),new DraftPatch(revised.version(),json.createObjectNode().put("goal","已补充的新目标")));
@@ -126,7 +133,7 @@ class PublicationDatabaseTest {
         assertTrue(((List<?>)publishing.reviewList(operator.session(),null,null).get("items")).isEmpty());
         assertEquals("EXPIRED",publishing.reviewDetail(operator.session(),submitted.submissionId()).status());
         var another=submit(owner,ready(owner));approve(operator,another);
-        var closedDrafts=new RequestDraftService(db,auth,json,"");var closed=new RequestPublicationService(db,auth,closedDrafts,json,new Secrets());
+        var closedDrafts=new RequestDraftService(db,auth,json,"");var closed=new RequestPublicationService(db,auth,closedDrafts,json,new Secrets(),notifications);
         assertEquals(404,assertThrows(ApiError.class,()->closed.publicDetail(another.id())).status);
         assertTrue(((List<?>)closed.publicList(null,null,null,null).get("items")).isEmpty());
     }

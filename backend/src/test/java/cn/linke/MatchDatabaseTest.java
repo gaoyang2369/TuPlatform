@@ -10,10 +10,15 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @EnabledIfEnvironmentVariable(named="RUN_DATABASE_TESTS",matches="true")
 @SpringBootTest(properties={"app.request-categories=DRAWING","app.teacher-categories=DRAWING"})
@@ -26,6 +31,8 @@ class MatchDatabaseTest {
     @Autowired MatchService matches; @Autowired ProfileService profiles; @Autowired RequestDraftService drafts;
     @Autowired RequestPublicationService publication; @Autowired JdbcTemplate db; @Autowired ObjectMapper json; @Autowired Secrets secrets;
     @Autowired ContactService contacts;
+    @Autowired PlatformTransactionManager transactions;
+    @Autowired NotificationService notifications;
     @MockitoBean MailGateway mail;
     private final List<UUID> accounts=new ArrayList<>();
     private record User(UUID id,String session) {}
@@ -76,7 +83,42 @@ class MatchDatabaseTest {
         assertEquals(403,assertThrows(ApiError.class,()->act(owner,m,"ACCEPT")).status);
         assertEquals("MUTUAL",act(tutor,m,"ACCEPT").state());
         assertEquals("EXISTING",matches.start(owner.session(),body,key()).outcome());
+        var started=db.queryForMap("SELECT user_id,content,target_url FROM notifications WHERE event_id=? AND event_type='match_started'",m.roundId());
+        assertEquals(tutor.id(),started.get("user_id"));
+        assertTrue(started.get("content").toString().contains("合成展示名"));
+        assertFalse(started.get("content").toString().contains("想了解周末课程"));
+        assertTrue(started.get("target_url").toString().endsWith("?view=matches&match="+m.id()));
+        assertEquals(owner.id(),db.queryForObject("SELECT user_id FROM notifications WHERE event_id=? AND event_type='match_accepted'",UUID.class,m.roundId()));
         assertFalse(json.writeValueAsString(m).contains("@example.invalid"));
+    }
+    @Test void notificationRollbackRetriesAndReplayStaySeparateFromTheMatch() throws Exception {
+        var setup=setup();
+        var match=start(setup,false);
+        assertEquals(setup.owner().id(),db.queryForObject("SELECT user_id FROM notifications WHERE event_id=?",UUID.class,match.roundId()));
+        var content=db.queryForObject("SELECT content FROM notifications WHERE event_id=?",String.class,match.roundId());
+        assertTrue(content.contains("合成撮合需求")); assertTrue(content.contains("当时老师"));
+        UUID transientRound=UUID.randomUUID();
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            notifications.mutual(setup.tutor().id(), transientRound, match.id());
+            tx.setRollbackOnly();
+        });
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=?",Integer.class,transientRound));
+        var transport=mock(NotificationMail.class);
+        when(transport.deliver(any(UUID.class),anyString(),anyString(),anyString(),anyString())).thenThrow(new MailSendException("synthetic outage"));
+        var worker=new NotificationDispatcher(db,transport,transactions);
+        for(int i=0;i<3;i++) {
+            db.update("UPDATE notifications SET next_attempt_at=now() WHERE event_id=?",match.roundId());
+            worker.dispatch();
+        }
+        assertEquals("failed",db.queryForObject("SELECT sent_status FROM notifications WHERE event_id=?",String.class,match.roundId()));
+        assertEquals("WAITING",matches.detail(setup.owner().session(),match.id()).state());
+        act(setup.owner(),match,"ACCEPT");
+        notifications.mutual(setup.tutor().id(),match.roundId(),match.id());
+        var localMail=new NotificationMail(mock(JavaMailSender.class),json,"test@example.invalid",false,"",true,"","");
+        new NotificationDispatcher(db,localMail,transactions).dispatch();
+        var delivered=db.queryForMap("SELECT user_id,sent_status,attempts,is_read FROM notifications WHERE event_id=? AND event_type='match_accepted'",match.roundId());
+        assertEquals(setup.tutor().id(),delivered.get("user_id")); assertEquals("logged",delivered.get("sent_status"));
+        assertEquals(1,delivered.get("attempts")); assertEquals(false,delivered.get("is_read"));
     }
     @Test void directInvitationValidatesRoleTeacherVersionVisibilityAndMessage() {
         var owner=user("REQUESTER");var tutor=user("TUTOR");long version=publish(tutor);

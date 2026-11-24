@@ -31,8 +31,10 @@ class VerificationService {
     private final AuthService auth;
     private final JdbcTemplate db;
     private final Path directory;
+    private final NotificationService notifications;
 
-    VerificationService(AuthService auth, JdbcTemplate db, @Value("${app.verification-directory}") String directory) {
+    VerificationService(AuthService auth, JdbcTemplate db, @Value("${app.verification-directory}") String directory, NotificationService notifications) {
+        this.notifications = notifications;
         this.auth = auth;
         this.db = db;
         this.directory = Path.of(directory).toAbsolutePath().normalize();
@@ -104,6 +106,7 @@ class VerificationService {
             " WHERE id=? AND user_id<>? AND status='pending' RETURNING " + FIELDS, this::entry,
             decision.status(), reason, id, actor.id());
         if (rows.isEmpty()) throw new ApiError(409, "VERIFICATION_NOT_PENDING", "当前申请无法审核，请重新读取队列");
+        notifications.verificationReviewed(rows.getFirst());
         return rows.getFirst();
     }
     VerificationProof proof(String session, UUID id) {

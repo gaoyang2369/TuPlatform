@@ -52,12 +52,19 @@ async function submit(type: VerificationType) {
     notice.value = "认证材料已提交，可以在这里查看审核结果。";
   } catch (e) { report(e); } finally { busy.value = false; }
 }
-onMounted(refresh);
+const heading = ref<HTMLElement>();
+onMounted(async () => {
+  await refresh();
+  if (new URLSearchParams(location.search).get("section") === "verifications") {
+    heading.value?.focus({preventScroll:true});
+    heading.value?.scrollIntoView({block:"start"});
+  }
+});
 </script>
 <template>
   <section class="my-6 space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6" aria-label="本校学籍与资质认证">
     <header class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="flex items-center gap-2 text-xl font-bold"><ShieldCheck class="size-5 text-primary"/>本校学籍与资质认证</h2>
+      <h2 ref="heading" tabindex="-1" class="flex scroll-mt-32 items-center gap-2 text-xl font-bold"><ShieldCheck class="size-5 text-primary"/>本校学籍与资质认证</h2>
       <Button type="button" variant="ghost" class="min-h-11 text-primary" :disabled="busy" @click="refresh"><RefreshCw/>刷新认证状态</Button>
     </header>
     <p class="rounded-xl bg-blue-50 px-4 py-3 text-[15px] font-medium text-blue-900">证件仅用于平台人工核验本校在读身份，绝不对外展示或泄露</p>

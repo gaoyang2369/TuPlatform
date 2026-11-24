@@ -46,6 +46,7 @@ app:
   avatar-directory: ${AVATAR_DIRECTORY:./data/avatars}
   verification-directory: ${VERIFICATION_DIRECTORY:${user.home}/.tuplatform/private_uploads/verifications}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
+  base-url: ${APP_BASE_URL:http://127.0.0.1:8180}
   secure-cookies: ${SECURE_COOKIES:true}
   mail-enabled: ${MAIL_ENABLED:false}
   mail-from: ${MAIL_FROM:${SMTP_FROM:noreply@example.invalid}}

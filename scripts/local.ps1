@@ -2,7 +2,8 @@
     [ValidateSet('Start','Stop','Status','ResetOperator')][string]$Action = 'Start',
     [ValidateRange(1024,65535)][int]$Port = 8180,
     [ValidateSet('tuplatform','tuplatform_test')][string]$DatabaseName = 'tuplatform',
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$ApplyNotificationMigration
 )
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -77,16 +78,17 @@ function Run-Operator([string]$Mode) {
     try {
         $migrations=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/classes/db/migration/V[0-9]+__.+\.sql$'})
         $versions=@($migrations | ForEach-Object {[void]($_.FullName -match '/V([0-9]+)__');[int]$matches[1]} | Sort-Object)
-        $approvedVersions=1..9
-        if(($versions -join ',') -ne ($approvedVersions -join ',')){
-            throw "启动包中的迁移版本为 [$($versions -join ', ')]，当前批准范围为 V1–V$($approvedVersions[-1])。请核对缺失或新增的迁移。"
+        if(($versions -join ',') -ne ((1..10) -join ',') -and !($Action -eq 'ResetOperator' -and ($versions -join ',') -eq ((1..9) -join ','))){
+            throw "启动包中的迁移版本为 [$($versions -join ', ')]，请核对 V1–V10 清单。"
         }
         $entry=@($archive.Entries | Where-Object {$_.FullName -match '^BOOT-INF/lib/postgresql-[^/]+\.jar$'})
         if($entry.Count -ne 1){throw 'PostgreSQL driver missing from the local JAR.'}
         $driverPath=Join-Path $runRoot 'postgresql.jar'
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entry[0],$driverPath,$true)
     }finally{$archive.Dispose()}
-    & (Resolve-Java) -cp $driverPath (Join-Path $projectRoot 'tools/LocalOperator.java') $Mode $envPath $credentialPath $DatabaseName
+    $schemaCheck=@()
+    if($Mode -eq 'create' -and !$ApplyNotificationMigration){$schemaCheck=@('require-v10')}
+    & (Resolve-Java) -cp $driverPath (Join-Path $projectRoot 'tools/LocalOperator.java') $Mode $envPath $credentialPath $DatabaseName @schemaCheck
     if($LASTEXITCODE -ne 0){throw 'Operator initialization failed; application was not started.'}
     if(Test-Path -LiteralPath $credentialPath){
         $acl=New-Object Security.AccessControl.FileSecurity
@@ -145,9 +147,16 @@ try {
 Run-Operator 'create'
 $overrides=@{
     SERVER_ADDRESS='127.0.0.1';SERVER_PORT=$Port.ToString();PUBLIC_BASE_URL="http://127.0.0.1:$Port";
-    SECURE_COOKIES='false';MAIL_ENABLED=($(if($DatabaseName -eq 'tuplatform_test'){'false'}else{'true'}));
+    SECURE_COOKIES='false';
     TEACHER_CATEGORIES='DRAWING,DANCE,OTHER_SKILL,EXTRACURRICULAR_STUDY';
     REQUEST_CATEGORIES='DRAWING,DANCE,OTHER_SKILL,EXTRACURRICULAR_STUDY'
+}
+if($DatabaseName -eq 'tuplatform_test'){$overrides.MAIL_ENABLED='false'}
+elseif(!$env:MAIL_ENABLED -and !(Select-String -LiteralPath $envPath -Pattern '^\s*MAIL_ENABLED\s*=\s*\S' -Quiet)){
+    $overrides.MAIL_ENABLED='true'
+}
+if(!$env:APP_BASE_URL -and !(Select-String -LiteralPath $envPath -Pattern '^\s*APP_BASE_URL\s*=\s*\S' -Quiet)){
+    $overrides.APP_BASE_URL="http://127.0.0.1:$Port"
 }
 $previous=@{}
 try {

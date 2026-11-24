@@ -30,13 +30,19 @@ test.beforeAll(()=>{if(!process.env.TEST_DB_URL?.match(/\/[A-Za-z0-9_]+_test(?:\
 test.afterEach(()=>{for(const actor of actors.splice(0))fixture("cleanup",actor.id);});
 
 test("提交、驳回修改重提、审核公开、匿名浏览及到期不可见",async({page,browser},info)=>{
-  await prepared(page);await submit(page);const original=await latestRequest(page);
+  const owner=await prepared(page);await submit(page);const original=await latestRequest(page);
   const anonymous=await browser.newContext(),operations=await browser.newContext();
   try {
     const visitor=await anonymous.newPage();await visitor.goto("/");await visitor.getByRole("button",{name:"浏览需求",exact:true}).click();await expect(visitor.getByText("暂无符合条件的公开需求，可以调整筛选条件。")).toBeVisible();
     const reviewer=await operatorPage(operations,user("OPERATOR"));
     await reviewer.getByRole("radio",{name:"驳回并说明原因",exact:true}).check();await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await expect(reviewer.getByRole("alert")).toContainText("驳回前请填写理由");
     await reviewer.getByLabel("驳回理由",{exact:true}).fill("请补充学习目标，再次提交。");await reviewer.getByRole("button",{name:"核对并确认审核"}).click();await reviewer.getByRole("button",{name:"确认驳回",exact:true}).click();await expect(reviewer.getByRole("dialog", {name:"核对提交", exact:true}).getByText("已驳回",{exact:true})).toBeVisible();
+    await page.context().clearCookies();
+    await page.goto("/?view=requests&ownedRequest="+original.id);
+    await page.getByLabel("账号",{exact:true}).fill(owner.account);
+    await page.getByLabel("密码",{exact:true}).fill(owner.password);
+    await page.getByRole("button",{name:"登录",exact:true}).click();
+    await expect(page.getByRole("heading",{name:"需求进度"})).toBeVisible();
     await page.getByRole("button",{name:"刷新进度",exact:true}).click();await expect(page.getByText("驳回理由：请补充学习目标，再次提交。",{exact:true})).toBeVisible();await page.getByRole("button",{name:"修改后重新提交",exact:true}).click();await page.getByLabel("目标与现状",{exact:false}).fill("已补充：希望能够独立完成基础静物绘画。");await page.getByRole("button",{name:"保存并下一步"}).click();await page.getByRole("button",{name:"保存并预览"}).click();await expect(page.getByRole("button",{name:"确认提交审核",exact:true})).toBeDisabled();await submit(page);
     const second=await latestRequest(page);expect(second.latestSubmission.id).not.toBe(original.latestSubmission.id);
     await reviewer.getByRole("button",{name:"返回审核队列",exact:true}).click();await reviewer.getByRole("button",{name:"核对提交",exact:true}).click();await expect(reviewer.getByText("上次驳回理由：请补充学习目标，再次提交。",{exact:true})).toBeVisible();await expect(reviewer.getByText("已补充：希望能够独立完成基础静物绘画。",{exact:true})).toBeVisible();

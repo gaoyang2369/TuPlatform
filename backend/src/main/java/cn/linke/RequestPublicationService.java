@@ -18,7 +18,9 @@ class RequestPublicationService {
     private final RequestDraftService drafts;
     private final ObjectMapper json;
     private final Secrets secrets;
-    RequestPublicationService(JdbcTemplate db, AuthService auth, RequestDraftService drafts, ObjectMapper json, Secrets secrets) {
+    private final NotificationService notifications;
+    RequestPublicationService(JdbcTemplate db, AuthService auth, RequestDraftService drafts, ObjectMapper json, Secrets secrets, NotificationService notifications) {
+        this.notifications = notifications;
         this.db=db; this.auth=auth; this.drafts=drafts; this.json=json; this.secrets=secrets;
     }
     private OffsetDateTime now() { return db.queryForObject("SELECT clock_timestamp()",OffsetDateTime.class); }
@@ -130,7 +132,7 @@ class RequestPublicationService {
         Account actor=operator(session);
         ReviewSubmission initial=review(actor.id(),id);
         // Lock the request before reading the final state: two operators cannot both decide.
-        var rows=db.queryForList("SELECT latest_submission_id,version FROM service_requests WHERE id=? FOR UPDATE",initial.requestId());
+        var rows=db.queryForList("SELECT latest_submission_id,version,owner_id FROM service_requests WHERE id=? FOR UPDATE",initial.requestId());
         ReviewSubmission submission=review(actor.id(),id);
         RequestAction replay=receipt(actor.id(),"REVIEW",key,id,body);
         if (replay!=null) return replay;
@@ -150,6 +152,7 @@ class RequestPublicationService {
         db.update("UPDATE request_submissions SET status=?,version=version+1 WHERE id=?",body.decision().equals("APPROVE")?"APPROVED":"REJECTED",id);
         String status=body.decision().equals("APPROVE")?"OPEN":"REJECTED";
         db.update("UPDATE service_requests SET status=?,version=version+1 WHERE id=?",status,initial.requestId());
+        notifications.requestReviewed((UUID)rows.getFirst().get("owner_id"), id, initial.requestId(), submission.fields().path("title").asText(), reason);
         return remember(actor.id(),"REVIEW",key,id,body,new RequestAction(initial.requestId(),id,status,((Number)rows.getFirst().get("version")).longValue()+1));
     }
     private static final List<String> PUBLIC_FIELDS=List.of("title","categoryCode","audienceStageCode","grade","subject","goal","serviceMode","budgetMin","budgetMax","durationHours","frequency","availableSlots","availabilityPreference","availabilityNote","expectedStartDate","tutorExpectations");

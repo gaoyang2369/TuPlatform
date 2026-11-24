@@ -52,7 +52,8 @@ test("老师提交和重提私有证件，运营核验，家长查看双徽章",
     await expect(parent.getByRole("dialog")).toContainText("该老师已通过邮箱验证，学籍信息核验中；具体授课安排由双方协商确认。");
     await parent.getByRole("button", {name:"返回老师列表"}).click();
 
-    await page.goto("/?view=profile");
+    await page.goto("/?view=profile&section=verifications");
+    await expect(page.getByRole("heading",{name:"本校学籍与资质认证"})).toBeFocused();
     const mine = page.getByRole("region", {name:"本校学籍与资质认证"});
     const school = mine.getByRole("article").filter({has: page.getByRole("heading", {name:"本校学籍", exact:true})});
     await expect(school).toContainText("未提交");
