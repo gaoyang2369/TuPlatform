@@ -68,7 +68,7 @@ onMounted(loadOptions);
     </header>
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-card p-3 shadow-xs sm:p-5">
       <DiscoveryCategories :codes="options.categoryCodes" :active="filters.category" @select="apply({ ...filters, category: $event })"/>
-      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <div role="group" aria-label="更多筛选条件" class="discovery-strip flex flex-wrap items-center gap-1.5 py-1 md:py-0 sm:gap-2">
         <DiscoveryFilter v-for="group in groups" :key="group.key" :label="group.label" :icon="group.icon" :options="group.options" :selected="filters[group.key]" @toggle="toggle(group.key, $event)"/>
         <DiscoveryStudyFilter teacher-grades :grade="filters.grade" :subject="filters.subject"
           @update:grade="apply({ ...filters, grade: $event })" @update:subject="apply({ ...filters, subject: $event })"/>
@@ -84,7 +84,7 @@ onMounted(loadOptions);
       <div class="flex items-baseline justify-between gap-3"><h2 class="text-xl font-bold">老师列表</h2>
         <p role="status" class="text-sm text-muted-foreground">{{ listBusy ? '正在读取老师…' : listError ? '' : `本页 ${items.length} 位` }}</p>
       </div>
-      <div v-if="listBusy && !items.length" aria-hidden="true" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div v-if="listBusy && !items.length" aria-hidden="true" class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
         <div v-for="i in 3" :key="i" class="space-y-5 rounded-2xl border border-border bg-card p-6"><Skeleton class="size-12 rounded-xl"/><Skeleton class="h-5 w-2/3"/><Skeleton class="h-4 w-full"/><Skeleton class="h-11 w-full"/></div>
       </div>
       <div v-else-if="!items.length && !listError" class="grid justify-items-center gap-4 rounded-2xl border border-border bg-card px-4 py-10 text-center sm:p-10">
@@ -94,8 +94,8 @@ onMounted(loadOptions);
           <Button variant="outline" class="h-11 rounded-xl" :disabled="!hasFilters" @click="resetFilters">清除筛选条件</Button>
         </div>
       </div>
-      <TransitionGroup v-else tag="div" name="results" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <article v-for="t in items" :key="t.id" class="teacher-card group min-w-0 rounded-2xl border border-border bg-card p-6 shadow-sm transition motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none">
+      <TransitionGroup v-else tag="div" name="results" class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+        <article v-for="t in items" :key="t.id" class="teacher-card group min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm transition md:p-6 motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none">
           <TeacherSummary :teacher="t" compact public-profile :open-disabled="listBusy" @open="open(t.id, $event)"/>
         </article>
       </TransitionGroup>

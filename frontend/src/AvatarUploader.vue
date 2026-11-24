@@ -2,9 +2,11 @@
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { Camera, LoaderCircle } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiFailure } from "./account-api";
 import UserAvatar from "./UserAvatar.vue";
+import { useMobileViewport } from "./use-mobile-viewport";
 
 const props = defineProps<{ accountId: string; name: string; url?: string | null; teacher: boolean; disabled: boolean }>();
 const emit = defineEmits<{ uploaded: [id: string, url: string]; uploading: [busy: boolean]; expired: [] }>();
@@ -14,6 +16,7 @@ const canvas = ref<HTMLCanvasElement>();
 const editing = ref(false), loading = ref(false), saving = ref(false);
 const error = ref(""), success = ref("");
 const zoom = ref(1);
+const mobile = useMobileViewport();
 const side = 300;
 let image: HTMLImageElement | null = null;
 let x = 0, y = 0, revision = 0;
@@ -33,6 +36,9 @@ function draw() {
   ctx.drawImage(image, (side - w) / 2 + x, (side - h) / 2 + y, w, h);
 }
 watch(zoom, draw);
+watch(canvas, element => {
+  if (element) { draw(); element.focus(); }
+}, { flush: "post" });
 function pointerDown(e: PointerEvent) {
   if (!canvas.value || saving.value || !e.isPrimary || e.button !== 0) return;
   canvas.value.setPointerCapture(e.pointerId);
@@ -60,6 +66,12 @@ async function focusChooser() {
   await nextTick();
   chooseButton.value?.focus();
 }
+function cancelCrop() {
+  if (saving.value) return;
+  clearCrop();
+  error.value = "";
+  void focusChooser();
+}
 async function selectFile(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -84,7 +96,6 @@ async function selectFile(event: Event) {
     await decoded.decode();
     if (version !== revision) return;
     image = decoded; zoom.value = 1; x = 0; y = 0; editing.value = true;
-    await nextTick(); draw(); canvas.value?.focus();
   } catch {
     if (version === revision) error.value = "图片格式不符或无法打开，请重新选择。";
   } finally {
@@ -129,22 +140,29 @@ onBeforeUnmount(clearCrop);
       <Button as-child variant="outline"><button ref="chooseButton" type="button" :disabled="disabled || saving" @click="picker?.click()"><Camera/>选择图片</button></Button>
     </div>
     <div v-if="loading" role="status"><Skeleton class="aspect-square w-44 rounded-xl"/><span class="sr-only">正在读取图片</span></div>
-    <div v-if="editing" class="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-center">
-      <canvas ref="canvas" :width="side" :height="side" tabindex="0" aria-label="头像裁剪预览，可用方向键调整位置"
-        class="aspect-square w-full max-w-[300px] touch-none cursor-grab rounded-lg active:cursor-grabbing"
-        @pointerdown="pointerDown" @pointermove="pointerMove" @lostpointercapture="drag = null" @keydown="keyboard"/>
-      <div class="space-y-4">
-        <p class="text-sm text-secondary-foreground">拖动照片调整位置，方框内的画面将保存为头像。</p>
-        <label class="grid gap-2 text-sm font-semibold">缩放 {{ Math.round(zoom * 100) }}%
-          <input v-model.number="zoom" type="range" min="1" max="3" step="0.01" aria-label="缩放头像" :disabled="saving" class="w-full accent-primary"/>
-        </label>
-        <div class="flex flex-wrap gap-2">
-          <Button type="button" :disabled="disabled || saving" @click="upload"><LoaderCircle v-if="saving" class="motion-safe:animate-spin"/>{{ saving ? '上传中…' : '保存头像' }}</Button>
-          <Button type="button" variant="ghost" :disabled="saving" @click="clearCrop(); error = ''; focusChooser()">取消裁剪</Button>
+    <Dialog :open="editing && mobile" @update:open="value => { if (!value) cancelCrop(); }">
+      <component v-if="editing" :is="mobile ? DialogContent : 'div'"
+        class="grid min-w-0 gap-4 rounded-xl p-4"
+        :class="mobile ? 'max-h-[90dvh] grid-cols-1 overflow-y-auto' : 'grid-cols-[minmax(0,15rem)_1fr] items-center bg-slate-50'"
+        @open-auto-focus.prevent="canvas?.focus()" @close-auto-focus.prevent="focusChooser">
+        <DialogTitle v-if="mobile" class="pr-10 text-xl font-bold">裁剪头像</DialogTitle>
+        <canvas ref="canvas" :width="side" :height="side" tabindex="0" aria-label="头像裁剪预览，可用方向键调整位置"
+          class="aspect-square w-full min-w-0 max-w-[300px] touch-none cursor-grab rounded-lg active:cursor-grabbing max-md:mx-auto max-md:max-w-[min(300px,43dvh)]"
+          @pointerdown="pointerDown" @pointermove="pointerMove" @lostpointercapture="drag = null" @keydown="keyboard"/>
+        <div class="space-y-4">
+          <component :is="mobile ? DialogDescription : 'p'" class="text-sm text-secondary-foreground">拖动照片调整位置，方框内的画面将保存为头像。</component>
+          <label class="grid gap-2 text-sm font-semibold">缩放 {{ Math.round(zoom * 100) }}%
+            <input v-model.number="zoom" type="range" min="1" max="3" step="0.01" aria-label="缩放头像" :disabled="saving" class="w-full accent-primary"/>
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <Button type="button" :disabled="disabled || saving" @click="upload"><LoaderCircle v-if="saving" class="motion-safe:animate-spin"/>{{ saving ? '上传中…' : '保存头像' }}</Button>
+            <Button type="button" variant="ghost" :disabled="saving" @click="cancelCrop">取消裁剪</Button>
+          </div>
         </div>
-      </div>
-    </div>
-    <p v-if="error" role="alert" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{{ error }}</p>
+        <p v-if="mobile && error" role="alert" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{{ error }}</p>
+      </component>
+    </Dialog>
+    <p v-if="error && !(editing && mobile)" role="alert" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{{ error }}</p>
     <p v-if="success" role="status" class="text-sm font-medium text-primary">{{ success }}</p>
   </section>
 </template>

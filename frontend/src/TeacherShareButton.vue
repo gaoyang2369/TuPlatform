@@ -35,10 +35,10 @@ async function copyLink() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogTrigger as-child><Button type="button" variant="outline" :disabled="disabled" class="min-h-10 shrink-0 gap-1.5 rounded-xl px-3 text-primary">
-      <Share2 class="size-4"/>生成分享名片
+    <DialogTrigger as-child><Button type="button" variant="outline" aria-label="生成分享名片" :disabled="disabled" class="min-h-10 shrink-0 gap-1.5 rounded-xl px-3 text-primary">
+      <Share2 class="size-4"/><span><span class="max-md:hidden">生成</span>分享名片</span>
     </Button></DialogTrigger>
-    <DialogContent class="flex max-h-[94dvh] flex-col gap-3 rounded-2xl p-4 sm:max-w-md sm:p-5">
+    <DialogContent class="flex max-h-[min(94dvh,calc(100dvh-2rem-env(safe-area-inset-bottom)-env(safe-area-inset-top)))] flex-col overflow-y-auto gap-3 rounded-2xl p-4 sm:max-w-md sm:p-5">
       <DialogTitle class="pr-8 text-xl font-bold">老师分享名片</DialogTitle>
       <DialogDescription class="sr-only">预览微信分享名片，可保存为 PNG 或复制老师主页链接。</DialogDescription>
       <div v-if="png" class="min-h-0 overflow-y-auto rounded-xl bg-slate-100 p-2 text-center">

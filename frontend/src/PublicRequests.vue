@@ -67,7 +67,7 @@ function districtLabel(item: PublicRequest) {
     </header>
     <div class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-card p-3 shadow-xs sm:gap-3 sm:p-5">
       <DiscoveryCategories :codes="options.categories" :active="filters.category" @select="categoryChanged"/>
-      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <div role="group" aria-label="更多筛选条件" class="discovery-strip flex flex-wrap items-center gap-1.5 py-1 md:py-0 sm:gap-2">
         <DiscoveryFilter v-for="group in groups" :key="group.key" :label="group.label" :short-label="group.shortLabel" :icon="group.icon" :options="group.options" :selected="filters[group.key]" @toggle="toggle(group.key, $event)"/>
         <DiscoveryStudyFilter :disabled="!studyEnabled" :grade="filters.grade" :subject="filters.subject"
           @update:grade="apply({ ...filters, grade: $event })" @update:subject="apply({ ...filters, subject: $event })"/>
@@ -78,12 +78,12 @@ function districtLabel(item: PublicRequest) {
     <div v-if="listError" role="alert" class="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-red-800">{{ listError }} <Button variant="outline" @click="retryList">重新读取</Button></div>
     <section aria-label="需求列表" :aria-busy="listBusy" class="space-y-3 sm:space-y-4">
       <div class="flex items-baseline justify-between"><h2 class="text-xl font-bold">需求列表</h2><p role="status" class="text-sm text-muted-foreground">{{ listBusy ? '正在读取需求…' : listError ? '' : '本页 ' + items.length + ' 条' }}</p></div>
-      <div v-if="listBusy && !items.length" aria-hidden="true" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div v-if="listBusy && !items.length" aria-hidden="true" class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
         <div v-for="i in 3" :key="i" class="space-y-4 rounded-2xl border border-border bg-card p-6"><Skeleton class="h-6 w-2/3"/><Skeleton class="h-16 w-full"/><Skeleton class="h-11 w-full"/></div>
       </div>
       <div v-else-if="!items.length && !listError" class="grid justify-items-center gap-3 rounded-2xl border border-border bg-card p-8 text-center"><Search class="size-7 text-muted-foreground"/><p>暂无符合条件的公开需求，可以调整筛选条件。</p><button v-if="hasFilters" class="text-sm text-primary" @click="resetFilters">查看全部需求</button></div>
-      <TransitionGroup v-else tag="div" name="requests" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <RequestSummary v-for="item in items" :key="item.id" class="request-card group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-lg motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none sm:p-6" compact :fields="item" :display-name="item.publisherDisplayName" :district-label="districtLabel(item)" :open-disabled="listBusy" @open="open(item.id, $event)"/>
+      <TransitionGroup v-else tag="div" name="requests" class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+        <RequestSummary v-for="item in items" :key="item.id" class="request-card group rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:shadow-lg motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none sm:p-6" compact :fields="item" :display-name="item.publisherDisplayName" :district-label="districtLabel(item)" :open-disabled="listBusy" @open="open(item.id, $event)"/>
       </TransitionGroup>
       <nav v-if="items.length || pageNumber > 1" aria-label="需求分页" class="pagination flex items-center justify-between gap-3 py-3">
         <Button variant="outline" :disabled="listBusy || pageNumber===1" @click="changePage(-1)"><ArrowLeft/>上一页</Button>

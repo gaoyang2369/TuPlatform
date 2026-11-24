@@ -10,7 +10,7 @@ const categories = computed(() => ["", ...props.codes].map(code => ({
 })));
 </script>
 <template>
-  <div role="group" aria-label="教学类别" class="flex gap-2 overflow-x-auto py-1">
+  <div role="group" aria-label="教学类别" class="discovery-strip flex gap-2 overflow-x-auto py-1">
     <button v-for="c in categories" :key="c.code" type="button" :aria-pressed="active===c.code"
       @click="emit('select', c.code)"
       class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-blue-50 aria-pressed:bg-primary aria-pressed:text-white">

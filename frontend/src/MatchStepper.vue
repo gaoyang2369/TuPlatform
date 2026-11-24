@@ -11,16 +11,16 @@ const steps = ["发出意向", "对方回应", "双方确认", "交换联系方�
 const compact = ["意向", "回应", "确认", "交换", "合作", "完结"];
 </script>
 <template>
-  <ol aria-label="撮合阶段" class="@container grid grid-cols-6">
+  <ol aria-label="撮合阶段" class="@container grid grid-cols-3 gap-y-4 md:grid-cols-6">
     <li v-for="(label, i) in steps" :key="label" :title="label" :aria-current="i === current && !ended ? 'step' : undefined"
       class="relative grid justify-items-center gap-1.5 text-center text-xs" :class="i === current && !ended ? 'font-semibold text-primary' : 'text-muted-foreground'">
-      <span v-if="i" aria-hidden="true" class="absolute top-3 right-1/2 h-0.5 w-full" :class="i <= current && !ended ? 'bg-blue-200' : 'bg-slate-200'"/>
+      <span v-if="i" aria-hidden="true" class="absolute top-3 right-1/2 h-0.5 w-full" :class="[i === 3 && 'max-md:hidden', i <= current && !ended ? 'bg-blue-200' : 'bg-slate-200']"/>
       <span aria-hidden="true" class="relative z-10 grid size-6 place-items-center rounded-full ring-4 ring-white"
         :class="i === current && !ended ? 'bg-primary text-white' : i < current ? 'bg-blue-50 text-primary' : 'bg-slate-100'">
         <Check v-if="i < current || (shared && i === 3 && !ended)" class="size-3.5"/><Minus v-else-if="ended && i === current" class="size-3.5"/><template v-else>{{ i + 1 }}</template>
       </span>
-      <span class="whitespace-nowrap @max-[32rem]:sr-only">{{ label }}</span>
-      <span aria-hidden="true" class="whitespace-nowrap @min-[32rem]:hidden">{{ compact[i] }}</span>
+      <span class="md:whitespace-nowrap md:@max-[32rem]:sr-only">{{ label }}</span>
+      <span aria-hidden="true" class="max-md:hidden whitespace-nowrap @min-[32rem]:hidden">{{ compact[i] }}</span>
     </li>
   </ol>
 </template>

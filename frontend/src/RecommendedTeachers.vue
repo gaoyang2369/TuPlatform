@@ -10,7 +10,7 @@ interface TeacherCard {
   id: string; displayName: string; avatar_url?: string; is_school_verified: boolean;
   collegeMajor?: string; gradeLevel?: string; priceMin?: string; priceMax?: string; reasons: string[];
 }
-const props = defineProps<{requestId: string}>();
+const props = defineProps<{requestId: string; disabled?: boolean}>();
 const emit = defineEmits<{ open: [id:string]; expired: [] }>();
 const items = ref<TeacherCard[]>([]), busy = ref(true), error = ref(""), retry = ref(0);
 watch([() => props.requestId, retry], async ([id], _, cleanup) => {
@@ -39,7 +39,7 @@ function rate(t: TeacherCard) {
     <Skeleton v-if="busy" class="h-20 rounded-xl" aria-label="正在读取推荐老师"/>
     <p v-else-if="error" role="alert" class="text-sm text-red-700">{{ error }} <button class="underline" @click="retry++">重试</button></p>
     <p v-else-if="!items.length" class="text-sm text-muted-foreground">暂时没有匹配的本校老师，需求审核通过后，老师也可以主动投递。</p>
-    <button v-for="t in items" :key="t.id" type="button" :aria-label="'查看老师资料：'+t.displayName" @click="emit('open',t.id)"
+    <button v-for="t in items" :key="t.id" type="button" :disabled="disabled" :aria-label="'查看老师资料：'+t.displayName" @click="emit('open',t.id)"
       class="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-border bg-white p-3 text-left hover:border-primary focus-visible:outline-primary">
       <UserAvatar :url="t.avatar_url" :name="t.displayName" class="size-10 rounded-xl"/>
       <span class="grid min-w-0 gap-1">

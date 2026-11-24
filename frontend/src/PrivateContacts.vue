@@ -13,6 +13,12 @@ const dirty=computed(()=>saved.value!==null&&JSON.stringify(form)!==baseline);
 const confirming=ref<'save'|'leave'|null>(null);
 let leaveAction:(()=>void|Promise<void>)|null=null;
 function cancelConfirm(){if(busy.value)return;confirming.value=null;leaveAction=null;}
+function requestSave(event: SubmitEvent) {
+  if (busy.value || conflict.value || !dirty.value) return;
+  // WebKit may keep focus on the input when the submit button is tapped.
+  event.submitter?.focus({preventScroll:true});
+  confirming.value = 'save';
+}
 async function confirm(){if(confirming.value==='save'){confirming.value=null;await save();}else{const action=leaveAction;cancelConfirm();void action?.();}}
 async function run(action:()=>Promise<void>){if(busy.value)return;busy.value=true;error.value='';notice.value='';try{await action();}catch(e){if(!alive)return;error.value=e instanceof Error?e.message:'操作未完成';if(e instanceof ApiFailure){error.value=[e.message,...Object.values(e.fieldErrors)].join('；');if(e.status===401||e.code==='SESSION_CHANGED')emit('expired');if(e.status===409)conflict.value=true;}}finally{busy.value=false;}}
 function load(c:Contacts){saved.value=c;form.phone=c.phone??'';form.wechat=c.wechat??'';baseline=JSON.stringify(form);latest.value=null;conflict.value=false;}
@@ -38,7 +44,7 @@ onBeforeUnmount(()=>{alive=false;window.removeEventListener('beforeunload',befor
   <div v-if="latest" class="space-y-3 rounded-xl bg-orange-50 p-4"><h2 class="font-bold">最新保存内容</h2><p>手机号：{{latest.phone?'+86 '+latest.phone:'未填写'}}；微信：{{latest.wechat||'未填写'}}</p>
     <div class="flex flex-wrap gap-2"><Button variant="secondary" @click="useLatest()">载入最新内容，放弃输入</Button><Button variant="outline" @click="useLatest(true)">已核对，保留输入</Button></div></div>
   <p v-if="conflict" class="rounded-xl bg-orange-50 p-4 text-sm text-orange-900">保存版本已变化，先读取最新内容并核对。若上次响应丢失，可通过最新保存内容确认结果。</p>
-  <form v-if="saved" class="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8" @submit.prevent="!busy&&!conflict&&dirty&&(confirming='save')">
+  <form v-if="saved" class="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8" @submit.prevent="requestSave">
     <fieldset :disabled="busy" class="space-y-5"><legend class="mb-3 flex items-center gap-2 text-xl font-bold"><LockKeyhole class="size-5"/>仅本人维护</legend>
       <p v-if="!saved.phone && !saved.wechat" class="text-sm text-secondary-foreground">尚未填写联系方式。手机号和微信均为选填，可在互选后补充。</p>
       <div class="grid gap-5 sm:grid-cols-2">

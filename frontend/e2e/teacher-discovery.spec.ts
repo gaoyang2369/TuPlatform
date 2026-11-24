@@ -1,3 +1,4 @@
+import { expectMobileFit } from "./mobile-layout";
 import {test,expect} from "@playwright/test";
 import path from "node:path";
 
@@ -39,6 +40,13 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   const logo = page.getByRole("link", {name:"邻课首页"});
   const navBounds = (await nav.boundingBox())!, logoBounds = (await logo.boundingBox())!;
   expect(navBounds.y >= logoBounds.y + logoBounds.height).toBe(width < 768);
+  if (width < 768) {
+    expect(navBounds.y + navBounds.height).toBe(page.viewportSize()!.height);
+    for (const tab of await nav.getByRole("button").all()) {
+      expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+    }
+    await expectMobileFit(page);
+  }
   await expect(nav.getByRole("button", {name:"发现老师"})).toHaveAttribute("aria-current", "page");
   await expect(cards.first().getByText("¥100–150", {exact:true})).toHaveCSS("color", "rgb(15, 23, 42)");
   expect(await cards.first().evaluate(el => getComputedStyle(el.parentElement!).gridTemplateColumns.split(" ").length)).toBe(width >= 1024 ? 3 : width >= 768 ? 2 : 1);
@@ -62,6 +70,14 @@ test("老师卡片展示教学方向，十位分页、失败重试及详情返�
   await expect(drawer.getByRole("heading",{name:"教学方式"})).toBeVisible();
   await expect(drawer.getByText("初一至初三",{exact:true})).toBeVisible();
   await expect(drawer.getByRole("button",{name:"邀请这位老师"})).toBeInViewport();
+  await expectMobileFit(page);
+  if (width < 768) {
+    const action = drawer.getByRole("button", {name:"邀请这位老师"});
+    const body = drawer.locator(".drawer-composer > div").first();
+    await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    expect(await body.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+    await expect(action).toBeInViewport({ratio:1});
+  }
   const reads=queries.length;await page.getByRole("button",{name:"返回老师列表",exact:true}).click();await expect(paging).toContainText("第 2 页");await expect(cards).toHaveCount(10);expect(queries.length).toBe(reads);expect(detailCalls).toEqual(["teacher-10"]);
   await page.getByRole("button",{name:"课外学习",exact:true}).click();
   await expect(paging).toContainText("第 1 页");

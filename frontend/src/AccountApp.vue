@@ -6,6 +6,7 @@ import { ArrowLeftRight, BookOpen, Compass, ClipboardList, MessagesSquare, Shiel
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMobileViewport } from "./use-mobile-viewport";
 import UserAvatar from "./UserAvatar.vue";
 import TeacherResumeFields from "./TeacherResumeFields.vue";
 import TeacherSummary from "./TeacherSummary.vue";
@@ -32,6 +33,7 @@ const SharedTeacher = defineAsyncComponent(() => import("./SharedTeacher.vue"));
 const sharedTeacherId = ref("");
 
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
+const mobile = useMobileViewport();
 const screen = ref<Screen>("home");
 const authScreen = computed(() => ["login", "register", "forgot", "registered", "verify", "reset"].includes(screen.value));
 const routeRevision = ref(0);
@@ -159,7 +161,7 @@ const navItems = computed(() => [
   { view: "matches", label: "撮合进度", icon: MessagesSquare, show: !!me.value?.businessIdentity, go: () => showMatches() },
   { view: "profile", label: "我的资料", icon: BookOpen, show: isTutor.value, go: showProfile },
   { view: "review", label: "需求审核", icon: ShieldCheck, show: me.value?.operatorGranted, go: showReview },
-].filter(item => item.show));
+].filter(item => item.show && !(mobile.value && me.value?.businessIdentity && item.view === "review")));
 const categoryNames: Record<string, string> = { DRAWING: "绘画", DANCE: "舞蹈", OTHER_SKILL: "其他课外技能", EXTRACURRICULAR_STUDY: "课外学习" };
 const modeNames: Record<string, string> = { ONLINE: "线上", OFFLINE: "线下" };
 const areaNames: Record<string, string> = { PS_PINGSHAN: "坪山", PS_KENGZI: "坑梓", PS_LONGTIAN: "龙田", PS_SHIJING: "石井", PS_MALUAN: "马峦", PS_BILING: "碧岭" };
@@ -422,29 +424,31 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-background">
-    <header class="sticky top-0 z-30 border-b border-border bg-white/80 text-foreground backdrop-blur-md">
-      <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 md:h-[72px] md:flex-nowrap md:px-6 lg:gap-x-8 lg:px-8">
+  <div class="flex min-h-dvh flex-col bg-background" :class="{ 'with-task-nav': !booting && !needsIdentity }">
+    <header class="sticky top-0 z-30 border-b border-border bg-white/80 pt-[env(safe-area-inset-top)] text-foreground backdrop-blur-md md:pt-0">
+      <div class="mx-auto flex max-w-7xl items-center gap-x-3 px-4 py-2 md:h-[72px] md:flex-nowrap md:px-6 lg:gap-x-8 lg:px-8">
         <a href="/" aria-label="邻课首页" class="flex shrink-0 items-center gap-2 font-bold" @click.prevent="leaveCurrent(()=>{resetMessages();navigate('home');})">
           <span class="grid size-9 place-items-center rounded-xl bg-primary text-white"><BookOpen class="size-5" aria-hidden="true"/></span>
           <span class="text-2xl tracking-tight">邻课</span>
         </a>
-        <nav v-if="!booting && !needsIdentity" aria-label="主要任务" class="order-last flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-2xl bg-slate-100 px-1 py-0.5 [scrollbar-width:none] md:order-none md:w-auto md:bg-transparent md:p-0">
-          <button v-for="tab in navItems" :key="tab.view" type="button" :aria-label="tab.label"
-            :aria-description="tab.view==='matches' && pendingReplies ? `有${pendingReplies}条意向等待你回应` : undefined"
-            :aria-current="screen===tab.view ? 'page' : undefined" :disabled="busy" @click="tab.go()"
-            class="relative inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl px-1 text-sm font-medium text-secondary-foreground hover:bg-slate-100 focus-visible:outline-primary aria-[current=page]:text-primary md:flex-none md:gap-1.5 md:px-2 lg:px-3.5">
-            <motion.span v-if="screen===tab.view" layout-id="active-task" :transition="{ duration: reduceMotion ? 0 : 0.2 }" class="absolute inset-0 rounded-xl bg-white shadow-xs md:bg-blue-50 md:shadow-none" />
-            <component :is="tab.icon" class="relative hidden size-[18px] min-[360px]:block" aria-hidden="true"/>
-            <span class="relative whitespace-nowrap">{{ tab.label }}</span>
-            <small v-if="tab.view==='matches' && pendingReplies" aria-hidden="true" class="relative rounded-full bg-blue-100 px-1.5 text-xs text-primary"><span class="sr-only lg:not-sr-only">待回应 </span>{{ pendingReplies }}</small>
-          </button>
-        </nav>
+        <Teleport to="body" :disabled="!mobile">
+          <nav v-if="!booting && !needsIdentity" aria-label="主要任务" class="task-nav flex min-w-0 items-center gap-1 md:overflow-x-auto md:rounded-2xl md:[scrollbar-width:none]">
+            <button v-for="tab in navItems" :key="tab.view" type="button" :aria-label="tab.label"
+              :aria-description="tab.view==='matches' && pendingReplies ? `有${pendingReplies}条意向等待你回应` : undefined"
+              :aria-current="screen===tab.view ? 'page' : undefined" :disabled="busy" @click="tab.go()"
+              class="relative inline-flex min-h-12 flex-1 max-md:flex-col md:min-h-11 items-center justify-center gap-1 rounded-xl px-1 text-sm font-medium text-secondary-foreground hover:bg-slate-100 focus-visible:outline-primary aria-[current=page]:text-primary md:flex-none md:gap-1.5 md:px-2 lg:px-3.5">
+              <motion.span v-if="screen===tab.view" layout-id="active-task" :transition="{ duration: reduceMotion ? 0 : 0.2 }" class="absolute inset-0 rounded-xl bg-blue-50" />
+              <component :is="tab.icon" class="relative size-[18px]" aria-hidden="true"/>
+              <span class="relative whitespace-nowrap">{{ tab.label }}</span>
+              <small v-if="tab.view==='matches' && pendingReplies" aria-hidden="true" class="relative max-md:absolute max-md:top-0 max-md:left-[calc(50%+0.5rem)] rounded-full bg-blue-100 px-1.5 text-xs text-primary"><span class="sr-only lg:not-sr-only">待回应 </span>{{ pendingReplies }}</small>
+            </button>
+          </nav>
+        </Teleport>
         <div v-if="me" class="ml-auto flex shrink-0 items-center gap-2">
           <button aria-label="本人资料" title="查看本人资料" :aria-current="['profile','contacts'].includes(screen)?'page':undefined" :disabled="busy||booting||!me.businessIdentity" @click="showProfile"
-            class="flex min-h-11 items-center gap-2 rounded-xl px-1 text-left hover:bg-slate-50 focus-visible:outline-primary aria-[current=page]:bg-blue-50 sm:px-2">
+            class="flex min-h-11 items-center gap-2 rounded-xl px-1 max-md:order-last max-md:min-w-11 max-md:justify-center text-left hover:bg-slate-50 focus-visible:outline-primary aria-[current=page]:bg-blue-50 sm:px-2">
             <UserAvatar :url="me.avatar_url" :name="accountName" :color-key="me.id" class="size-9 rounded-full"/>
-            <span><strong class="hidden max-w-32 truncate text-sm md:block">{{ accountName }}</strong><span class="block text-xs text-secondary-foreground">{{ roleLabel }}</span></span>
+            <span class="max-md:sr-only"><strong class="hidden max-w-32 truncate text-sm md:block">{{ accountName }}</strong><span class="block text-xs text-secondary-foreground">{{ roleLabel }}</span></span>
           </button>
           <Popover><PopoverTrigger as-child><Button variant="secondary" :aria-label="switchLabel === '切换账号' ? switchLabel : switchLabel + '（切换账号）'" title="切换账号" class="h-11 gap-1.5 rounded-full bg-slate-100 text-secondary-foreground" :disabled="busy||booting"><ArrowLeftRight/><span>{{ switchLabel }}</span></Button></PopoverTrigger>
             <PopoverContent align="end" class="w-60 space-y-3 rounded-2xl">
@@ -459,7 +463,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         <Button v-else class="ml-auto shrink-0" :disabled="busy||booting" @click="showLogin">登录 / 注册</Button>
       </div>
     </header>
-    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8" :class="authScreen && 'flex flex-col justify-center'" :aria-busy="busy || booting">
+    <main class="mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-10 lg:px-8" :class="authScreen && 'flex flex-col justify-center'" :aria-busy="busy || booting">
       <div v-if="booting" role="status" class="space-y-4 py-8"><span class="sr-only">正在读取账号状态…</span><Skeleton class="h-8 w-44"/><Skeleton class="h-28 w-full rounded-2xl"/></div>
       <template v-else>
         <FeedbackToast v-if="error" :key="'error-' + messageSequence" :message="error" kind="error" :field-errors="fieldErrors" />
@@ -569,7 +573,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
             <h2 v-if="isTutor" class="mb-3 text-xl font-bold">基本信息与头像</h2>
             <AvatarUploader v-if="me" :key="me.id" :url="me.avatar_url" :name="accountName" :account-id="me.id" :teacher="isTutor" :disabled="busy"
               class="mb-4" @uploading="busy = $event" @uploaded="updateAvatar" @expired="draftSessionExpired"/>
-            <form class="account-fields" @submit.prevent="save"><fieldset :disabled="busy" class="space-y-5"><legend class="sr-only">本人资料</legend>
+            <form class="account-fields" @submit.prevent="save"><fieldset class="min-w-0 space-y-5" :disabled="busy"><legend class="sr-only">本人资料</legend>
               <section class="resume-section"><label for="field-displayName">展示名 <span class="ml-2 text-xs font-normal text-muted-foreground">{{ isTutor && !isPublic ? '公开前必填' : '必填' }}</span><input id="field-displayName" v-model="form.displayName" autocomplete="nickname" :required="!isTutor || isPublic" :aria-invalid="!!fieldErrors.displayName"><small>{{ codePointLength(form.displayName) }}/30个字符；账号名不会自动作为展示名。</small></label></section>
               <template v-if="isTutor">
                 <TeacherResumeFields v-model="form.resume"/>
@@ -582,7 +586,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
                 <fieldset id="field-serviceModes" class="space-y-2"><legend>服务方式 <span class="ml-2 text-xs font-normal text-muted-foreground">公开前必填 · 可多选</span></legend><label v-for="code in options.serviceModes" :key="code" class="mr-2 mb-2 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50"><input v-model="form.serviceModes" type="checkbox" :value="code">{{ modeNames[code] ?? code }}</label></fieldset>
                 <fieldset id="field-areaCodes" class="space-y-2"><legend>服务区域 <span class="ml-2 text-xs font-normal text-muted-foreground">提供线下服务时必填 · 可多选</span></legend><p class="text-sm leading-6 text-secondary-foreground">深圳市坪山区，仅线上服务可不填；不收精确住址。</p><label v-for="code in options.areaCodes" :key="code" class="mr-2 mb-2 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm has-checked:border-blue-200 has-checked:bg-blue-50"><input v-model="form.areaCodes" type="checkbox" :value="code">{{ areaNames[code] ?? code }}街道</label></fieldset>
 
-                <fieldset class="space-y-2"><legend>报价区间 <span class="ml-2 text-xs font-normal text-muted-foreground">选填 · 元/小时</span></legend><div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><label for="field-priceMin">下限<input id="field-priceMin" v-model="form.priceMin" type="text" inputmode="decimal" placeholder="例如 100"></label><span>至</span><label for="field-priceMax">上限<input id="field-priceMax" v-model="form.priceMax" type="text" inputmode="decimal" placeholder="例如 200"></label></div><p class="text-sm leading-6 text-secondary-foreground">两端均不填显示“面议”；填写时须同时填写，最多两位小数。</p></fieldset>
+                <fieldset class="space-y-2"><legend>报价区间 <span class="ml-2 text-xs font-normal text-muted-foreground">选填 · 元/小时</span></legend><div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3"><label for="field-priceMin">下限<input id="field-priceMin" v-model="form.priceMin" type="text" inputmode="decimal" placeholder="例如 100"></label><span>至</span><label for="field-priceMax">上限<input id="field-priceMax" v-model="form.priceMax" type="text" inputmode="decimal" placeholder="例如 200"></label></div><p class="text-sm leading-6 text-secondary-foreground">两端均不填显示“面议”；填写时须同时填写，最多两位小数。</p></fieldset>
                 <label for="field-availabilityText">可服务时间 <span class="ml-2 text-xs font-normal text-muted-foreground">选填</span><textarea id="field-availabilityText" v-model="form.availabilityText" rows="3" placeholder="例如：周末白天可协商"></textarea><small>{{ codePointLength(form.availabilityText) }}/300个字符；不填显示“时间可协商”。</small></label>
                 <p class="mb-4 rounded-xl bg-slate-100 p-4 text-sm text-secondary-foreground">手机号、微信和邮箱不会随资料公开。发送或接受意向时同意交换，互选后仅向对方展示。</p></section>
                 <section id="field-file" class="resume-section"><h2>PDF 简历附件 <small>选填</small></h2>
@@ -602,7 +606,9 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
         </section>
       </template>
     </main>
-    <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
+    <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span>
+      <button v-if="mobile && me?.operatorGranted && me.businessIdentity" type="button" :disabled="busy" class="min-h-11 text-primary" @click="showReview">需求审核</button>
+    </footer>
 
     <DiscoverySheet v-if="isTutor && screen==='profile'" :open="livePreview" title="老师资料" description="预览当前填写的公开资料" back-label="返回编辑" @close="livePreview=false" @restore-focus="$event.preventDefault(); previewButton?.focus()">
       <template #actions><TeacherShareButton v-if="me && isPublic" :teacher-id="me.id"/></template>

@@ -83,7 +83,7 @@ function reply(id: string) {
 <template>
   <Dialog v-if="label || open" :open="open" @update:open="show">
     <DialogTrigger as-child><Button :variant="label.startsWith('去评价') ? 'default' : 'outline'">{{ label }}</Button></DialogTrigger>
-    <DialogContent class="max-h-[90dvh] overflow-y-auto rounded-2xl p-5 sm:max-w-xl sm:p-6">
+    <DialogContent class="max-h-[90dvh] grid-cols-[minmax(0,1fr)] overflow-y-auto overscroll-contain [overflow-wrap:anywhere] rounded-2xl p-5 sm:max-w-xl sm:p-6">
       <DialogHeader>
         <DialogTitle class="pr-6 text-xl font-bold">合作互评</DialogTitle>
         <DialogDescription class="text-left text-sm leading-6">采用 14 天双盲互评机制，双方均提交或到期后同时公开，请放心给出真实反馈。</DialogDescription>

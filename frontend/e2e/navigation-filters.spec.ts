@@ -1,3 +1,4 @@
+import { expectMobileFit } from "./mobile-layout";
 import { test,expect } from "@playwright/test";
 import path from "node:path";
 
@@ -20,6 +21,7 @@ for(const identity of ["REQUESTER","TUTOR"] as const) {
     const target=identity==='REQUESTER'?'发现老师':'浏览需求',hidden=identity==='REQUESTER'?'浏览需求':'发现老师';
     await expect(nav.getByRole("button",{name:hidden,exact:true})).toHaveCount(0);await nav.getByRole("button",{name:target,exact:true}).click();await expect(page.getByRole("heading",{name:target,exact:true})).toBeVisible();
     await entry.click();await expect(page.locator("#field-displayName")).toHaveValue("昵称示例");
+    await expectMobileFit(page);
     const tabs=page.getByRole("navigation",{name:"个人资料栏目"});await tabs.getByRole("button",{name:"私密联系方式",exact:true}).click();
     await expect(page.getByRole("heading",{name:"本人私密联系方式",exact:true})).toBeVisible();await expect(entry).toHaveAttribute("aria-current","page");
     await page.screenshot({path:path.resolve(import.meta.dirname,"../../.tools/navigation-filters/contacts-"+identity+"-"+info.project.name+".png"),fullPage:true});
@@ -62,6 +64,7 @@ test("浏览列表每页10条、组合筛选与详情返回保留页码",async({
   const study = page.getByRole("button",{name:"年级与科目",exact:true});
   await study.click();
   await page.getByLabel("年级",{exact:true}).fill("高一");
+  await expectMobileFit(page);
   await page.getByLabel("科目",{exact:true}).fill("物理");
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/subject=/);

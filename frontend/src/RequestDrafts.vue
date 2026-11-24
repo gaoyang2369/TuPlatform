@@ -273,7 +273,7 @@ defineExpose({requestLeave});
           <p v-if="item.retentionReminder" class="inline-warning">这份草稿长期未保存，7天内可能被清理；继续编辑并保存可保留。</p>
           <div class="flex flex-wrap items-center gap-2"><Button variant="secondary" class="h-10 flex-1 justify-between rounded-xl" :disabled="busy" @click="open(item.id)">{{ item.status==='DRAFT'?'继续填写':'查看进度' }}<ArrowRight/></Button>
             <Button v-if="item.status==='DRAFT' && !item.latestSubmission" variant="ghost" class="text-muted-foreground" :disabled="busy" @click="askDelete(item)">删除草稿</Button></div>
-          <RecommendedTeachers v-if="item.status==='PENDING_REVIEW'" :request-id="item.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
+          <RecommendedTeachers :disabled="busy" v-if="item.status==='PENDING_REVIEW'" :request-id="item.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
         </article>
       </div>
       <Button v-if="nextCursor" variant="secondary" :disabled="busy" @click="run(()=>list(true))">加载更多</Button><Button v-if="error" variant="secondary" :disabled="busy" @click="run(()=>list())">重新读取</Button>
@@ -281,7 +281,7 @@ defineExpose({requestLeave});
     <article v-else-if="current && current.status!=='DRAFT'" class="form-card">
       <Badge variant="secondary" :class="statusColor(current.status)">{{ statusNames[current.status] }}</Badge>
       <p v-if="current.status==='PENDING_REVIEW'" class="privacy-note">正在等待运营审核，当前仅本人可见。待审期间不可编辑或撤回。</p>
-      <RecommendedTeachers v-if="current.status==='PENDING_REVIEW'" :request-id="current.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
+      <RecommendedTeachers :disabled="busy" v-if="current.status==='PENDING_REVIEW'" :request-id="current.id" @open="emit('teacher',$event)" @expired="emit('expired')"/>
       <p v-if="current.status==='OPEN'" class="privacy-note">已审核通过，当前招募中。公开内容为本次提交版本，不能直接修改或暂停。</p>
       <p v-if="current.status==='EXPIRED'" class="privacy-note">需求已到期，不再公开。你可以主动修改后重新提交并等待审核。</p>
       <p v-if="current.latestSubmission?.reviewFeedback" class="message warning">驳回理由：{{ current.latestSubmission.reviewFeedback }}</p>
@@ -384,7 +384,7 @@ defineExpose({requestLeave});
 .draft-form small, .field-help { @apply mt-1.5 block; }
 .optional { @apply ml-1; }
 .study-fields, .price-inputs, .slot-row { @apply grid min-w-0 grid-cols-2 items-end gap-3; }
-.price-inputs { @apply grid-cols-[1fr_auto_1fr]; }
+.price-inputs { @apply grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]; }
 .price-inputs > span { @apply mb-3 text-sm text-muted-foreground; }
 .duration-control { @apply mt-2 flex flex-wrap items-center gap-3; }
 .duration-stepper { @apply inline-flex items-center gap-1 rounded-xl bg-slate-50 p-1 text-sm; }
@@ -404,6 +404,10 @@ defineExpose({requestLeave});
 .privacy-note { @apply bg-slate-50 text-secondary-foreground; }
 [aria-invalid="true"] { @apply ring-2 ring-red-300; }
 .draft-form :is(input, textarea, fieldset) { @apply scroll-mt-32; scroll-margin-bottom: 8rem; }
+@media (width < 48rem) {
+  .draft-actions { bottom: var(--mobile-nav-height); padding-bottom: .75rem; }
+  .draft-form :is(input, textarea, fieldset) { scroll-margin-bottom: 9rem; }
+}
 summary { @apply cursor-pointer text-sm font-medium; }
 pre { @apply whitespace-pre-wrap; }
 </style>

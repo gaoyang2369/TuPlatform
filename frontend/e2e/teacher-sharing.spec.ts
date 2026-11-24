@@ -1,3 +1,4 @@
+import { expectMobileFit } from "./mobile-layout";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -10,6 +11,8 @@ async function exportCard(page: Page, info: TestInfo, label:string) {
   await page.getByRole("button",{name:"生成分享名片",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"老师分享名片"});
   await expect(dialog.getByRole("img")).toBeVisible();
+  await expectMobileFit(page);
+  await expect(dialog.getByRole("link", {name:"保存名片图片（PNG）"})).toBeInViewport();
   const downloading=page.waitForEvent("download");
   await dialog.getByRole("link",{name:"保存名片图片（PNG）"}).click();
   const file=info.outputPath(label+".png");

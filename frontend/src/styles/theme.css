@@ -44,6 +44,25 @@
 
 }
 
+@media (width < 48rem) {
+  :root { --mobile-nav-height: calc(3.5rem + 1px + env(safe-area-inset-bottom)); }
+  .task-nav {
+    @apply fixed inset-x-0 bottom-0 z-30 border-t border-border bg-white/95 px-2 py-1 backdrop-blur-md;
+    padding-bottom: calc(.25rem + env(safe-area-inset-bottom));
+  }
+  .with-task-nav > main { padding-bottom: calc(1.25rem + var(--mobile-nav-height)); }
+  .with-task-nav > footer { margin-bottom: var(--mobile-nav-height); }
+  html:has(.with-task-nav) { scroll-padding-block: calc(4rem + env(safe-area-inset-top)) var(--mobile-nav-height); }
+
+  :is(input, select, textarea) { font-size: 16px; min-width: 0; max-width: 100%; }
+  .discovery-strip {
+    @apply min-w-0 max-w-full flex-nowrap overflow-x-auto overscroll-x-contain motion-safe:scroll-smooth;
+    scrollbar-width: none;
+  }
+  .discovery-strip::-webkit-scrollbar { display: none; }
+  .discovery-strip > button { flex-shrink: 0; white-space: nowrap; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-slot], [data-slot] * {
     animation-duration: 0s !important;

@@ -1,3 +1,4 @@
+import { expectMobileFit } from "./mobile-layout";
 import { sampleResume, fillResume } from "./resume-fixture";
 import {test,expect} from '@playwright/test';
 import type {BrowserContext, Page} from '@playwright/test';
@@ -227,6 +228,9 @@ test('直接邀请双方从交换联系方式到合作完结解锁互评',async(
       await expect(participant.getByRole('heading', { name: '互评资格已解锁' })).toBeVisible();
       const stages = participant.getByLabel('撮合阶段');
       await expect(stages.locator('li')).toHaveCount(6);
+      await expectMobileFit(participant);
+      const columns = await stages.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+      expect(columns).toBe(participant.viewportSize()!.width < 768 ? 3 : 6);
       await expect(stages.locator('[aria-current="step"]')).toContainText('完结互评');
       expect(await participant.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await participant.getByRole('button', { name: '返回列表' }).click();
@@ -250,6 +254,7 @@ test('直接邀请双方从交换联系方式到合作完结解锁互评',async(
       }
       await dialog.getByRole('button', {name:tag, exact:true}).click();
       await dialog.getByLabel(/文字评语/).fill(content);
+      await expectMobileFit(p);
       await dialog.getByRole('button', {name:'提交评价'}).click();
       await expect(dialog.getByRole('status')).toHaveText('评价已提交');
       expect(await dialog.evaluate(el=>el.scrollWidth <= el.clientWidth)).toBe(true);

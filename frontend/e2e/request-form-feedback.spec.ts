@@ -1,3 +1,4 @@
+import { expectMobileFit } from "./mobile-layout";
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
@@ -25,6 +26,7 @@ for (const legacy of [false, true]) {
     });
     await page.goto("/");await page.getByRole("button",{name:"我的需求",exact:true}).click();await page.getByRole("button",{name:"继续填写",exact:true}).click();
     const location=page.getByLabel("公开街道");
+    await expectMobileFit(page);
     if(legacy){
       await expect(location).toHaveValue("石井街道");
       await page.getByRole("button",{name:"2. 时间预算",exact:true}).click();
@@ -46,6 +48,12 @@ for (const legacy of [false, true]) {
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/basic-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并下一步",exact:true}).click();
     await expect(page.getByLabel("单次时长（小时）",{exact:true})).toHaveValue("2");
+    await expectMobileFit(page);
+    if (page.viewportSize()!.width < 768) {
+      const actions = (await page.locator(".draft-actions").boundingBox())!;
+      const tabs = (await page.getByRole("navigation", {name:"主要任务"}).boundingBox())!;
+      expect(actions.y + actions.height).toBeLessThanOrEqual(tabs.y + 1);
+    }
     await page.getByRole("button",{name:"增加半小时",exact:true}).click();await expect(page.getByLabel("单次时长（小时）",{exact:true})).toHaveValue("2.5");
     await page.getByRole("button",{name:"2 小时",exact:true}).click();
     await expect(page.getByRole("radio",{name:"时间可协商",exact:true})).toBeChecked();await expect(page.getByLabel("开始",{exact:true})).toHaveCount(0);
@@ -54,6 +62,7 @@ for (const legacy of [false, true]) {
     await page.screenshot({path:path.resolve(import.meta.dirname,`../../.tools/request-form-feedback/time-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"保存并预览",exact:true}).click();
     await expect(page.getByRole("heading",{name:"周末数学辅导",exact:true})).toBeVisible();
+    await expectMobileFit(page);
     expect(saved.fields.availabilityPreference).toEqual({mode:"PREFERRED",weekdays:[6,7],periods:["AFTERNOON"]});expect(saved.fields.availableSlots).toEqual([]);expect(saved.fields.grade).toBe("高二");expect(saved.fields.subject).toBe("数学");expect(saved.fields.exact_address).toBe("坪山区 · 测试花园");
     const summary=page.locator(".request-summary");await expect(summary).toContainText("周末 · 下午（具体时间可协商）");await expect(summary).toContainText("高二");await expect(summary).toContainText("数学");await expect(summary).toContainText("石井片区");await expect(summary).not.toContainText("测试花园");
     await expect(summary.locator("dt").filter({hasText:/^服务对象$/})).toHaveCount(0);
