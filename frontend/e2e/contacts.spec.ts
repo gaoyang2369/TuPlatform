@@ -111,6 +111,49 @@ test('直接邀请双方从交换联系方式到合作完结解锁互评',async(
       await participant.getByRole('button', { name: '已完结', exact: true }).click();
       await expect(participant.locator('.match-row')).toHaveCount(1);
     }
+    async function review(p: Page, dimensions: string[], tag: string, content: string) {
+      await p.getByRole('button', {name:/去评价（剩余/}).click();
+      const dialog = p.getByRole('dialog', {name:'合作互评'});
+      await expect(dialog.getByRole('button', {name:'提交评价'})).toBeDisabled();
+      for (const dimension of dimensions) {
+        const group = dialog.getByRole('group', {name:dimension});
+        const fiveStars = group.getByRole('radio', {name:'5 星', exact:true});
+        if (info.project.use.isMobile) {
+          await group.locator('label').filter({has: p.getByRole('radio', {name:'5 星', exact:true})}).tap();
+        } else {
+          await fiveStars.focus();
+          await p.keyboard.press('Space');
+        }
+        await expect(fiveStars).toBeChecked();
+      }
+      await dialog.getByRole('button', {name:tag, exact:true}).click();
+      await dialog.getByLabel(/文字评语/).fill(content);
+      await dialog.getByRole('button', {name:'提交评价'}).click();
+      await expect(dialog.getByRole('status')).toHaveText('评价已提交');
+      expect(await dialog.evaluate(el=>el.scrollWidth <= el.clientWidth)).toBe(true);
+      return dialog;
+    }
+    const parentDialog = await review(page,['守时履约','讲解清晰度','备课用心度','孩子接受度'],'很有耐心','合成家长反馈');
+    await expect(parentDialog.getByText(/待对方提交或到期后公开/)).toBeVisible();
+    await parentDialog.getByRole('button',{name:'关闭'}).click();
+    await expect(page.getByRole('button',{name:'已提交评价，等待双盲公开'})).toBeVisible();
+    const blind = await tp.request.get('/api/matches/' + m.id + '/reviews');
+    expect(blind.ok()).toBe(true);
+    expect((await blind.json()).reviews).toEqual([]);
+    const teacherDialog = await review(tp,['需求描述真实','沟通尊重顺畅','课时费结算及时'],'沟通顺畅','合成老师反馈');
+    await expect(teacherDialog.getByText('合成家长反馈',{exact:true})).toBeVisible();
+    await teacherDialog.getByLabel(/礼貌回复/).fill('合成老师回复');
+    await teacherDialog.getByRole('button',{name:'发布回复'}).click();
+    await expect(teacherDialog.getByRole('status')).toHaveText('回复已发布');
+    await expect(teacherDialog.getByLabel(/礼貌回复/)).toHaveCount(0);
+    await refresh(page);
+    await page.getByRole('button',{name:'查看互评'}).click();
+    await expect(parentDialog.getByText('合成老师反馈',{exact:true})).toBeVisible();
+    await expect(parentDialog.getByText(/合成老师回复/)).toBeVisible();
+    await parentDialog.getByLabel(/礼貌回复/).fill('合成家长回复');
+    await parentDialog.getByRole('button',{name:'发布回复'}).click();
+    await expect(parentDialog.getByRole('status')).toHaveText('回复已发布');
+    await expect(parentDialog.getByLabel(/礼貌回复/)).toHaveCount(0);
   }finally{await tc.close();}
 });
 test('完整投递闭环：发布审核、接受后联系，停止分享可取消和确认',async({page,browser},info)=>{

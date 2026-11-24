@@ -38,7 +38,7 @@
 | 本人需求 `MyRequest` | `id,status,version,draft?,latestSubmission?,reviewFeedback?,activeMatchCounts`；本人可读当时提交、声明和审核反馈；无用户填写/查看的具体截止日 |
 | 公开需求 `PublicRequest` | `id, submissionId, publisherDisplayName, title, categoryCode, audienceStageCode, areaCode, goal, serviceMode?, budgetMin,budgetMax,durationHours,frequency,availableSlots,availabilityNote?,expectedStartDate?,tutorExpectations?`；不含联系方式、邮箱、精确地址、发布声明、具体截止日或内部审核信息 |
 | 公开老师 `PublicTeacher` | 基本资料、教学简历、`is_school_verified, is_skill_verified`。两项布尔值取自已通过的申请。公开投影不含证件路径、申请记录、驳回原因、联系方式或邮箱 |
-| 撮合 `Match` | `id,requestId,version,roundId,state,contactsExchanged,cooperationRequestedBy,completionRequestedBy,completedAt,reviewDeadlineAt,reviewEligible,initiatorRole,myRole,waitingForMe,requestExpired,teacherPublic,canAccept,canReject,canWithdraw,canInitiateAgain,submissionSnapshot,teacherSnapshot`；快照仅含本次沟通所需需求/老师业务字段，不含发布声明、具体截止日、审核内部信息或私密联系方式 |
+| 撮合 `Match` | `id,requestId,version,roundId,state,contactsExchanged,cooperationRequestedBy,completionRequestedBy,completedAt,reviewDeadlineAt,reviewEligible,ownReviewSubmitted,reviewsPublished,hasPastReviews,initiatorRole,myRole,waitingForMe,requestExpired,teacherPublic,canAccept,canReject,canWithdraw,canInitiateAgain,submissionSnapshot,teacherSnapshot`；快照仅含本次沟通所需需求/老师业务字段，不含发布声明、具体截止日、审核内部信息或私密联系方式 |
 | 授权进度 `Grant` | `version,myConsent,otherConsent,mySelectedFields[],requiresReconfirmation,canViewContacts`；仅双方当前有效同意且选中值仍匹配时，另返回`mySharedContacts`和`otherSharedContacts`，其中仅含选中手机号/微信；其余状态完全省略这两个值对象 |
 
 金额用十进制字符串，不用浮点数、科学记数法、千分位或货币符号；预算与老师报价至多两位小数，时长用如`"0.5"`、`"1"`的小时字符串。数据库金额可沿用`numeric(14,2)`作为技术容量；超出可存储范围明确422提示，不舍入、不截断，也不将容量解释为指导价或999元上限。日期为`YYYY-MM-DD`，提交当天按Asia/Shanghai校验。
@@ -55,6 +55,18 @@
 | `request-completion` | 合作中且无待确认完结请求。记录请求，通知对方 |
 | `confirm-completion` | 对方已发起完结请求。写入完结时间与 14 天互评截止时间 |
 | `continue-cooperation` | 对方已发起完结请求。取消本次请求，保留合作状态 |
+
+## 合作互评接口
+
+路径同时支持 `/api` 与 `/api/v1`。路径中的撮合 ID 是关系 ID，`reviews.match_id` 指向持有本次完结时间和截止时间的 `match_rounds.id`。列表和详情的 `ownReviewSubmitted`、`reviewsPublished`、`hasPastReviews` 供双方选择本轮或往期入口。只有评价列表返回评价内容。
+
+| 方法与路径 | 输入与结果 |
+| --- | --- |
+| `GET /matches/{id}/reviews` | 仅双方可读。返回当前 `roundId,canSubmit,form` 和当前及往期可见的 `reviews`。表单提供本角色的中文维度名和标签。每条带轮次、是否本人所写、公开标记、评分、标签、评语和回复。 |
+| `POST /matches/{id}/reviews` | 提交 `{roundId,subScores,tags,content}`。以表单维度名作为评分键，服务端计算综合星级，校验截止时间并从会话确定双方身份。成功返回 204。 |
+| `POST /reviews/{id}/reply` | 被评价方提交 `{content}`。仅可回复已公开评价一次，成功返回 204。 |
+
+写入使用同源 Cookie、CSRF 和 `X-Account-Id`。同一条评价或回复以相同 `Idempotency-Key` 重试相同内容可安全重放。读取评价列表按关系检查到期公开，后台另有每分钟的到期扫描。
 
 ## 试点老师认证接口
 

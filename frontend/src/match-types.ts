@@ -5,6 +5,7 @@ export interface Match {
   id:string;requestId:string|null;version:number;roundId:string;state:"WAITING"|"MUTUAL"|"REJECTED"|"WITHDRAWN"|"in_cooperation"|"completed"|"closed_no_deal";
   contactsExchanged:boolean;cooperationRequestedBy:string|null;completionRequestedBy:string|null;
   completedAt:string|null;reviewDeadlineAt:string|null;reviewEligible:boolean;
+  ownReviewSubmitted:boolean;reviewsPublished:boolean;hasPastReviews:boolean;
   avatar_url:string|null;
   initiatorRole:string;myRole:string;waitingForMe:boolean;requestExpired:boolean;teacherPublic:boolean;
   canAccept:boolean;canReject:boolean;canWithdraw:boolean;canInitiateAgain:boolean;

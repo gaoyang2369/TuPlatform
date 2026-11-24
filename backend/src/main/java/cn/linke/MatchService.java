@@ -36,9 +36,15 @@ class MatchService {
     }
     private static final String READ="SELECT m.*,n.state,n.initiator_id,n.initiator_role,n.submission_id,n.teacher_profile_version,n.submission_snapshot,n.teacher_snapshot,"+
         "n.contacts_exchanged_at,n.cooperation_requested_by,n.completion_requested_by,n.completed_at,n.review_deadline_at,"+
-        "(n.state='completed' AND n.review_deadline_at>clock_timestamp()) AS review_eligible,"+
+        "(n.state='completed' AND n.review_deadline_at>=clock_timestamp()) AS review_eligible,"+
+        "parent_review.id IS NOT NULL AS parent_reviewed,teacher_review.id IS NOT NULL AS teacher_reviewed,"+
+        "(parent_review.is_published OR teacher_review.is_published OR LEAST(parent_review.reveal_at,teacher_review.reveal_at)<=clock_timestamp()) AS reviews_published,"+
+        "EXISTS(SELECT 1 FROM match_rounds old JOIN reviews v ON v.match_id=old.id WHERE old.match_id=m.id AND old.id<>n.id "+
+        "AND (v.is_published OR v.reveal_at<=clock_timestamp())) AS past_reviews,"+
         "s.expires_at<=clock_timestamp() AS request_expired,p.is_public AS teacher_public,p.version AS current_teacher_version,r.latest_submission_id, p.avatar_url AS tutor_avatar, owner.avatar_url AS requester_avatar "+
         "FROM match_relationships m JOIN match_rounds n ON n.id=m.current_round_id LEFT JOIN request_submissions s ON s.id=n.submission_id "+
+        "LEFT JOIN reviews parent_review ON parent_review.match_id=n.id AND parent_review.reviewer_role='parent' "+
+        "LEFT JOIN reviews teacher_review ON teacher_review.match_id=n.id AND teacher_review.reviewer_role='teacher' "+
         "LEFT JOIN service_requests r ON r.id=m.request_id JOIN profiles p ON p.account_id=m.tutor_id JOIN profiles owner ON owner.account_id=m.requester_id ";
     private Map<String,Object> own(UUID actor,UUID id) {
         var rows=db.queryForList(READ+"WHERE m.id=? AND (m.requester_id=? OR m.tutor_id=?)",id,actor,actor);
@@ -63,7 +69,9 @@ class MatchService {
             !Objects.equals(r.get("submission_id"),r.get("latest_submission_id")),((Number)r.get("teacher_profile_version")).longValue()!=((Number)r.get("current_teacher_version")).longValue(),
             (String) r.get("REQUESTER".equals(role) ? "tutor_avatar" : "requester_avatar"), r.get("contacts_exchanged_at") != null,
             (UUID)r.get("cooperation_requested_by"), (UUID)r.get("completion_requested_by"),
-            instant(r, "completed_at"), instant(r, "review_deadline_at"), Boolean.TRUE.equals(r.get("review_eligible")));
+            instant(r, "completed_at"), instant(r, "review_deadline_at"), Boolean.TRUE.equals(r.get("review_eligible")),
+            Boolean.TRUE.equals(r.get("REQUESTER".equals(role) ? "parent_reviewed" : "teacher_reviewed")),
+            Boolean.TRUE.equals(r.get("reviews_published")), Boolean.TRUE.equals(r.get("past_reviews")));
     }
     private static java.time.Instant instant(Map<String,Object> row, String column) {
         var timestamp = (java.sql.Timestamp) row.get(column);

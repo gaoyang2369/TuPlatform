@@ -243,6 +243,97 @@ class MatchDatabaseTest {
         }
     }
     @Autowired MatchLifecycle lifecycle;
+    @Autowired MatchReviewService reviews;
+
+    private MatchView finish(User owner, User tutor, MatchView exchanged) {
+        var working = act(tutor,act(owner,exchanged,"request-cooperation"),"confirm-cooperation");
+        return act(owner,act(tutor,working,"request-completion"),"confirm-completion");
+    }
+
+    private MatchReviewService.Submission feedback(MatchView match, boolean parent) {
+        var scores = parent ? Map.of("守时履约",5,"讲解清晰度",4,"备课用心度",4,"孩子接受度",5)
+            : Map.of("需求描述真实",4,"沟通尊重顺畅",3,"课时费结算及时",4);
+        return new MatchReviewService.Submission(match.roundId(),json.valueToTree(scores),
+            List.of(parent ? "守时靠谱" : "沟通顺畅"),parent ? "合成家长反馈" : "合成老师反馈");
+    }
+
+    @Test void blindReviewsRevealTogetherAndAllowOnlyRecipientToReplyOnce() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR"); var outsider=user("REQUESTER");
+        var exchanged=exchanged(owner,tutor);
+        var a=feedback(exchanged,true); var b=feedback(exchanged,false);
+        assertEquals(409,assertThrows(ApiError.class,()->reviews.submit(owner.session(),exchanged.id(),a,key())).status);
+        var m=finish(owner,tutor,exchanged);
+        assertEquals(404,assertThrows(ApiError.class,()->reviews.submit(outsider.session(),m.id(),a,key())).status);
+        assertEquals(404,assertThrows(ApiError.class,()->reviews.list(outsider.session(),m.id())).status);
+        assertEquals(422,assertThrows(ApiError.class,()->reviews.submit(owner.session(),m.id(),b,key())).status);
+        var badTags=new MatchReviewService.Submission(m.roundId(),a.subScores(),List.of("守时靠谱","守时靠谱"),"");
+        assertEquals(422,assertThrows(ApiError.class,()->reviews.submit(owner.session(),m.id(),badTags,key())).status);
+        var keyA=key();
+        reviews.submit(owner.session(),m.id(),a,keyA);
+        reviews.submit(owner.session(),m.id(),a,keyA);
+        assertEquals(409,assertThrows(ApiError.class,()->reviews.submit(owner.session(),m.id(),a,key())).status);
+        var first=reviews.list(owner.session(),m.id()).reviews().getFirst();
+        assertFalse(first.published()); assertEquals(5,first.overallScore()); assertEquals(m.reviewDeadlineAt(),first.revealAt());
+        assertTrue(reviews.list(tutor.session(),m.id()).reviews().isEmpty());
+        assertFalse(matches.detail(tutor.session(),m.id()).ownReviewSubmitted());
+        assertFalse(matches.detail(tutor.session(),m.id()).reviewsPublished());
+        var reply=new MatchReviewService.Reply("谢谢你的反馈");
+        assertEquals(404,assertThrows(ApiError.class,()->reviews.reply(tutor.session(),first.id(),reply,key())).status);
+        reviews.submit(tutor.session(),m.id(),b,key());
+        var visible=reviews.list(owner.session(),m.id()).reviews();
+        assertEquals(2,visible.size()); assertTrue(visible.stream().allMatch(MatchReviewService.Entry::published));
+        assertEquals(2,reviews.list(tutor.session(),m.id()).reviews().size());
+        assertEquals(1,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type='review_submitted' AND user_id=?",Integer.class,m.roundId(),tutor.id()));
+        assertEquals(2,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type='reviews_revealed'",Integer.class,m.roundId()));
+        for(var entry:visible) {
+            var recipient=entry.mine()?tutor:owner;
+            assertEquals(404,assertThrows(ApiError.class,()->reviews.reply(outsider.session(),entry.id(),reply,key())).status);
+            assertEquals(404,assertThrows(ApiError.class,()->reviews.reply((entry.mine()?owner:tutor).session(),entry.id(),reply,key())).status);
+            assertEquals(422,assertThrows(ApiError.class,()->reviews.reply(recipient.session(),entry.id(),new MatchReviewService.Reply("字".repeat(201)),key())).status);
+            String receipt=key();
+            reviews.reply(recipient.session(),entry.id(),reply,receipt);
+            reviews.reply(recipient.session(),entry.id(),reply,receipt);
+            assertEquals(409,assertThrows(ApiError.class,()->reviews.reply(recipient.session(),entry.id(),reply,key())).status);
+        }
+        assertTrue(reviews.list(tutor.session(),m.id()).reviews().stream().allMatch(e->reply.content().equals(e.replyContent()) && e.repliedAt()!=null));
+    }
+
+    @Test void expiredSingleReviewIsRevealedAndSurvivesANewRound() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=finish(owner,tutor,exchanged(owner,tutor));
+        reviews.submit(tutor.session(),m.id(),feedback(m,false),key());
+        db.update("UPDATE match_rounds SET completed_at=now()-interval '15 days',review_deadline_at=now()-interval '1 day' WHERE id=?",m.roundId());
+        db.update("UPDATE reviews SET reveal_at=(SELECT review_deadline_at FROM match_rounds WHERE id=?) WHERE match_id=?",m.roundId(),m.roundId());
+        assertEquals(409,assertThrows(ApiError.class,()->reviews.submit(owner.session(),m.id(),feedback(m,true),key())).status);
+        var visible=reviews.list(owner.session(),m.id());
+        assertFalse(visible.canSubmit()); assertEquals(1,visible.reviews().size()); assertTrue(visible.reviews().getFirst().published());
+        var next=matches.start(owner.session(),direct(tutor,profiles.get(tutor.session()).version(),""),key()).match();
+        assertNotEquals(next.roundId(),m.roundId()); assertTrue(next.hasPastReviews()); assertFalse(next.ownReviewSubmitted());
+        assertEquals(visible.reviews(),reviews.list(owner.session(),next.id()).reviews());
+        reviews.reply(owner.session(),visible.reviews().getFirst().id(),new MatchReviewService.Reply("谢谢"),key());
+    }
+
+    @Test void scheduledRevealUsesTheCopiedDeadlineAndIsSafeToRepeat() {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=finish(owner,tutor,exchanged(owner,tutor));
+        reviews.submit(owner.session(),m.id(),feedback(m,true),key());
+        reviews.publishExpiredReviews();
+        assertFalse(db.queryForObject("SELECT is_published FROM reviews WHERE match_id=?",Boolean.class,m.roundId()));
+        db.update("UPDATE reviews SET reveal_at=now()-interval '1 second' WHERE match_id=?",m.roundId());
+        reviews.publishExpiredReviews();
+        reviews.publishExpiredReviews();
+        assertTrue(db.queryForObject("SELECT is_published FROM reviews WHERE match_id=?",Boolean.class,m.roundId()));
+    }
+
+    @Test void simultaneousSubmissionsPublishBothAndEnqueueOnce() throws Exception {
+        var owner=user("REQUESTER"); var tutor=user("TUTOR");
+        var m=finish(owner,tutor,exchanged(owner,tutor));
+        race(()->{ reviews.submit(owner.session(),m.id(),feedback(m,true),key()); return true; },
+             ()->{ reviews.submit(tutor.session(),m.id(),feedback(m,false),key()); return true; });
+        var entries=reviews.list(owner.session(),m.id()).reviews();
+        assertEquals(2,entries.size()); assertTrue(entries.stream().allMatch(MatchReviewService.Entry::published));
+        assertEquals(3,db.queryForObject("SELECT count(*) FROM notifications WHERE event_id=? AND event_type IN ('review_submitted','reviews_revealed')",Integer.class,m.roundId()));
+    }
 
     private MatchView exchanged(User owner, User tutor) {
         contacts.save(owner.session(),new SaveContacts(0L,null,"synthetic_owner"));

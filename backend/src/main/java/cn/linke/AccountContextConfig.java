@@ -24,6 +24,7 @@ class AccountContextConfig implements WebMvcConfigurer {
                 return true;
             }
         }).addPathPatterns("/api/verifications", "/api/v1/verifications", "/api/admin/verifications/**", "/api/v1/admin/verifications/**",
-            "/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**", "/api/matches/**");
+            "/api/v1/upload/avatar", "/api/v1/upload/resume", "/api/upload/resume", "/api/v1/me/**", "/api/v1/teachers/**", "/api/v1/requests/**", "/api/v1/operations/**", "/api/v1/matches/**", "/api/matches/**",
+            "/api/v1/reviews/**", "/api/reviews/**");
     }
 }

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from "./UserAvatar.vue";
 import MatchLifecyclePanel from "./MatchLifecyclePanel.vue";
+import MatchReviews from "./MatchReviews.vue";
 import MatchStepper from "./MatchStepper.vue";
 import RequestSummary from "./RequestSummary.vue";
 import TeacherSummary from "./TeacherSummary.vue";
@@ -72,6 +73,7 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
     <MatchStepper :state="detail.state" :shared="shared"/>
     <div v-if="detail.state==='WAITING'" class="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4"><div><h3 class="font-semibold">{{detail.waitingForMe?'期待你的回应':'意向已送达'}}</h3><p class="mt-1 text-sm text-secondary-foreground">{{detail.waitingForMe?'合适的话，接受后就可以联系沟通。':'对方接受后，即可查看彼此的联系方式。'}}</p></div><div class="flex flex-wrap items-center gap-2"><Button v-if="detail.canAccept" :disabled="busy||unknown||conflict" @click="ask('accept',$event)">接受意向</Button><Button v-if="detail.canReject" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('reject',$event)">婉拒</Button><Button v-if="detail.canWithdraw" variant="ghost" :disabled="busy||unknown||conflict" @click="ask('withdraw-intent',$event)">撤回意向</Button></div></div>
     <MatchLifecyclePanel :match="detail" :account-id="me.id" :shared="shared" :disabled="busy||unknown||conflict" @action="ask"/>
+    <MatchReviews v-if="detail.state==='completed' || detail.hasPastReviews" :key="detail.roundId" :match="detail" @expired="emit('expired')"/>
     <ContactConsent :with-request-address="detail.myRole==='TUTOR' && !!detail.requestId" v-if="['MUTUAL','in_cooperation','completed'].includes(detail.state)" :key="detail.roundId" @visibility="shared=$event" :match-id="detail.id" :round-id="detail.roundId" @expired="emit('expired')" @contacts="emit('contacts')"/>
     <section v-if="!detail.requestId&&detail.submissionSnapshot.introduction" class="invitation-summary space-y-2"><h3 class="font-semibold">邀请留言</h3><p class="whitespace-pre-wrap text-[15px] leading-7">{{detail.submissionSnapshot.introduction}}</p></section>
     <p v-if="detail.requestExpired||!detail.teacherPublic||detail.submissionChanged||detail.teacherProfileChanged" class="record-note rounded-xl bg-slate-50 p-3 text-sm text-secondary-foreground">{{detail.requestExpired?'原需求已到期。':''}}{{!detail.teacherPublic?'老师已停止公开。':''}}{{detail.submissionChanged||detail.teacherProfileChanged?'资料已有更新。':''}}本次联系记录保留。</p>
@@ -97,6 +99,7 @@ onMounted(async()=>{await refresh();await nextTick();restoreScroll();});
           <Badge variant="secondary" :class="m.waitingForMe && 'bg-orange-50 text-orange-800'">{{ matchLabel(m) }}</Badge>
         </div>
         <MatchStepper :state="m.state" :shared="m.contactsExchanged"/>
+        <MatchReviews v-if="m.state==='completed' || m.hasPastReviews" :key="m.roundId" :match="m" @expired="emit('expired')"/>
         <Button :variant="m.waitingForMe ? 'default' : 'secondary'" class="h-10 justify-between rounded-xl" :disabled="busy" :aria-label="`查看${partner(m)}的撮合进度`" @click="open(m.id)">{{ m.waitingForMe ? '去回应' : m.state==='MUTUAL' ? '去联系' : '查看' }}<ArrowRight/></Button>
       </article>
     </div>
