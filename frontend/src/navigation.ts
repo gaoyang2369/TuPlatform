@@ -1,6 +1,11 @@
 // Only non-secret navigation context belongs in the address/history.
 export const screens = ["home", "login", "register", "registered", "forgot", "verify", "reset", "identity", "profile", "requests", "public", "review", "teachers", "matches", "contacts"] as const;
 export type Screen = typeof screens[number];
+export function teacherShareUrl(id: string) {
+  const url = new URL(location.pathname, location.origin);
+  url.search = new URLSearchParams({view:"teachers", teacher:id}).toString();
+  return url.href;
+}
 export function readScreen(search = location.search): Screen {
   const query = new URLSearchParams(search);
   const value = query.get("view");

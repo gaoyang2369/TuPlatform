@@ -25,6 +25,7 @@ class ProfileController {
         return profiles.visibility(AuthController.session(req), body, false, key);
     }
     @GetMapping("/teachers/{id}") Map<String, Object> teacher(@PathVariable UUID id, HttpServletRequest req) { return profiles.publicTeacher(AuthController.session(req), id); }
+    @GetMapping("/public/teachers/{id}") Map<String, Object> sharedTeacher(@PathVariable UUID id) { return profiles.sharedTeacher(id); }
     @GetMapping("/teachers") Map<String,Object> teachers(HttpServletRequest req,@RequestParam(required=false) String cursor,
         @RequestParam(required=false) String categoryCode,@RequestParam(required=false) String areaCode,@RequestParam(required=false) String serviceMode,
         @RequestParam(required=false) String grade, @RequestParam(required=false) String subject,

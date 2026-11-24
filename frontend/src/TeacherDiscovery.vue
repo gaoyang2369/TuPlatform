@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiFailure, type Me, type ProfileOptions } from "./account-api";
 import type { PublicTeacher } from "./match-types";
 import TeacherSummary from "./TeacherSummary.vue";
+import TeacherShareButton from "./TeacherShareButton.vue";
 import MatchComposer from "./MatchComposer.vue";
 import { areaNames, modeNames } from "./request-display";
 import { useDiscovery } from "./use-discovery";
@@ -104,6 +105,7 @@ onMounted(loadOptions);
       </nav>
     </section>
     <DiscoverySheet :open="!!selectedId" title="老师资料" description="查看教学安排，合适时可直接邀请老师。" :back-label="backLabel" @close="close" @restore-focus="restoreFocus">
+      <template #actions><TeacherShareButton v-if="detail" :key="detail.id" :teacher-id="detail.id"/></template>
       <MatchComposer v-if="detail" drawer :key="detail.id" :me="me" :teacher-id="detail.id" @matched="emit('matched',$event)" @expired="emit('expired')" @requests="emit('requests')" @profile="emit('profile')">
         <TeacherSummary :teacher="detail" public-profile/>
       </MatchComposer>

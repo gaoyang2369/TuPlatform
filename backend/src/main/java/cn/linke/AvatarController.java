@@ -25,4 +25,8 @@ class AvatarController {
     ResponseEntity<byte[]> image(HttpServletRequest req, @PathVariable UUID id) throws IOException {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(avatars.read(AuthController.session(req), id));
     }
+    @GetMapping(value = "/public/teachers/{id}/avatar", produces = MediaType.IMAGE_JPEG_VALUE)
+    ResponseEntity<byte[]> sharedTeacherAvatar(@PathVariable UUID id) throws IOException {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(avatars.sharedTeacherAvatar(id));
+    }
 }

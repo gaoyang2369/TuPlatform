@@ -18,6 +18,7 @@ async function fixture(page:Page,options:{identity?:'REQUESTER'|'TUTOR';loggedIn
     if(path==='/me')return route.fulfill(loggedIn?{json:me}:{status:401,json:{code:'LOGIN_REQUIRED',message:'请先登录'}});
     if(path==='/me/contacts')return route.fulfill({json:{version:0,phone:null,wechat:null,fieldVersions:{phone:0,wechat:0}}});
     if(path==='/me/profile')return route.fulfill({json:profile});
+    if(path==='/public/teachers/teacher-1')return route.fulfill({json:teacher});
     if(path==='/me/teacher-profile'){profile={...profile,displayName:req.postDataJSON().displayName,version:2};return route.fulfill({json:profile});}
     if(path==='/profile-options')return route.fulfill({json:{categoryCodes:['DRAWING'],serviceModes:['ONLINE','OFFLINE'],areaCodes:[]}});
     if(path==='/publishing-options')return route.fulfill({json:{categories:['DRAWING'],serviceModes:['ONLINE','OFFLINE'],districts:[{code:'SZ_PINGSHAN',label:'坪山区'}]}});
@@ -122,9 +123,9 @@ test('未公开老师保存后仍可公开，浏览器后退取消时保留未�
   await expect(page.getByRole('button',{name:'预览并公开',exact:true})).toBeEnabled();await expect(page.locator('#field-displayName')).toHaveValue('保存后的名字');expect(writes).toEqual(['/me/teacher-profile']);
 });
 
-test('返回目标不跳转外部网站，身份不符不会读取老师资料',async({page})=>{
+test('老师可从分享链接只读查看资料，返回目标保持同源',async({page})=>{
   await fixture(page,{loggedIn:true});let teacherReads=0;page.on('request',req=>{if(req.url().includes('/api/v1/teachers'))teacherReads++;});
-  await page.goto('/?view=teachers&teacher=teacher-1');await expect(page.locator('.request-card')).toHaveCount(10);expect(teacherReads).toBe(0);
+  await page.goto('/?view=teachers&teacher=teacher-1');await expect(page.getByRole('dialog',{name:'老师资料'})).toContainText('示例老师');expect(teacherReads).toBe(0);
   await page.goto('/?view=login&returnTo=https%3A%2F%2Fexample.com');await page.locator('#field-account').fill('ux_user');await page.locator('#field-password').fill('test-password');await page.getByRole('button',{name:'登录',exact:true}).click();
   await expect(page.locator('.request-card')).toHaveCount(10);expect(new URL(page.url()).hostname).toBe('127.0.0.1');
 });

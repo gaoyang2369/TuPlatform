@@ -188,6 +188,14 @@ class ProfileService {
         auth.business(session, "REQUESTER");
         return teacherProjection(id);
     }
+    public Map<String,Object> sharedTeacher(UUID id) {
+        var teacher = teacherProjection(id);
+        teacher.keySet().retainAll(Set.of("id","displayName","profileVersion","avatar_url","collegeMajor","gradeLevel","schoolName",
+            "is_school_verified","is_skill_verified","priceMin","priceMax","teachGrades","teachSubjects","teachingStyleTags",
+            "areaCodes","serviceModes","categoryCodes","trialPolicy","introduction","availabilityText"));
+        if (teacher.get("avatar_url") != null) teacher.put("avatar_url","/api/v1/public/teachers/"+id+"/avatar");
+        return teacher;
+    }
     static UUID pageCursor(String cursor) {
         if (cursor==null || cursor.isBlank()) return new UUID(-1,-1);
         try { return UUID.fromString(cursor); }

@@ -165,6 +165,7 @@ class AccountDatabaseTest {
         var file = new MockMultipartFile("file", "synthetic.png", "image/png", bytes.toByteArray());
         var original = tx.execute(status -> avatars.upload(owner.session(), file));
         assertNotNull(original);
+        assertEquals(404,assertThrows(ApiError.class,()->avatars.sharedTeacherAvatar(owner.id())).status);
         assertEquals(original, profiles.get(owner.session()).avatarUrl());
 
         var rolledBack = tx.execute(status -> {
@@ -233,9 +234,14 @@ class AccountDatabaseTest {
         var publicView = profiles.publicTeacher(requester.session(), tutor.id());
         for (String privateField : List.of("email", "phone", "wechat", "passwordHash", "account")) assertFalse(publicView.containsKey(privateField));
         assertThrows(ApiError.class, () -> profiles.publicTeacher(null, tutor.id()));
+        var shared=profiles.sharedTeacher(tutor.id());
+        assertEquals("合成老师",shared.get("displayName"));
+        for(String field:List.of("email","phone","wechat","account","resumePdfUrl","resumePdfName","casesJson"))
+            assertFalse(shared.containsKey(field));
         assertThrows(ApiError.class, () -> profiles.saveTeacher(tutor.session(), ResumeFixtures.teacher(filled.version(), "旧版本", List.of(), List.of(), List.of(), "", null, null, "")));
         Profile stopped = profiles.visibility(tutor.session(), new VersionBody(published.version()), false, UUID.randomUUID().toString());
         assertEquals(false, stopped.teacher().get("public"));
+        assertEquals(404,assertThrows(ApiError.class,()->profiles.sharedTeacher(tutor.id())).status);
         assertThrows(ApiError.class, () -> profiles.publicTeacher(requester.session(), tutor.id()));
     }
     @Test void passwordResetConsumesAllResetTokensAndRevokesOldSessions() {

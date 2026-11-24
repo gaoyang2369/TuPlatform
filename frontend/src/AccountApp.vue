@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from "./UserAvatar.vue";
 import TeacherResumeFields from "./TeacherResumeFields.vue";
 import TeacherSummary from "./TeacherSummary.vue";
+import TeacherShareButton from "./TeacherShareButton.vue";
 import TeacherVerifications from "./TeacherVerifications.vue";
 import DiscoverySheet from "./DiscoverySheet.vue";
 import { resumeDraft, resumeFields, trialPolicies } from "./teacher-resume";
@@ -22,11 +23,13 @@ import { Badge } from "@/components/ui/badge";
 import FeedbackToast from "./FeedbackToast.vue";
 import type { Identity, Me, Profile, ProfileOptions } from "./account-api.ts";
 import { codePointLength, moneyError, passwordError } from "./account-form.ts";
-import { readScreen, routeTo, writeUrl, listenHistory, restoreScroll, type Screen } from "./navigation.ts";
+import { readScreen, routeTo, writeUrl, updateQuery, listenHistory, restoreScroll, type Screen } from "./navigation.ts";
 import type {Match} from './match-types.ts';
 
 const PublicRequests = defineAsyncComponent(() => import("./PublicRequests.vue"));
 const TeacherDiscovery = defineAsyncComponent(() => import("./TeacherDiscovery.vue"));
+const SharedTeacher = defineAsyncComponent(() => import("./SharedTeacher.vue"));
+const sharedTeacherId = ref("");
 
 const matchId=ref<string|undefined>(),matchRequestId=ref<string|undefined>();
 const screen = ref<Screen>("home");
@@ -95,16 +98,18 @@ function defaultScreen(): Screen {
 function applyLocation() {
   const query = new URLSearchParams(location.search);
   let target = readScreen();
+  sharedTeacherId.value = target === "teachers" ? query.get("teacher") || query.get("teacherId") || "" : "";
+  if (sharedTeacherId.value && query.has("teacherId")) updateQuery({teacher:sharedTeacherId.value, teacherId:undefined}, true);
   returnTarget.value = safeReturn(query.get("returnTo"));
   if (target === "home" && me.value) target = defaultScreen();
-  if (needsIdentity.value) { returnTarget.value ||= safeReturn(location.pathname + location.search); target = "identity"; }
+  if (needsIdentity.value && !sharedTeacherId.value) { returnTarget.value ||= safeReturn(location.pathname + location.search); target = "identity"; }
   if (["verify", "reset"].includes(target) && !token.value) { target = "login"; routeTo(target, {}, true); }
   const privatePages = ["profile", "contacts", "requests", "teachers", "matches", "review", "identity"];
-  if (!me.value && privatePages.includes(target)) {
+  if (!me.value && privatePages.includes(target) && !sharedTeacherId.value) {
     returnTarget.value = safeReturn(location.pathname + location.search);
     target = "login";
     routeTo(target, { returnTo: returnTarget.value }, true);
-  } else if (me.value && ((["requests", "teachers"].includes(target) && me.value.businessIdentity !== "REQUESTER") || (target === "review" && !me.value.operatorGranted) || (["matches", "contacts"].includes(target) && !me.value.businessIdentity))) {
+  } else if (me.value && ((["requests", "teachers"].includes(target) && !sharedTeacherId.value && me.value.businessIdentity !== "REQUESTER") || (target === "review" && !me.value.operatorGranted) || (["matches", "contacts"].includes(target) && !me.value.businessIdentity))) {
     target = defaultScreen();
     notice.value = "当前身份无法使用这个入口，已为你打开可用页面。";
     routeTo(target, {}, true);
@@ -458,7 +463,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
             <h1 class="max-w-3xl text-3xl leading-tight font-bold tracking-tight sm:text-5xl">找合适的老师，<br>遇见合适的教学需求。</h1>
             <p class="mt-4 max-w-xl leading-7 text-secondary-foreground">从方向、时间和预算开始了解彼此。先表达意向，双方同意后交换联系方式，再沟通具体安排。</p>
             <div class="mt-6 flex flex-wrap gap-3"><Button class="h-11 rounded-xl" @click="showTeachers"><Search/>我想找老师</Button><Button variant="secondary" class="h-11 rounded-xl" @click="showPublic">我是老师，找需求</Button></div>
-            <p class="mt-3 text-sm text-muted-foreground">老师资料需以需求方身份登录查看；公开需求可以先浏览。</p>
+            <p class="mt-3 text-sm text-muted-foreground">登录需求方账号可浏览老师列表。收到老师名片或公开需求链接后，可直接查看。</p>
           </div>
           <div class="grid gap-4 md:grid-cols-3">
             <article v-for="part in [
@@ -535,6 +540,7 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <TeacherDiscovery :key="me.id" :route-revision="routeRevision" :me="me" @matched="showMatches($event)" @expired="draftSessionExpired" @requests="prepareRequests()" @create-request="prepareRequests(true)" @profile="prepareProfile" />
           <template #fallback><div role="status"><span class="sr-only">正在打开发现老师…</span><Skeleton class="h-40 w-full rounded-2xl"/></div></template>
         </Suspense>
+        <SharedTeacher v-else-if="screen==='teachers' && sharedTeacherId" :id="sharedTeacherId" :guest="!me" @close="navigate('home')" @login="showLogin"/>
         <MatchProgress v-else-if="screen==='matches'&&me?.businessIdentity" :key="routeRevision" :me="me" :initial-id="matchId" :request-id="matchRequestId" @changed="refreshPendingReplies" @expired="draftSessionExpired" @profile="prepareProfile" @requests="prepareRequests" @contacts="showContacts" @browse="me?.businessIdentity==='TUTOR'?showPublic():showTeachers()" />
         <OperationsReview v-else-if="screen==='review'" ref="reviewRef" @expired="draftSessionExpired" />
         <section v-else-if="['profile','contacts'].includes(screen)" class="mx-auto max-w-4xl">
@@ -542,6 +548,10 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
           <PrivateContacts v-if="screen==='contacts'&&me?.businessIdentity" ref="contactsRef" :key="me.id" @expired="draftSessionExpired" />
           <template v-else>
           <div class="mb-5 flex flex-wrap items-center justify-between gap-3 [&_h1]:text-3xl [&_h1]:font-bold [&_p]:mt-2 [&_p]:text-secondary-foreground"><div><h1>{{ isTutor ? '让合适的人认识你' : '本人基本资料' }}</h1><p>{{ isTutor ? (isPublic ? '修改并保存后，需求方即可看到最新资料。' : '完善教学资料后，可以预览并决定是否公开。') : '填写展示名，就可以邀请老师或发布需求。' }}</p></div><div class="flex flex-wrap items-center gap-3"><button v-if="isTutor && profile" ref="previewButton" type="button" :disabled="busy" class="min-h-11 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-primary" @click="livePreview=true">预览家长看到的样子</button><Badge v-if="isTutor" variant="secondary" :class="isPublic && 'bg-emerald-50 text-emerald-800'">{{ isPublic ? '资料已公开' : '仅本人可见' }}</Badge></div></div>
+          <div v-if="isTutor && profile && me" class="mb-5 flex flex-wrap items-center gap-2">
+            <TeacherShareButton :teacher-id="me.id" :disabled="!isPublic"/>
+            <span v-if="!isPublic" class="text-sm text-muted-foreground">公开资料后即可生成名片。</span>
+          </div>
           <Skeleton v-if="!profile && busy" class="h-64 w-full rounded-2xl"/>
           <div v-else-if="!profile" class="space-y-4 rounded-2xl border border-border bg-card p-6"><p>本人资料尚未成功读取。</p><Button class="h-11 rounded-xl" :disabled="busy" @click="run(loadAccount)">重新读取</Button></div>
           <template v-else>
@@ -585,17 +595,18 @@ onBeforeUnmount(() => { pendingRead++;clearInterval(pendingTimer);stopHistory?.(
     <footer class="mt-auto flex flex-wrap justify-between gap-3 border-t border-border bg-white px-[max(1rem,calc((100%-76rem)/2))] pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm text-muted-foreground">邻课 · 坪山区域供需撮合 <span>先了解，再选择</span></footer>
 
     <DiscoverySheet v-if="isTutor && screen==='profile'" :open="livePreview" title="老师资料" description="预览当前填写的公开资料" back-label="返回编辑" @close="livePreview=false" @restore-focus="$event.preventDefault(); previewButton?.focus()">
+      <template #actions><TeacherShareButton v-if="me && isPublic" :teacher-id="me.id"/></template>
       <div class="min-h-0 overflow-y-auto px-5 pb-8 sm:px-8"><TeacherSummary :teacher="previewTeacher" public-profile/></div>
     </DiscoverySheet>
     <ConfirmDialog :open="preview" title="公开资料预览" cancel-text="返回编辑" confirm-text="确认公开资料" :busy="busy" @cancel="preview=false" @confirm="visibility(true)">
       <template v-if="profile?.teacher">
         <TeacherSummary :teacher="previewTeacher" public-profile/>
-        <p>公开后，已登录的需求方可查看以上资料。手机号、微信、邮箱不会公开。</p>
+        <p>公开后，需求方可浏览完整老师资料并转发名片。任何收到链接的人都可查看你的展示名、头像、教学安排和可约时段。私密联系方式仅在双方同意交换后可见。</p>
       </template>
       <p v-if="error" class="rounded-xl bg-red-50 p-3 text-red-800" role="alert">{{ error }} {{ Object.values(fieldErrors).join('；') }}</p>
     </ConfirmDialog>
     <ConfirmDialog :open="stopConfirm" title="停止公开资料？" cancel-text="继续公开" confirm-text="确认停止公开" :busy="busy" @cancel="stopConfirm=false" @confirm="visibility(false)">
-      <p>将从老师发现中移除，也不能新增投递或被邀请。已有意向、互选及联系方式授权管理继续。</p>
+      <p>停止后，老师列表和名片链接将隐藏你的资料，也将停止新的投递和邀请。已有意向与联系方式授权仍可管理，已保存的名片图片仍可转发。</p>
       <p v-if="dirty">未保存输入将留在当前页面，停止公开不会替你保存这些修改。</p><p v-if="error" role="alert" class="text-red-700">{{ error }}</p>
     </ConfirmDialog>
   </div>
